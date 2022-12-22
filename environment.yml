@@ -14,3 +14,7 @@ dependencies:
   - netcdf4
   - pandas
   - matplotlib
+  - hvplot
+  - intake
+  - fsspec
+  - gcsfs
