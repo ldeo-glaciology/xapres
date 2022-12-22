@@ -1,0 +1,26 @@
+name: test_env_xapres_package
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  ############## These will have to be adjusted to your specific project
+  - numpy
+  - scipy
+  - xarray
+  - dask
+  - netcdf4
+  - pandas
+  - matplotlib
+  - intake
+  - fsspec
+  - gcsfs
+  - tqdm
+  - pip
+
+
+  ##############
+  - pytest
+  - pip:
+    - codecov
+    - pytest-cov
+    - coverage[toml]
