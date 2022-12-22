@@ -10,6 +10,7 @@ dependencies:
   - dask
   - netcdf4
   - pandas
+  - matplotlib
   - intake
   - fsspec
   - gcsfs
