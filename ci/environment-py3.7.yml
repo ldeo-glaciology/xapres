@@ -15,6 +15,7 @@ dependencies:
   - fsspec
   - gcsfs
   - tqdm
+  - pip
 
   ##############
   - pytest
