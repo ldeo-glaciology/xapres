@@ -18,3 +18,4 @@ dependencies:
   - intake
   - fsspec
   - gcsfs
+  - tqdm
