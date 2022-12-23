@@ -7,6 +7,16 @@ dependencies:
   - numpy
   - scipy
   - xarray
+  - dask
+  - netcdf4
+  - pandas
+  - matplotlib
+  - intake
+  - fsspec
+  - gcsfs
+  - tqdm
+  - pip
+
   ##############
   - pytest
   - pip:

@@ -6,7 +6,7 @@ xapres_package
 <!-- [![conda-forge](https://img.shields.io/conda/dn/conda-forge/xapres_package?label=conda-forge)](https://anaconda.org/conda-forge/xapres_package) -->[![Documentation Status](https://readthedocs.org/projects/xapres_package/badge/?version=latest)](https://xapres_package.readthedocs.io/en/latest/?badge=latest)
 
 
-Code for processin
+Code for processing ApRES data using xarray.
 
 --------
 

@@ -2,7 +2,7 @@ name: test_env_xapres_package
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.10
   ############## These will have to be adjusted to your specific project
   - numpy
   - scipy
