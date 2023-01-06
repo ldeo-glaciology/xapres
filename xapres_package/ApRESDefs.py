@@ -514,6 +514,179 @@ class xapres():
         self.logger.info("some message")
         self.logger.error("something went wrong")
         
+    def phase2range(self, phi, lambdac=3e8, rc=None, K=2e8, ci=3.18):
+        """
+        Convert phase difference to range for FMCW radar
+        Parameters
+        ---------
+        lambdac: float
+            wavelength (m) at center frequency
+        rc: float; optional
+            coarse range of bin center (m)
+        K:  float; optional
+            chirp gradient (rad/s/s)
+        ci: float; optional
+            propagation velocity (m/s)
+        ### Original Matlab File Notes ###
+        Craig Stewart
+        2014/6/10
+        """
+
+        if lambdac is None:
+            lambdac = self.header.lambdac
+
+        if not all([K,ci]) or rc is None:
+            # First order method
+            # Brennan et al. (2014) eq 15
+            r = lambdac*phi/(4.*np.pi)
+        else:
+            # Precise
+            r = phi/((4.*np.pi/lambdac) - (4.*rc*K/ci**2.))
+
+        return r
+    
+    def bed_pick(self, sample_threshold=50, coherence_threshold=0.9,
+             filt_kernel=201, prominence=10, peak_width=300):
+        """
+            Estimate the location of the ice-bed interface.
+            Parameters
+            ---------
+            self: class
+                ApresTimeDiff object
+            sample_threshold: int
+                Number of samples to tolerate for difference between the pick from acquisition 1 and 2
+            coherence_threshold: int
+                Minimum coherence allowed for the picked bed
+            filt_kernel: int
+                Kernel for median filter
+            prominence: int
+                How high the bed power needs to be above neighboring power profile
+            peak_width: int
+                Width of the power peak
+            """
+
+        P1 = 10.*np.log10(self.data**2.)
+        mfilt1 = medfilt(P1.real, filt_kernel)
+        peaks1 = find_peaks(mfilt1, prominence=prominence, width=peak_width)[0]
+        bed_idx1 = max(peaks1)
+
+        P2 = 10.*np.log10(self.data2**2.)
+        mfilt2 = medfilt(P2.real, filt_kernel)
+        peaks2 = find_peaks(mfilt2, prominence=prominence, width=peak_width)[0]
+        bed_idx2 = max(peaks2)
+
+        if not abs(bed_idx1 - bed_idx2) < sample_threshold:
+            raise ValueError('Bed pick from first and second acquisitions are too far apart.')
+
+        bed_samp = (bed_idx1+bed_idx2)//2
+        bed_power = (mfilt1[bed_idx1]+mfilt2[bed_idx2])/2.
+        bed_range = self.range[bed_samp]
+
+        diff_idx = np.argmin(abs(self.ds-bed_range))
+        bed_coherence = np.median(abs(self.co[diff_idx-10:diff_idx+10]))
+
+        if not bed_coherence > coherence_threshold:
+            raise ValueError('Bed pick has too low coherence.')
+
+        self.bed = np.array([bed_samp, bed_range, bed_coherence, bed_power])
+
+    def coherence(self, s1, s2):
+        """
+        Phase correlation between two elements of the scattering matrix
+        Jodan et al. (2019) eq. 13
+        Parameters
+        ---------
+        s1: array
+            first acquisition
+        s2:
+            second acquisition
+        Output
+        ---------
+        c:  array
+            phase coherence
+        """
+        if hasattr(s1, '__len__') and hasattr(s2, '__len__'):
+            top = np.sum(np.dot(s1, np.conj(s2)))
+            bottom = np.sqrt(np.sum(np.abs(s1)**2.)*np.sum(np.abs(s2)**2.))
+            c = top/bottom
+        else:
+            top = np.dot(s1, np.conj(s2))
+            bottom = np.sqrt(np.abs(s1)**2.*np.abs(s2)**2.)
+            c = top/bottom
+
+        return c
+
+    def generate_range_diff(self, data1, data2, win_cor, step, range_ext=None, win_wrap=10, thresh=0.9, uncertainty='noise_phasor'):
+        """
+        Input data:
+        data1, data2: xarray.DataArrays describing the "profile" variable
+        range
+        """
+
+        # Get times of burst:
+        t1 = data1.time.data
+        t2 = data2.time.data
+        dt = (t2-t1)/ np.timedelta64(1, 's')
+        self.logger.info(f"Time between bursts : {dt}s")
+        # Get phase difference
+        # Fill a depth array which will be more sparse than the full Range vector
+        idxs = np.arange(win_cor//2, len(data1)-win_cor//2, step).astype(int)
+        if range_ext is not None:
+            ds = range_ext[idxs]
+        else:
+            ds = data1.profile_range[idxs]
+
+        # Create data and coherence vectors
+        acq1 = data1
+        acq2 = data2
+        co = np.empty_like(ds).astype(np.cdouble)
+        for i, idx in enumerate(idxs):
+            # index two sub_arrays to compare
+            arr1 = acq1[idx-win_cor//2:idx+win_cor//2]
+            arr2 = acq2[idx-win_cor//2:idx+win_cor//2]
+            # correlation coefficient between acquisitions
+            # amplitude is coherence between acquisitions and phase is the offset
+            co[i] = self.coherence(arr1, arr2)
+        
+        # Phase unwrapping
+        phi = np.angle(co).astype(float)
+        for i in range(len(co)-1):
+            idx = i+1
+            if np.all(abs(co[idx-win_wrap:idx+win_wrap]) < thresh):
+                continue
+            if phi[idx]-phi[idx-1] > np.pi:
+                phi[idx:] -= 2.*np.pi
+            elif phi[idx]-phi[idx-1] < -np.pi:
+                phi[idx:] += 2.*np.pi
+        # Range difference calculation
+        w = self.phase2range(phi,
+                         3e8,
+                         ds,
+                         2e8,
+                         3.18)
+
+        # If the individual acquisitions have had uncertainty calculations
+        '''if self.unc1 is not None:
+
+            if uncertainty == 'CR':
+                # Error from Cramer-Rao bound, Jordan et al. (2020) Ann. Glac. eq. (5)
+                sigma = (1./abs(self.co))*np.sqrt((1.-abs(self.co)**2.)/(2.*win))
+                # convert the phase offset to a distance vector
+                self.w_err = self.phase2range(sigma,
+                                        self.header.lambdac,
+                                        self.ds,
+                                        self.header.chirp_grad,
+                                        self.header.ci)
+
+            elif uncertainty == 'noise_phasor':
+                # Uncertainty from Noise Phasor as in Kingslake et al. (2014)
+                # r_uncertainty should be calculated using the function phase_uncertainty defined in this script
+                r_uncertainty = phase2range(self, self.unc1, self.header.lambdac) +\
+                    phase2range(self, self.unc2, self.header.lambdac)
+                idxs = np.arange(win//2, len(self.data)-win//2, step)
+                self.w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])
+        '''
+        return w*60*60*24*365/1000, ds # returning velocities in mm/yr
 
 
 
