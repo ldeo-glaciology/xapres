@@ -513,83 +513,7 @@ class xapres():
         self.logger.debug("debugging something")
         self.logger.info("some message")
         self.logger.error("something went wrong")
-        
-    def phase2range(self, phi, lambdac=3e8, rc=None, K=2e8, ci=3.18):
-        """
-        Convert phase difference to range for FMCW radar
-        Parameters
-        ---------
-        lambdac: float
-            wavelength (m) at center frequency
-        rc: float; optional
-            coarse range of bin center (m)
-        K:  float; optional
-            chirp gradient (rad/s/s)
-        ci: float; optional
-            propagation velocity (m/s)
-        ### Original Matlab File Notes ###
-        Craig Stewart
-        2014/6/10
-        """
-
-        if lambdac is None:
-            lambdac = self.header.lambdac
-
-        if not all([K,ci]) or rc is None:
-            # First order method
-            # Brennan et al. (2014) eq 15
-            r = lambdac*phi/(4.*np.pi)
-        else:
-            # Precise
-            r = phi/((4.*np.pi/lambdac) - (4.*rc*K/ci**2.))
-
-        return r
     
-    def bed_pick(self, sample_threshold=50, coherence_threshold=0.9,
-             filt_kernel=201, prominence=10, peak_width=300):
-        """
-            Estimate the location of the ice-bed interface.
-            Parameters
-            ---------
-            self: class
-                ApresTimeDiff object
-            sample_threshold: int
-                Number of samples to tolerate for difference between the pick from acquisition 1 and 2
-            coherence_threshold: int
-                Minimum coherence allowed for the picked bed
-            filt_kernel: int
-                Kernel for median filter
-            prominence: int
-                How high the bed power needs to be above neighboring power profile
-            peak_width: int
-                Width of the power peak
-            """
-
-        P1 = 10.*np.log10(self.data**2.)
-        mfilt1 = medfilt(P1.real, filt_kernel)
-        peaks1 = find_peaks(mfilt1, prominence=prominence, width=peak_width)[0]
-        bed_idx1 = max(peaks1)
-
-        P2 = 10.*np.log10(self.data2**2.)
-        mfilt2 = medfilt(P2.real, filt_kernel)
-        peaks2 = find_peaks(mfilt2, prominence=prominence, width=peak_width)[0]
-        bed_idx2 = max(peaks2)
-
-        if not abs(bed_idx1 - bed_idx2) < sample_threshold:
-            raise ValueError('Bed pick from first and second acquisitions are too far apart.')
-
-        bed_samp = (bed_idx1+bed_idx2)//2
-        bed_power = (mfilt1[bed_idx1]+mfilt2[bed_idx2])/2.
-        bed_range = self.range[bed_samp]
-
-        diff_idx = np.argmin(abs(self.ds-bed_range))
-        bed_coherence = np.median(abs(self.co[diff_idx-10:diff_idx+10]))
-
-        if not bed_coherence > coherence_threshold:
-            raise ValueError('Bed pick has too low coherence.')
-
-        self.bed = np.array([bed_samp, bed_range, bed_coherence, bed_power])
-
     def coherence(self, s1, s2):
         """
         Phase correlation between two elements of the scattering matrix
@@ -659,7 +583,7 @@ class xapres():
             elif phi[idx]-phi[idx-1] < -np.pi:
                 phi[idx:] += 2.*np.pi
         # Range difference calculation
-        w = self.phase2range(phi,
+        w = phase2range(phi,
                          3e8,
                          ds,
                          2e8,
@@ -670,9 +594,9 @@ class xapres():
 
             if uncertainty == 'CR':
                 # Error from Cramer-Rao bound, Jordan et al. (2020) Ann. Glac. eq. (5)
-                sigma = (1./abs(self.co))*np.sqrt((1.-abs(self.co)**2.)/(2.*win))
+                sigma = (1./abs(co))*np.sqrt((1.-abs(co)**2.)/(2.*win_cor))
                 # convert the phase offset to a distance vector
-                self.w_err = self.phase2range(sigma,
+                self.w_err = phase2range(sigma,
                                         self.header.lambdac,
                                         self.ds,
                                         self.header.chirp_grad,
@@ -686,8 +610,8 @@ class xapres():
                 idxs = np.arange(win//2, len(self.data)-win//2, step)
                 self.w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])
         '''
-        return w*60*60*24*365/1000, ds # returning velocities in mm/yr
-
+        return w*60*60*24*365*1000/(dt), ds # returning velocities in mm/yr
+    
 
 
 class DataFileObject:
@@ -942,7 +866,7 @@ class ChirpObject:
           m = np.asarray([i for i in range(len(Profile.Profile))])/pad
           phiref = 2*math.pi*self.Header["CentreFreq"]*m/self.Header["B"] -\
              m * m * 2*math.pi * self.Header["K"]/2/self.Header["B"]**2
-          Profile.Profile = Profile.Profile * np.exp(phiref*(-1j));
+          Profile.Profile = Profile.Profile * np.exp(phiref*(-1j))
         
         Profile.BurstNo = self.BurstNo
         Profile.Header = self.Header
