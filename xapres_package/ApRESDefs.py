@@ -128,7 +128,7 @@ import glob
 import os
 import logging
 from tqdm.notebook import trange, tqdm
-
+from utils import *
 
 class xapres():
     def __init__(self, loglevel='warning', max_range = None):
@@ -540,7 +540,7 @@ class xapres():
 
         return c
 
-    def generate_range_diff(self, data1, data2, win_cor, step, range_ext=None, win_wrap=10, thresh=0.9, uncertainty='noise_phasor'):
+    def generate_range_diff(self, data1, data2, win_cor, step, range_ext=None, win_wrap=10, thresh=0.9, uncertainty='CR'):
         """
         Input data:
         data1, data2: xarray.DataArrays describing the "profile" variable
@@ -590,27 +590,28 @@ class xapres():
                          3.18)
 
         # If the individual acquisitions have had uncertainty calculations
-        '''if self.unc1 is not None:
+        
+        if uncertainty == 'CR':
+            # Error from Cramer-Rao bound, Jordan et al. (2020) Ann. Glac. eq. (5)
+            sigma = (1./abs(co))*np.sqrt((1.-abs(co)**2.)/(2.*win_cor))
+            # convert the phase offset to a distance vector
+            w_err = phase2range(sigma,
+                                    3e8,
+                                    ds,
+                                    2e8,
+                                    3.18)
 
-            if uncertainty == 'CR':
-                # Error from Cramer-Rao bound, Jordan et al. (2020) Ann. Glac. eq. (5)
-                sigma = (1./abs(co))*np.sqrt((1.-abs(co)**2.)/(2.*win_cor))
-                # convert the phase offset to a distance vector
-                self.w_err = phase2range(sigma,
-                                        self.header.lambdac,
-                                        self.ds,
-                                        self.header.chirp_grad,
-                                        self.header.ci)
-
-            elif uncertainty == 'noise_phasor':
-                # Uncertainty from Noise Phasor as in Kingslake et al. (2014)
-                # r_uncertainty should be calculated using the function phase_uncertainty defined in this script
-                r_uncertainty = phase2range(self, self.unc1, self.header.lambdac) +\
-                    phase2range(self, self.unc2, self.header.lambdac)
-                idxs = np.arange(win//2, len(self.data)-win//2, step)
-                self.w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])
-        '''
-        return w*60*60*24*365*1000/(dt), ds # returning velocities in mm/yr
+        '''elif uncertainty == 'noise_phasor':
+            # Uncertainty from Noise Phasor as in Kingslake et al. (2014)
+            # r_uncertainty should be calculated using the function phase_uncertainty defined in this script
+            r_uncertainty = phase2range(self, self.unc1, self.header.lambdac) +\
+                phase2range(self, self.unc2, self.header.lambdac)
+            idxs = np.arange(win//2, len(self.data)-win//2, step)
+            w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])'''
+        w = w.rename('velocity')*60*60*24*365*1000/dt
+        w_err = w_err.rename('uncertainty')*60*60*24*365*1000/dt
+        vels = xr.merge([w, w_err])
+        return vels # returning velocities in mm/yr
     
 
 
