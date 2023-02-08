@@ -529,14 +529,9 @@ class xapres():
         c:  array
             phase coherence
         """
-        if hasattr(s1, '__len__') and hasattr(s2, '__len__'):
-            top = np.sum(np.dot(s1, np.conj(s2)))
-            bottom = np.sqrt(np.sum(np.abs(s1)**2.)*np.sum(np.abs(s2)**2.))
-            c = top/bottom
-        else:
-            top = np.dot(s1, np.conj(s2))
-            bottom = np.sqrt(np.abs(s1)**2.*np.abs(s2)**2.)
-            c = top/bottom
+        top = np.einsum('ij,ij->i', s1, np.conj(s2))
+        bottom = np.sqrt(np.sum(np.abs(s1)**2,axis=1)*np.sum(np.abs(s2)**2,axis=1))
+        c = top/bottom
 
         return c
 
@@ -554,7 +549,7 @@ class xapres():
         self.logger.info(f"Time between bursts : {dt}s")
         # Get phase difference
         # Fill a depth array which will be more sparse than the full Range vector
-        idxs = np.arange(win_cor//2, len(data1)-win_cor//2, step).astype(int)
+        idxs = np.arange(win_cor//2, data1.shape[1]-win_cor//2, step).astype(int)
         if range_ext is not None:
             ds = range_ext[idxs]
         else:
@@ -563,29 +558,30 @@ class xapres():
         # Create data and coherence vectors
         acq1 = data1
         acq2 = data2
-        co = np.empty_like(ds).astype(np.cdouble)
+        co = np.empty_like(np.stack([ds.data]*data1.shape[0])).astype(np.cdouble)
         for i, idx in enumerate(idxs):
             # index two sub_arrays to compare
-            arr1 = acq1[idx-win_cor//2:idx+win_cor//2]
-            arr2 = acq2[idx-win_cor//2:idx+win_cor//2]
+            arr1 = acq1[:,idx-win_cor//2:idx+win_cor//2]
+            arr2 = acq2[:,idx-win_cor//2:idx+win_cor//2]
             # correlation coefficient between acquisitions
             # amplitude is coherence between acquisitions and phase is the offset
-            co[i] = self.coherence(arr1, arr2)
+            co[:,i] = self.coherence(arr1.data, arr2.data)
         
         # Phase unwrapping
         phi = np.angle(co).astype(float)
-        for i in range(len(co)-1):
-            idx = i+1
-            if np.all(abs(co[idx-win_wrap:idx+win_wrap]) < thresh):
-                continue
-            if phi[idx]-phi[idx-1] > np.pi:
-                phi[idx:] -= 2.*np.pi
-            elif phi[idx]-phi[idx-1] < -np.pi:
-                phi[idx:] += 2.*np.pi
+        for i in range(co.shape[1]-1):
+            for t in range(co.shape[0]):
+                idx = i+1
+                if np.all(abs(co[t,idx-win_wrap:idx+win_wrap]) < thresh):
+                    continue
+                if phi[t,idx]-phi[t,idx-1] > np.pi:
+                    phi[t,idx:] -= 2.*np.pi
+                elif phi[t,idx]-phi[t,idx-1] < -np.pi:
+                    phi[t,idx:] += 2.*np.pi
         # Range difference calculation
         w = phase2range(phi,
                          3e8,
-                         ds,
+                         ds.data,
                          2e8,
                          3.18)
 
@@ -597,7 +593,7 @@ class xapres():
             # convert the phase offset to a distance vector
             w_err = phase2range(sigma,
                                     3e8,
-                                    ds,
+                                    ds.data,
                                     2e8,
                                     3.18)
 
@@ -608,10 +604,10 @@ class xapres():
                 phase2range(self, self.unc2, self.header.lambdac)
             idxs = np.arange(win//2, len(self.data)-win//2, step)
             w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])'''
-        w = w.rename('velocity')*60*60*24*365*1000/dt
-        w_err = w_err.rename('uncertainty')*60*60*24*365*1000/dt
-        vels = xr.merge([w, w_err])
-        return vels # returning velocities in mm/yr
+        coords = ds.to_dict()['coords']
+        
+        v_ds = ds.to_dataset()
+        return ds, w, w_err # returning velocities in mm/day
     
 
 

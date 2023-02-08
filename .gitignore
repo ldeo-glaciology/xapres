@@ -79,7 +79,7 @@ target/
 #/data/
 # I want to be able to handle links in here...need to exclude certain file types
 # instead
-
+secrets/*
 # Mac OS-specific storage files
 .DS_Store
 

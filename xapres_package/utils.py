@@ -31,6 +31,6 @@ def phase2range(phi, lambdac=3e8, rc=None, K=2e8, ci=3.18):
             r = lambdac*phi/(4.*np.pi)
         else:
             # Precise
-            r = phi/((4.*np.pi/lambdac) - (4.*rc*K/ci**2.))
+            r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
 
         return r
