@@ -548,11 +548,13 @@ class xapres():
         dt = (t2-t1)/ np.timedelta64(1, 's')
         self.logger.info(f"Time between bursts : {dt}s")
         # Get phase difference
-        # Fill a depth array which will be more sparse than the full Range vector
-        idxs = np.arange(win_cor//2, data1.shape[1]-win_cor//2, step).astype(int)
+        
         if range_ext is not None:
+            # Fill a depth array which will be more sparse than the full Range vector
+            idxs = np.arange(win_cor//2, range_ext.shape[0]-win_cor//2, step).astype(int)
             ds = range_ext[idxs]
         else:
+            idxs = np.arange(win_cor//2, data1.shape[1]-win_cor//2, step).astype(int)
             ds = data1.profile_range[idxs]
 
         # Create data and coherence vectors
@@ -604,10 +606,15 @@ class xapres():
                 phase2range(self, self.unc2, self.header.lambdac)
             idxs = np.arange(win//2, len(self.data)-win//2, step)
             w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])'''
-        coords = ds.to_dict()['coords']
-        
-        v_ds = ds.to_dataset()
-        return ds, w, w_err # returning velocities in mm/day
+        coords = {'time_diff':(['time_diff'],np.cumsum(dt),{'units': 'seconds','long_name':'Time since first burst'}),'profile_range':(['profile_range'],ds.profile_range.data,{'units': 'm','long_name':'Depth'})}
+        data_vars = {'range_diff':(['time_diff','profile_range'], np.cumsum(w,axis=0), 
+                         {'units': 'm', 
+                          'long_name':'Range difference'}),
+            'err':(['time_diff','profile_range'], w_err, 
+                         {'units': 'm', 
+                          'long_name':'Error'})}
+        ds_xr = xr.Dataset(data_vars=data_vars, coords=coords)
+        return ds_xr # returning velocities in mm/day
     
 
 
