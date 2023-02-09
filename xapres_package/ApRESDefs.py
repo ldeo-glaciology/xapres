@@ -128,6 +128,7 @@ import glob
 import os
 import logging
 from tqdm.notebook import trange, tqdm
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from utils import *
 
 class xapres():

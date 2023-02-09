@@ -1,5 +1,4 @@
 import pytest
-from xapres_package.utils import *
 from xapres_package import ApRESDefs 
 import numpy
 
