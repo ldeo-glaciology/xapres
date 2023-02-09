@@ -1,4 +1,5 @@
 import pytest
+from xapres_package.utils import *
 from xapres_package import ApRESDefs
 
 ## Use two different methods from selecting the same ApRES DAT file from a google bucket. 

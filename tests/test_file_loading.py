@@ -1,5 +1,6 @@
 import pytest
-from xapres_package import ApRESDefs
+from xapres_package.utils import *
+from xapres_package import ApRESDefs 
 import numpy
 
 # Test the loading of a single dat file from the google bucket
