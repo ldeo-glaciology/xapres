@@ -571,7 +571,7 @@ class xapres():
             co[:,i] = self.coherence(arr1.data, arr2.data)
         
         # Phase unwrapping
-        phi = np.angle(co).astype(float)
+        phi = -np.angle(co).astype(float)
         for i in range(co.shape[1]-1):
             for t in range(co.shape[0]):
                 idx = i+1
@@ -583,10 +583,10 @@ class xapres():
                     phi[t,idx:] += 2.*np.pi
         # Range difference calculation
         w = phase2range(phi,
-                         3e8,
+                         0.5608,
                          ds.data,
                          2e8,
-                         3.18)
+                         1.6823e8)
 
         # If the individual acquisitions have had uncertainty calculations
         
@@ -595,10 +595,10 @@ class xapres():
             sigma = (1./abs(co))*np.sqrt((1.-abs(co)**2.)/(2.*win_cor))
             # convert the phase offset to a distance vector
             w_err = phase2range(sigma,
-                                    3e8,
+                                    0.5608,
                                     ds.data,
                                     2e8,
-                                    3.18)
+                                    1.6823e8)
 
         '''elif uncertainty == 'noise_phasor':
             # Uncertainty from Noise Phasor as in Kingslake et al. (2014)
@@ -607,15 +607,17 @@ class xapres():
                 phase2range(self, self.unc2, self.header.lambdac)
             idxs = np.arange(win//2, len(self.data)-win//2, step)
             w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])'''
-        coords = {'time_diff':(['time_diff'],np.cumsum(dt),{'units': 'seconds','long_name':'Time since first burst'}),'profile_range':(['profile_range'],ds.profile_range.data,{'units': 'm','long_name':'Depth'})}
-        data_vars = {'range_diff':(['time_diff','profile_range'], np.cumsum(w,axis=0), 
+        
+        coords = {'time':(['time'],t2,{'units': 'seconds','long_name':'Time of second burst'}),'profile_range':(['profile_range'],ds.profile_range.data,{'units': 'm','long_name':'Depth'})}
+        data_vars = {'time_diff':(['time'],np.cumsum(dt),{'units': 'seconds','long_name':'Time since first burst'}),
+                     'range_diff':(['time','profile_range'], w, #np.cumsum(w,axis=0), 
                          {'units': 'm', 
                           'long_name':'Range difference'}),
-            'err':(['time_diff','profile_range'], w_err, 
+            'err':(['time','profile_range'], w_err, 
                          {'units': 'm', 
                           'long_name':'Error'})}
         ds_xr = xr.Dataset(data_vars=data_vars, coords=coords)
-        return ds_xr # returning velocities in mm/day
+        return ds_xr, co, phi # returning velocities in mm/day
     
 
 

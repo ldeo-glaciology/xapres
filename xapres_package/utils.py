@@ -7,7 +7,7 @@ Utility functions that are called by multiple different classes
 """
 import numpy as np
 
-def phase2range(phi, lambdac=3e8, rc=None, K=2e8, ci=3.18):
+def phase2range(phi, lambdac=0.5608, rc=None, K=2e8, ci=1.6823e8):
         """
         Convert phase difference to range for FMCW radar
         Parameters
