@@ -245,11 +245,6 @@ class xapres():
         self._add_attrs()
         
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
-    
-
-
-
-
 
     def _all_bursts_in_dat_to_xarray(self,dat,bursts_selected):
         """Take data from all the bursts in .DAT file and put it in an xarray.
@@ -870,10 +865,10 @@ class ChirpObject:
         Profile.Profile = Profile.Profile[0:math.floor(Nfft/2)-1]
         Profile.Range = Profile.Range[0:math.floor(Nfft/2)-1]
         if ref == 1:
-          m = np.asarray([i for i in range(len(Profile.Profile))])/pad
-          phiref = 2*math.pi*self.Header["CentreFreq"]*m/self.Header["B"] -\
+            m = np.asarray([i for i in range(len(Profile.Profile))])/pad
+            phiref = 2*math.pi*self.Header["CentreFreq"]*m/self.Header["B"] -\
              m * m * 2*math.pi * self.Header["K"]/2/self.Header["B"]**2
-          Profile.Profile = Profile.Profile * np.exp(phiref*(-1j))
+            Profile.Profile = Profile.Profile * np.exp(phiref*(-1j))
         
         Profile.BurstNo = self.BurstNo
         Profile.Header = self.Header
