@@ -41,7 +41,18 @@ Now you can compute decibels from a complex profile simply using
 ds.profile.isel(time=300, chirp_num=0, attenuator_setting_pair=0).db()
 ```
 
-You can also 
+You can also sonify the chirp. Because the frequencies contained in the chirps largely in the audible range, you can play them through the computer's speakers and hear what the ApRES data sound like:
+
+```
+ds.profile.isel(time=300, chirp_num=0, attenuator_setting_pair=0).sonify()
+```
+
+This plays the chirp and if you set save = `True` as an input it will save the audio file as a .wav file. 
+
+Contributions to this project are very welcome! Please feel free to contact us through github issues. 
+
+
+
 
 --------
 
