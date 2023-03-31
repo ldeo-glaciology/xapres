@@ -293,6 +293,7 @@ class xapres():
         chirps , profiles = self._burst_to_3d_arrays(burst)
         chirp_time, profile_range = self._coords_from_burst(burst)
         time = self._timestamp_from_burst(burst)
+        orientation = self._get_orientation(burst.Filename)
 
         chirps = chirps[None,:,:,:]
         profiles = profiles[None,:,:,:]
@@ -315,7 +316,8 @@ class xapres():
                 filename              = (["time"], [burst.Filename]),
                 burst_number          = (["time"], [burst.BurstNo]),
                 AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
-                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']])
+                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                orientation           = (["time"], [orientation])
             ),
         )
         return xarray_out
@@ -390,6 +392,17 @@ class xapres():
     def _timestamp_from_burst(self,burst):
         """Return the time stamp of a burst"""  
         return pd.to_datetime(burst.Header["Time stamp"])  
+
+    def _get_orientation(self, filename):
+
+        orientation = filename[-6:-4]
+        #add funciton to make sure orientation is capitalized
+
+        #if no orientation at end of filename, mark as unknown
+        if orientation not in ['HH','HV','VH','VV']:
+            orientation = 'unknown'
+
+        return orientation
     
     def _set_max_range(self,burst):
         
@@ -447,7 +460,10 @@ class xapres():
         self.data.filename.attrs['description'] = 'the name of the file that contains each burst'
         self.data.burst_number.attrs['description'] = 'the number of each burst within each file'
         
-        #self.data.attrs['time created'] = pd.Timestamp.now()  
+        #self.data.attrs['time created'] = pd.Timestamp.now()
+            
+        self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
+
 
     def dB(self, da):
         '''Returns decibels from the DataArray, da, which needs be ApRES complex profile (or collection of them.'''
