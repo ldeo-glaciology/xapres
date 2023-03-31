@@ -171,9 +171,9 @@ class xapres():
                         
         if remote_load:
             fs = gcsfs.GCSFileSystem()
-            dat_filenames = fs.glob(directory + '/**/*.DAT', recursive = True)
+            dat_filenames = fs.glob(directory + '/**/*.[dD][aA][tT]', recursive = True)
         else:
-            dat_filenames = glob.glob(directory + '/**/*.DAT',recursive = True)
+            dat_filenames = glob.glob(directory + '/**/*.[dD][aA][tT]',recursive = True)
         
         self.dat_filenames = dat_filenames
         
