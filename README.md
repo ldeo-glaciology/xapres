@@ -13,11 +13,11 @@ See the notebooks/guides directory for examples of how to use both the core proc
 
 The package includes the capability to write data to zarr stores, which can be accessed efficiently without immediately loading all the data to disk. This is particularly useful when performing analysis in the cloud, but can be useful when inspecting the data locally too. 
 
-For example, to lazily access (meaning that no data is downloaded immediately) some recent data from Greenland  use:
+For example, to lazily access (meaning that no data is downloaded immediately) some recent ApRES data from Greenland, use:
 
 ```
 def reload(site):
-    filename = f'gs://ldeo-glaciology/apres/greenland/2022/single_zarrs/{site}'
+    filename = f'gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/{site}'
     ds = xr.open_dataset(filename,
         engine='zarr', 
         chunks={}) 
@@ -26,6 +26,33 @@ A101 = reload("A101')
 A103 = reload("A103')
 A104 = reload("A104')
 ```
+
+Alternatively, you can use a function built-in to the package which loads these data, and also adds some functionality to the xarray it returns: 
+
+```
+import ApRESDefs as xa
+ds = xa.load_zarr("A101")
+ds
+```
+
+Now you can compute decibels from a complex profile simply using 
+
+```
+ds.profile.isel(time=300, chirp_num=0, attenuator_setting_pair=0).db()
+```
+
+You can also sonify the chirp. Because the frequencies contained in the chirps largely in the audible range, you can play them through the computer's speakers and hear what the ApRES data sound like:
+
+```
+ds.profile.isel(time=300, chirp_num=0, attenuator_setting_pair=0).sonify()
+```
+
+This plays the chirp and if you set save = `True` as an input it will save the audio file as a .wav file. 
+
+Contributions to this project are very welcome! Please feel free to contact us through github issues. 
+
+
+
 
 --------
 

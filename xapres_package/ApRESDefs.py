@@ -119,7 +119,7 @@ import matplotlib.pyplot as plt
 import math
 import warnings
 import copy
-import xarray as xr
+import numpy as np
 import sys
 import pandas as pd
 import xarray as xr
@@ -130,6 +130,55 @@ import logging
 from tqdm.notebook import trange, tqdm
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 from utils import *
+
+
+def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
+    """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
+    
+    import numpy as np
+    import xarray as xr
+        
+    ds = xr.open_dataset(directory + site,
+        engine = 'zarr', 
+        chunks = {}) 
+    
+    # add db function as new bound method of DataArrays
+    xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
+    
+    
+    # add sonfiy function (only if soundfile and sounddevice are instaled)
+    def sonify(self, play = True, save = False, wav_filename = "chirp"):
+
+    
+        # make sure the input is just one chirp    
+        if self.size != self.chirp_time.size: 
+            raise BaseException('sonify only works for single chirps.')    
+
+        #cut out the start and end to record popping
+        chirp = self.isel(chirp_time =slice(5000,-500))
+
+
+        if play:
+            samplerate = chirp.chirp_time.size / (   (chirp.chirp_time[-1] - chirp.chirp_time[0]) /np.timedelta64(1, 's'))
+            sd.play(chirp, samplerate = samplerate )
+
+        if save:
+            sf.write(F"{wav_filename} .wav", chirp, samplerate = samplerate)
+
+ 
+    try:     
+        import soundfile as sf
+        import sounddevice as sd
+
+        xr.DataArray.sonify = sonify 
+    except ImportError:
+        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
+    
+    
+    return ds
+
+
+
 
 class xapres():
     def __init__(self, loglevel='warning', max_range = None):
@@ -513,7 +562,7 @@ class xapres():
     def coherence(self, s1, s2):
         """
         Phase correlation between two elements of the scattering matrix
-        Jodan et al. (2019) eq. 13
+        Jordan et al. (2019) eq. 13
         Parameters
         ---------
         s1: array
