@@ -293,6 +293,7 @@ class xapres():
         chirps , profiles = self._burst_to_3d_arrays(burst)
         chirp_time, profile_range = self._coords_from_burst(burst)
         time = self._timestamp_from_burst(burst)
+        self.logger.debug(f"Get orientation from filename")
         orientation = self._get_orientation(burst.Filename)
 
         chirps = chirps[None,:,:,:]
