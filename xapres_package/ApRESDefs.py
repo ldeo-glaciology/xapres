@@ -146,7 +146,7 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
     xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
     
     
-    # add sonfiy function (only if soundfile and sounddevice are instaled)
+    # add sonify function (only if soundfile and sounddevice are installed)
     def sonify(self, play = True, save = False, wav_filename = "chirp"):
 
     
