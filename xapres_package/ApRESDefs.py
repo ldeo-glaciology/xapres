@@ -77,7 +77,8 @@ class xapres:
       
     def list_files(self, 
                    directory=None, 
-                   remote_load=False
+                   remote_load=False,
+                   search_suffix=""
                    ):    
         """Recursively list all the .DAT files in a given location dir. 
         
@@ -92,11 +93,11 @@ class xapres:
         if directory is None:
             directory = os.getcwd()
                         
-        if remote_load:
+        if remote_load:   
             fs = gcsfs.GCSFileSystem()
-            dat_filenames = fs.glob(directory + '/**/*.DAT', recursive = True)
+            dat_filenames = fs.glob(directory + '/**/*' + search_suffix + '.DAT',recursive = True)
         else:
-            dat_filenames = glob.glob(directory + '/**/*.DAT',recursive = True)
+            dat_filenames = glob.glob(directory + '/**/*' + search_suffix + '.DAT',recursive = True)
         
         self.dat_filenames = dat_filenames
         
@@ -110,18 +111,21 @@ class xapres:
                  remote_load=False, 
                  file_numbers_to_process=None, 
                  file_names_to_process=None, 
-                 bursts_to_process="All"
+                 bursts_to_process="All",
+                 attended=False,
                  ):
         """Put all the data from all the .DAT files found recursively in 'directory', in one xarray."""   
         
         self.file_numbers_to_process = file_numbers_to_process
         self.file_names_to_process = file_names_to_process
+        self.attended = attended
+        self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
         #self.bursts_to_process = bursts_to_process
        
-        ###### List files ######
+        self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}")
         self.list_files(directory, remote_load)    # adds self.dat_filenames
     
-        ###### Subset files ######
+        # Subset files based on either file_numbers_to_process or file_names_to_process.
         if file_numbers_to_process is not None and file_names_to_process is not None:
             self.logger.debug("Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all")
             raise ValueError("file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.") 
@@ -146,13 +150,11 @@ class xapres:
             self.logger.debug("Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied")
             self.dat_filenames_to_process = self.dat_filenames          
         
-        ## loop through the dat files, putting individual xarrays in a list
+        # Loop through the dat files, putting individual xarrays in a list.
         self.logger.debug("Starting loop over dat files")
         list_of_multiBurstxarrays = []   
         for dat_filename in self.dat_filenames_to_process:
             self.logger.debug(f"Load dat file {dat_filename}")
-
-
             dat = self.load_dat_file(dat_filename, remote_load)
             
             multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
@@ -162,7 +164,8 @@ class xapres:
         
         self.logger.debug(f"Concatenating all the multi-burst xarrays to create xapres.data")
         # concatenate all the xarrays in the list along the time dimension
-        self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
+        #self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
+        self.data = self._concat(list_of_multiBurstxarrays)
         
         self._add_attrs()
         
@@ -170,15 +173,19 @@ class xapres:
 
     def _all_bursts_in_dat_to_xarray(self, 
                                      dat, 
-                                     bursts_selected):
-        """Take data from all the bursts in one .DAT file and put it in an xarray.
+                                     bursts_selected,
+                                     ):
+        """Take data from all the bursts in one .DAT file and put it in an xarray, concatenated by time
         
         Arguments:
         dat -- a DataFileObject  
+        bursts_selected -- a list of the burst numbers to process, or "All" to process all the bursts in the dat file.
         """
+        self.logger.debug("Attended is False. Generating xarray for unattended data")   
         self.logger.debug(f"This dat file has {dat.NoBurstsInFile} bursts.")
         self.logger.debug(f"bursts_to_process = {bursts_selected} at the start of _all_bursts_in_dat_to_xarray.")
-        # choose which bursts to process (default is all of the burst in each dat file)
+
+        # Choose which bursts to process. The default is all of the burst in each dat file).
         if bursts_selected == "All":
             bursts_to_process = range(dat.NoBurstsInFile)
             self.logger.debug("bursts_to_process set to \"All\"")
@@ -190,28 +197,50 @@ class xapres:
                 the dat file ({dat.NoBurstsInFile}), so we will just process all the bursts.")
             bursts_to_process = range(dat.NoBurstsInFile)
 
-        self.logger.debug(f"bursts_to_process = {list(bursts_to_process)} after initial parse in _all_bursts_in_dat_to_xarray.")
-
+        self.logger.debug(f"After the initial parse in _all_bursts_in_dat_to_xarray, bursts_to_process = {list(bursts_to_process)}.")
         self.logger.debug(f"Start loop over burst numbers {list(bursts_to_process)} in dat file {dat.Filename}")     
         
-        list_of_singleBurst_xarrays = []
-
+        list_of_singleBurst_xarrays = []     
+        # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray, and appending it to the list list_of_singleBurst_xarrays
         for burst_number in bursts_to_process:#tqdm(bursts_to_process):
-            self.logger.debug(f"Extract burst number {burst_number}")
+            self.logger.debug(f"Extract burst number {burst_number}")   
             burst = dat.ExtractBurst(burst_number)
-
             singleBurst_xarray = self._burst_to_xarray(burst)
-
             list_of_singleBurst_xarrays.append(singleBurst_xarray)
+
         self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat.Filename}")
         
-        return xr.concat(list_of_singleBurst_xarrays, dim='time') 
-    
+        # If the data was collected in unattended mode concat along the time dimension.
+        #
+        # If the data was collected in attended mode concat along the waypoint dimension.
+        # match self.attended:
+        #    case False:
+        #        return xr.concat(list_of_singleBurst_xarrays, dim='time') 
+        #    case True:
+        #        return xr.concat(list_of_singleBurst_xarrays, dim='waypoint')
+        self.burst_load_counter = 0
+        return self._concat(list_of_singleBurst_xarrays)
+
+
+    def _concat(self, list_of_xarrays):
+        """ 
+        Concatenate xarrays. 
+        If the data was collected in unattended mode concat along the time dimension.
+        If the concat along the waypoint dimension.
+        """
+
+        match self.attended:
+            case False:
+                return xr.concat(list_of_xarrays, dim='time') 
+            case True:
+                return xr.concat(list_of_xarrays, dim='waypoint')
+            
+
     def _burst_to_xarray(self,burst):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
 
         self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
-        chirps , profiles = self._burst_to_3d_arrays(burst)
+        chirps, profiles = self._burst_to_3d_arrays(burst)
         chirp_time, profile_range = self._coords_from_burst(burst)
         time = self._timestamp_from_burst(burst)
         self.logger.debug(f"Get orientation from filename")
