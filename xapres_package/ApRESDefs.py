@@ -150,23 +150,27 @@ class xapres:
             self.logger.debug("Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied")
             self.dat_filenames_to_process = self.dat_filenames          
         
-        # Loop through the dat files, putting individual xarrays in a list.
-        self.logger.debug("Starting loop over dat files")
-        list_of_multiBurstxarrays = []   
-        for dat_filename in self.dat_filenames_to_process:
-            self.logger.debug(f"Load dat file {dat_filename}")
-            dat = self.load_dat_file(dat_filename, remote_load)
+
+        if attended is False:
+            # Loop through the dat files, putting individual xarrays in a list.
+            self.logger.debug("Attended is False, so starting loop over dat files")
+            list_of_multiBurstxarrays = []   
+            for dat_filename in self.dat_filenames_to_process:
+                self.logger.debug(f"Load dat file {dat_filename}")
+                dat = self.load_dat_file(dat_filename, remote_load)
+                
+                multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
             
-            multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
-        
-            list_of_multiBurstxarrays.append(multiBurstxarray)
-            self.logger.debug(f"Finished processing file {dat_filename}")
-        
-        self.logger.debug(f"Concatenating all the multi-burst xarrays to create xapres.data")
-        # concatenate all the xarrays in the list along the time dimension
-        #self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
-        self.data = self._concat(list_of_multiBurstxarrays)
-        
+                list_of_multiBurstxarrays.append(multiBurstxarray)
+                self.logger.debug(f"Finished processing file {dat_filename}")
+            
+            self.logger.debug(f"Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data")
+            # concatenate all the xarrays in the list along the time dimension
+            #self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
+            self.data = self._concat(list_of_multiBurstxarrays)
+        elif attended is True:
+            self.logger.debug("Attended is True, so starting loop over directories. Each directory contains dat file(s) taken at one waypoint. ")
+
         self._add_attrs()
         
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
