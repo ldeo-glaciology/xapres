@@ -672,12 +672,19 @@ class DataFileObject:
         self.Filename = Filename
         self.remote_load = remote_load
         
-
-        if remote_load:
+        # try to looad locally, then resort to loading remotely (would remove need for "remote" arg if propagated to rest of classes)
+        try:
+            datafile = open(datafile, "rb")
+        except TypeError:
+            print("no local file found, trying remote load..")
             fs = gcsfs.GCSFileSystem()
-            datafile = fs.open(self.Filename, mode = 'rb')
-        else: 
-            datafile = open(self.Filename, "rb")
+            datafile = fs.open(datafile, mode='rb')
+            if datafile is not None:
+                print("remote load successful")
+            else:
+                print("remote load failed")
+        except:
+            print("file could not be found, see error message")
             
 
         inbuff = datafile.read()
