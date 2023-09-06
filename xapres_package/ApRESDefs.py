@@ -679,7 +679,7 @@ class DataFileObject:
             print("no local file found, trying remote load..")
             fs = gcsfs.GCSFileSystem()
             datafile = fs.open(self.Filename, mode='rb')
-            if datafile is not None:
+            if 'datafile' is in locals():
                 print("remote load successful")
             else:
                 print("remote load failed")
