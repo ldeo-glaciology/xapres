@@ -38,6 +38,7 @@ class xapres:
 
     load_all is the most important method. Call it, for example, as follows:
 
+
         import ApRESDefs
         xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
         xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
@@ -47,7 +48,144 @@ class xapres:
                 )
 
     the resulting xarray will be saved in xa.data.
-    """
+    
+Instance variables:
+    Filename           : Name of data file
+    BurstLocationList  : Python list of byte offset of each burst in file
+    NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+    
+BurstObject.
+============
+Typically instantiated with a call to the ExtractBurst method on a DataFileObject
+eg Burst = fileDescriptor.ExtractBurst(3)
+
+Methods:
+    ExtractChirp(ChirpList (Python list))
+        Output is an instance of a ChirpObject, in which all chirps in the ChirpList
+        have been averaged
+    PlotBurst()
+        Plots the full raw burst as a time series
+
+Instance variables:
+    v         : Array containing burst data
+    Filename  : Name of data file
+    Header    : Burst header (Python dictionary), with additional entries:
+    BurstNo   : Burst number in data file
+
+ChirpObject
+===========
+Typically instantiated with a call to the ExtractChirp method on a BurstBbject
+eg Chirp = Burst.ExtractChirp([1,3])
+
+Methods:
+    FormProfile(StartFreq, StopFreq, padfactor, ref)
+        StartFreq, StopFreq: start and end frequencies to use (eg 2e8 and 4e8)
+        padfactor:           zero padding for the fft (eg. 2)
+        ref:                 whether or not to apply Paul Brennan's reference
+                             phase (1 or 0, for yes or no)
+        Returns and instance of a ProfileObject
+    PlotChirp()
+        Plots the chirp as function of time
+
+Instance variables:
+    vdat:       Array containing chirp data
+    t:          Array containing time for chirp samples
+    ChirpList:  List of chirps averaged to make vdat
+    Filename:   Name of data file
+    BurstNo:    Number of burst within data file
+    Header:     Burst header, as created by ExtractBurst method on FileDataObject
+
+ProfileObject.
+==============
+Typically instantiated with a call to the FormProfile method on a ChirpObject
+eg Profile = Chirp.FormProfile(StartFreq, StopFreq, padfactor, ref)
+
+Methods:
+    PlotProfile(MaxDepth (double))
+        MaxDepth:  Maximum depth (in metres) to which to plot profile
+        
+Instance variables:
+    Range:     Array with depth in metres each profile depth bin
+    Profile:   Array containing profile (complex double)
+    F0:        Start frequency used to form profile
+    F1:        End frequency used to form profile
+    pad:       Pad factor used when zeropadding
+    ChirpList: List of chirps averaged to form profile
+    Filename:  Name of original data file 
+    BurstNo:   Number of burst in data file
+    Header:    Burst header, as produced using ExtractBurst method on DataFileObject 
+    rad2m:     radians to metres of range conversion factor
+    bin2m:     bin to metres of range conversion factor
+"""
+import gcsfs
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+import warnings
+import copy
+import numpy as np
+import sys
+import pandas as pd
+import xarray as xr
+from tqdm import tqdm
+import glob
+import os
+import logging
+from tqdm.notebook import trange, tqdm
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+from utils import *
+
+
+def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
+    """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
+    
+    import numpy as np
+    import xarray as xr
+        
+    ds = xr.open_dataset(directory + site,
+        engine = 'zarr', 
+        chunks = {}) 
+    
+    # add db function as new bound method of DataArrays
+    xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
+    
+    
+    # add sonify function (only if soundfile and sounddevice are installed)
+    def sonify(self, play = True, save = False, wav_filename = "chirp"):
+
+    
+        # make sure the input is just one chirp    
+        if self.size != self.chirp_time.size: 
+            raise BaseException('sonify only works for single chirps.')    
+
+        #cut out the start and end to record popping
+        chirp = self.isel(chirp_time =slice(5000,-500))
+
+
+        if play:
+            samplerate = chirp.chirp_time.size / (   (chirp.chirp_time[-1] - chirp.chirp_time[0]) /np.timedelta64(1, 's'))
+            sd.play(chirp, samplerate = samplerate )
+
+        if save:
+            sf.write(F"{wav_filename} .wav", chirp, samplerate = samplerate)
+
+ 
+    try:     
+        import soundfile as sf
+        import sounddevice as sd
+
+        xr.DataArray.sonify = sonify 
+    except ImportError:
+        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
+    
+    
+    return ds
+
+
+
+
+class xapres():
+
     def __init__(self, loglevel='warning', max_range = None):
         self._setup_logging(loglevel)
         self.max_range = max_range
@@ -95,9 +233,9 @@ class xapres:
                         
         if remote_load:   
             fs = gcsfs.GCSFileSystem()
-            dat_filenames = fs.glob(directory + '/**/*' + search_suffix + '.DAT',recursive = True)
+            dat_filenames = fs.glob(directory + '/**/*.[dD][aA][tT]', recursive = True)
         else:
-            dat_filenames = glob.glob(directory + '/**/*' + search_suffix + '.DAT',recursive = True)
+            dat_filenames = glob.glob(directory + '/**/*.[dD][aA][tT]',recursive = True)
         
         self.dat_filenames = dat_filenames
         
@@ -480,7 +618,7 @@ class xapres:
     def coherence(self, s1, s2):
         """
         Phase correlation between two elements of the scattering matrix
-        Jodan et al. (2019) eq. 13
+        Jordan et al. (2019) eq. 13
         Parameters
         ---------
         s1: array
