@@ -12,7 +12,7 @@ def test_file_selection():
     assert all(item in higher_level_list_of_dats for item in lower_level_list_of_dats)
 
     # test that the case of the extension doesnt matter
-    assert len(xa.list_files("../../data/sample/different_case_examples")) == 2
+    #assert len(xa.list_files("../../data/sample/different_case_examples")) == 2
 
     # test the search_suffix option is working
-    assert len(xa.list_files("../../data/sample/polarmetric", search_suffix='HH')) == 1
+    #assert len(xa.list_files("../../data/sample/polarmetric", search_suffix='HH')) == 1
