@@ -3,14 +3,10 @@ from xapres_package import ApRESDefs
 import numpy
 import os
 def test_file_search_methods():
-    xa = ApRESDefs.xapres()
-    print(os.getcwd())    
+    xa = ApRESDefs.xapres()   
     data_directory = 'data'
     
     higher_level_list_of_dats = xa.list_files(data_directory + "/sample")
-
-    print(higher_level_list_of_dats)
-    print(xa.list_files(data_directory))
     
     # this checks that the list of files is not empty
     assert higher_level_list_of_dats  
