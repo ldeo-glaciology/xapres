@@ -13,128 +13,9 @@ import xarray as xr
 import pandas as pd
 import xarray as xr
 from tqdm import tqdm
-
 from utils import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
-
-class xapres:
-    """An object containing an xarray of ApRES data and information about the data. 
-
-    Can be instantiated with 2 optional keyword arguments, loglevel and max_range
-
-    Argument:
-        loglevel --- allows the user to select the level of logging messages are displayed. 
-        The default loglevel is warning, which means that no messages are displayed. 
-        If you want to see detailed log messages, use loglevel = 'debug'
-
-        max_range --- the depth the computed profiles are clipped to. 
-
-    Methods:
-        load_single --- load a single chirp from a single burst from a single dat file
-        load_dat_file --- load a dat file as a DataFileObject
-        list_files --- recursively find  all the files in a directory or a google bucket
-        load_all --- load all the files found in a directory or google bucket into an xarray
-
-    load_all is the most important method. Call it, for example, as follows:
-
-
-        import ApRESDefs
-        xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
-        xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
-                    remote_load = True,
-                    file_numbers_to_process = [0, 1], 
-                    bursts_to_process=[0, 1]
-                )
-
-    the resulting xarray will be saved in xa.data.
-    
-Instance variables:
-    Filename           : Name of data file
-    BurstLocationList  : Python list of byte offset of each burst in file
-    NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
-    
-BurstObject.
-============
-Typically instantiated with a call to the ExtractBurst method on a DataFileObject
-eg Burst = fileDescriptor.ExtractBurst(3)
-
-Methods:
-    ExtractChirp(ChirpList (Python list))
-        Output is an instance of a ChirpObject, in which all chirps in the ChirpList
-        have been averaged
-    PlotBurst()
-        Plots the full raw burst as a time series
-
-Instance variables:
-    v         : Array containing burst data
-    Filename  : Name of data file
-    Header    : Burst header (Python dictionary), with additional entries:
-    BurstNo   : Burst number in data file
-
-ChirpObject
-===========
-Typically instantiated with a call to the ExtractChirp method on a BurstBbject
-eg Chirp = Burst.ExtractChirp([1,3])
-
-Methods:
-    FormProfile(StartFreq, StopFreq, padfactor, ref)
-        StartFreq, StopFreq: start and end frequencies to use (eg 2e8 and 4e8)
-        padfactor:           zero padding for the fft (eg. 2)
-        ref:                 whether or not to apply Paul Brennan's reference
-                             phase (1 or 0, for yes or no)
-        Returns and instance of a ProfileObject
-    PlotChirp()
-        Plots the chirp as function of time
-
-Instance variables:
-    vdat:       Array containing chirp data
-    t:          Array containing time for chirp samples
-    ChirpList:  List of chirps averaged to make vdat
-    Filename:   Name of data file
-    BurstNo:    Number of burst within data file
-    Header:     Burst header, as created by ExtractBurst method on FileDataObject
-
-ProfileObject.
-==============
-Typically instantiated with a call to the FormProfile method on a ChirpObject
-eg Profile = Chirp.FormProfile(StartFreq, StopFreq, padfactor, ref)
-
-Methods:
-    PlotProfile(MaxDepth (double))
-        MaxDepth:  Maximum depth (in metres) to which to plot profile
-        
-Instance variables:
-    Range:     Array with depth in metres each profile depth bin
-    Profile:   Array containing profile (complex double)
-    F0:        Start frequency used to form profile
-    F1:        End frequency used to form profile
-    pad:       Pad factor used when zeropadding
-    ChirpList: List of chirps averaged to form profile
-    Filename:  Name of original data file 
-    BurstNo:   Number of burst in data file
-    Header:    Burst header, as produced using ExtractBurst method on DataFileObject 
-    rad2m:     radians to metres of range conversion factor
-    bin2m:     bin to metres of range conversion factor
-"""
-import gcsfs
-import numpy as np
-import matplotlib.pyplot as plt
-import math
-import warnings
-import copy
-import numpy as np
-import sys
-import pandas as pd
-import xarray as xr
-from tqdm import tqdm
-import glob
-import os
-import logging
-from tqdm.notebook import trange, tqdm
-sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
-from utils import *
-
 
 def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
@@ -185,7 +66,43 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
 
 
 class xapres():
-
+    """
+    An object containing an xarray of ApRES data and information about the data. 
+    
+        Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+    
+        Argument:
+            loglevel --- allows the user to select the level of logging messages are displayed. 
+            The default loglevel is warning, which means that no messages are displayed. 
+            If you want to see detailed log messages, use loglevel = 'debug'
+    
+            max_range --- the depth the computed profiles are clipped to. 
+    
+        Methods:
+            load_single --- load a single chirp from a single burst from a single dat file
+            load_dat_file --- load a dat file as a DataFileObject
+            list_files --- recursively find  all the files in a directory or a google bucket
+            load_all --- load all the files found in a directory or google bucket into an xarray
+    
+        load_all is the most important method. Call it, for example, as follows:
+    
+    
+            import ApRESDefs
+            xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
+            xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
+                        remote_load = True,
+                        file_numbers_to_process = [0, 1], 
+                        bursts_to_process=[0, 1]
+                    )
+    
+        the resulting xarray will be saved in xa.data.
+        
+        Instance variables:
+            Filename           : Name of data file
+            BurstLocationList  : Python list of byte offset of each burst in file
+            NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+    
+    """
     def __init__(self, loglevel='warning', max_range = None):
         self._setup_logging(loglevel)
         self.max_range = max_range
@@ -1082,7 +999,7 @@ class ProfileObject:
         bin2m:     bin to metres of range conversion factor
 
         Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
-        """
+    """
     
     def __init__(self):
         self.Range = 0
