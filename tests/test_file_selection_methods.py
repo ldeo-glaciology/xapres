@@ -1,10 +1,10 @@
 import pytest
 from xapres_package import ApRESDefs
 
-## Use two different methods from selecting the same ApRES DAT file from a google bucket. 
+## Use two different methods for selecting the same ApRES DAT file from a google bucket. 
 #  In each case load it and then check that we have loaded the correct file. 
 
-def test_file_selection():
+def test_file_selection_methods():
     directory='gs://ldeo-glaciology/GL_apres_2022/A101'
     xa1 = ApRESDefs.xapres(max_range=1400)
     xa1.load_all(directory, 
