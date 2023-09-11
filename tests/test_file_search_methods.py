@@ -5,7 +5,7 @@ import os
 def test_file_search_methods():
     xa = ApRESDefs.xapres()
     print(os.getcwd())    
-    data_directory = '../data'
+    data_directory = 'data'
     
     higher_level_list_of_dats = xa.list_files(data_directory + "/sample")
 
