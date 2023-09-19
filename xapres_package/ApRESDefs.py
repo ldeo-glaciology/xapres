@@ -13,6 +13,7 @@ import xarray as xr
 import pandas as pd
 import xarray as xr
 from tqdm import tqdm
+
 from utils import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
@@ -39,7 +40,7 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
         if self.size != self.chirp_time.size: 
             raise BaseException('sonify only works for single chirps.')    
 
-        #cut out the start and end to record popping
+        #cut out the start and end to remove popping
         chirp = self.isel(chirp_time =slice(5000,-500))
 
 
@@ -169,7 +170,18 @@ class xapres():
                  bursts_to_process="All",
                  attended=False,
                  ):
-        """Put all the data from all the .DAT files found recursively in 'directory', in one xarray."""   
+        """
+        This method has two modes. One for unattended ApRES data and one for attended data. 
+        
+        For unattended data (i.e. attended=false, the default), it puts all the data from all 
+        the .DAT files found recursively in 'directory', into one xarray. The most important 
+        dimension of this xarray is 'time', which is the time of each burst. 
+
+        In attended mode, the method locates the dat files corresponding to each waypoint. 
+        It does this based on a iterative function supplied by the user. The method groups the 
+        data by waypoint (and optionally antenna orientation).
+
+        """   
         
         self.file_numbers_to_process = file_numbers_to_process
         self.file_names_to_process = file_names_to_process
@@ -177,36 +189,16 @@ class xapres():
         self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
         #self.bursts_to_process = bursts_to_process
        
-        self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}")
-        self.list_files(directory, remote_load)    # adds self.dat_filenames
-    
-        # Subset files based on either file_numbers_to_process or file_names_to_process.
-        if file_numbers_to_process is not None and file_names_to_process is not None:
-            self.logger.debug("Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all")
-            raise ValueError("file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.") 
-        
-        elif file_numbers_to_process is not None:
-            if file_numbers_to_process == "All":
-                self.logger.debug("Selecting all dats file because file_numbers_to_process == \"all\"")
-                self.dat_filenames_to_process = self.dat_filenames
-            else:
-                self.logger.debug(f"Subset files to {file_numbers_to_process}")
-                self.dat_filenames_to_process = [self.dat_filenames[i] for i in file_numbers_to_process]
-        
-        elif file_names_to_process is not None:
-            if file_names_to_process == "All":
-                self.logger.debug("Selecting all dats file because file_names_to_process == \"all\"")
-                self.dat_filenames_to_process = self.dat_filenames
-            else:                 
-                self.logger.debug("Subset files to list of files supplied in file_names_to_process")
-                self.dat_filenames_to_process = file_names_to_process
-                              
-        elif file_numbers_to_process is None and file_names_to_process is None:      # default is all the dat files    
-            self.logger.debug("Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied")
-            self.dat_filenames_to_process = self.dat_filenames          
+        self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
         
 
         if attended is False:
+            self.list_files(directory, remote_load)    # adds self.dat_filenames
+
+            self.subset_files()
+
+            
+        
             # Loop through the dat files, putting individual xarrays in a list.
             self.logger.debug("Attended is False, so starting loop over dat files")
             list_of_multiBurstxarrays = []   
@@ -223,12 +215,44 @@ class xapres():
             # concatenate all the xarrays in the list along the time dimension
             #self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
             self.data = self._concat(list_of_multiBurstxarrays)
+        
+            self._add_attrs()
+
         elif attended is True:
             self.logger.debug("Attended is True, so starting loop over directories. Each directory contains dat file(s) taken at one waypoint. ")
 
-        self._add_attrs()
+        
         
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
+
+    def subset_files(self):
+        """Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied."""
+        if self.file_numbers_to_process is not None and self.file_names_to_process is not None:
+            self.logger.debug("Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all")
+            raise ValueError("file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.") 
+        
+        elif self.file_numbers_to_process is not None:
+            if self.file_numbers_to_process == "All":
+                self.logger.debug("Selecting all dats file because file_numbers_to_process == \"all\"")
+                self.dat_filenames_to_process = self.dat_filenames
+            else:
+                self.logger.debug(f"Subset files to {self.file_numbers_to_process}")
+                self.dat_filenames_to_process = [self.dat_filenames[i] for i in self.file_numbers_to_process]
+        
+        elif self.file_names_to_process is not None:
+            if self.file_names_to_process == "All":
+                self.logger.debug("Selecting all dats file because file_names_to_process == \"all\"")
+                self.dat_filenames_to_process = self.dat_filenames
+            else:                 
+                self.logger.debug("Subset files to list of files supplied in file_names_to_process")
+                self.dat_filenames_to_process = self.file_names_to_process
+                            
+        elif self.file_numbers_to_process is None and self.file_names_to_process is None:      # default is all the dat files    
+            self.logger.debug("Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied")
+            self.dat_filenames_to_process = self.dat_filenames          
+        
+
+
 
     def _all_bursts_in_dat_to_xarray(self, 
                                      dat, 
