@@ -195,9 +195,7 @@ class xapres():
         if attended is False:
             self.list_files(directory, remote_load)    # adds self.dat_filenames
 
-            self.subset_files()
-
-            
+            self.subset_files()   # adds self.dat_filenames_to_process
         
             # Loop through the dat files, putting individual xarrays in a list.
             self.logger.debug("Attended is False, so starting loop over dat files")
@@ -212,21 +210,26 @@ class xapres():
                 self.logger.debug(f"Finished processing file {dat_filename}")
             
             self.logger.debug(f"Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data")
+            
             # concatenate all the xarrays in the list along the time dimension
-            #self.data = xr.concat(list_of_multiBurstxarrays, dim='time')     
             self.data = self._concat(list_of_multiBurstxarrays)
         
             self._add_attrs()
 
         elif attended is True:
+            
+            
+            
             self.logger.debug("Attended is True, so starting loop over directories. Each directory contains dat file(s) taken at one waypoint. ")
 
         
         
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
+
+
     def subset_files(self):
-        """Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied."""
+        """Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied. This only gets used for unattended data."""
         if self.file_numbers_to_process is not None and self.file_names_to_process is not None:
             self.logger.debug("Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all")
             raise ValueError("file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.") 
@@ -252,13 +255,12 @@ class xapres():
             self.dat_filenames_to_process = self.dat_filenames          
         
 
-
-
     def _all_bursts_in_dat_to_xarray(self, 
                                      dat, 
                                      bursts_selected,
                                      ):
-        """Take data from all the bursts in one .DAT file and put it in an xarray, concatenated by time
+        """Take data from all the bursts in one .DAT file and put it in an xarray, concatenated by time. 
+        Only gets used for unattended data because attended data should only have one burst per dat file.
         
         Arguments:
         dat -- a DataFileObject  
@@ -284,11 +286,11 @@ class xapres():
         self.logger.debug(f"Start loop over burst numbers {list(bursts_to_process)} in dat file {dat.Filename}")     
         
         list_of_singleBurst_xarrays = []     
-        # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray, and appending it to the list list_of_singleBurst_xarrays
+        # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray_unattended, and appending it to the list list_of_singleBurst_xarrays
         for burst_number in bursts_to_process:#tqdm(bursts_to_process):
             self.logger.debug(f"Extract burst number {burst_number}")   
             burst = dat.ExtractBurst(burst_number)
-            singleBurst_xarray = self._burst_to_xarray(burst)
+            singleBurst_xarray = self._burst_to_xarray_unattended(burst)
             list_of_singleBurst_xarrays.append(singleBurst_xarray)
 
         self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat.Filename}")
@@ -303,6 +305,40 @@ class xapres():
         #        return xr.concat(list_of_singleBurst_xarrays, dim='waypoint')
         self.burst_load_counter = 0
         return self._concat(list_of_singleBurst_xarrays)
+
+    def _all_bursts_at_waypoint_to_xarray(self, 
+                                          directory, 
+                                          polarmetric=False):   
+        """This is the attended equivalent to _all_bursts_in_dat_to_xarray"""
+    
+        # initialize an empty array to contain the individual xarrays
+        list_of_singleorientation_attended_xarrays = []
+        
+        if polarmetric is True:
+            orientations = ['HH', 'HV', 'VH', 'VV']
+        else:
+            orientations = ['']
+
+        # loop over the orientations
+        for orientation in orientations:
+            
+            xa = ApRESDefs.xapres()
+            files = xa.list_files(directory=directory, search_suffix=orientation)
+            if len(files) > 1:
+                raise Exception('there should only be one dat file for each orientation in each directory')
+            dat = xa.load_dat_file(files[0])
+            
+            burst = dat.ExtractBurst(0)
+            
+            singleorientation_attended_xarray = _burst_to_xarray_attended(burst)
+            
+            print(singleorientation_attended_xarray.orientation.values)
+            
+            # append the new xarray to a list
+            list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
+        
+        # concatenate the xarrays in the list along the orientation dimension
+        return list_of_singleorientation_attended_xarrays, xr.concat(list_of_singleorientation_attended_xarrays, dim = 'orientation')
 
 
     def _concat(self, list_of_xarrays):
@@ -319,7 +355,7 @@ class xapres():
                 return xr.concat(list_of_xarrays, dim='waypoint')
             
 
-    def _burst_to_xarray(self,burst):
+    def _burst_to_xarray_unattended(self, burst):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
 
         self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
@@ -356,6 +392,54 @@ class xapres():
         )
         return xarray_out
     
+    def _burst_to_xarray_attended(self, burst):
+        """Return an xarray containing all data from one burst with appropriate coordinates"""
+
+        #self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
+        
+        #xa = ApRESDefs.xapres()
+        #files = xa.list_files(directory='../../data')
+        #dat = xa.load_dat_file(files[0])
+        #burst = dat.ExtractBurst(0)
+        waypoint = 1
+        chirps_temp, profiles_temp = xa._burst_to_3d_arrays(burst)
+        chirp_time, profile_range = xa._coords_from_burst(burst)
+        time_temp = xa._timestamp_from_burst(burst)
+        #self.logger.debug(f"Get orientation from filename")
+        orientation = xa._get_orientation(burst.Filename)
+        
+        chirps = chirps_temp[None,None,:,:,:]
+        profiles = profiles_temp[None,None,:,:,:]
+        #time = time_temp[None,None,:]
+        #time = np.expand_dims(time_temp, axis=0)
+        
+        xarray_out = xr.Dataset(
+            data_vars=dict(
+                chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                profile         = (["orientation", "waypoint", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
+                latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
+                temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
+                temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
+            ),
+            coords=dict(
+                time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
+                chirp_time            = chirp_time,
+                profile_range         = profile_range, 
+                chirp_num             = np.arange(burst.Header['NSubBursts']),
+                filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
+                burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
+                AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                orientation           = [orientation],
+                waypoint              = [waypoint]
+            ),
+        )
+        return xarray_out
+
+
+
     def _burst_to_3d_arrays(self, burst):
         """Put all chirps and their corresponding profiles in 3D numpy arrays.
         
