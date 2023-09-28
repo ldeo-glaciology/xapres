@@ -1,0 +1,10 @@
+##
+import sys
+sys.path.append("/Users/jkingslake/Documents/science/ApRES/xapres_package/xapres_package")
+import ApRESDefs
+xa = ApRESDefs.xapres(loglevel="DEBUG")
+xa.load_all(attended=True, directory_list=["data/sample/polarmetric"], polarmetric=True)
+
+##
+
+

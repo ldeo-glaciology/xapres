@@ -49,7 +49,6 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
 
         if save:
             sf.write(F"{wav_filename} .wav", chirp, samplerate = samplerate)
-
  
     try:     
         import soundfile as sf
@@ -58,7 +57,6 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
         xr.DataArray.sonify = sonify 
     except ImportError:
         print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
-    
     
     return ds
 
@@ -168,7 +166,6 @@ class xapres():
                  file_names_to_process=None, 
                  bursts_to_process="All",
                  attended=False, 
-                 directory_list=None,
                  polarmetric=False,
                  ):
         """
@@ -193,6 +190,10 @@ class xapres():
        
         self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
         
+        if attended is True and isinstance(directory, str):
+            directory_list = [directory]
+        elif attended is True and isinstance(directory, list):
+            directory_list = directory
 
         if attended is False:
             self.list_files(directory, remote_load)    # adds self.dat_filenames
@@ -228,7 +229,7 @@ class xapres():
             
             for waypoint_number, directory in enumerate(directory_list, start=1):
                 self.logger.debug(f"Looking in directory {directory} for dat files from waypoint {waypoint_number}")
-                singlewaypoint_xarray = self._all_bursts_at_waypoint_to_xarray(directory)
+                singlewaypoint_xarray = self._all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
                 list_of_singlewaypoint_xarrays.append(singlewaypoint_xarray)
                 self.logger.debug(f"Finished processing files f-in directory {directory} waypoint {waypoint_number}")
 
@@ -317,7 +318,8 @@ class xapres():
         return xr.concat(list_of_singleBurst_xarrays, dim='time') 
 
     def _all_bursts_at_waypoint_to_xarray(self, 
-                                          directory):   
+                                          directory,
+                                          waypoint_number):   
         """This is the attended equivalent to _all_bursts_in_dat_to_xarray"""
     
         # initialize an empty array to contain the individual xarrays
@@ -333,16 +335,15 @@ class xapres():
         for orientation in orientations:
             self.logger.debug(f"Looking for files with orientation {orientation} in directory {directory}")
             files = self.list_files(directory=directory, search_suffix=orientation)
+
             self.logger.debug(f"Found {len(files)} files with orientation {orientation}")
-            if len(files) is not 1:
+            if len(files) != 1:
                 raise Exception(f'there should by one dat file for each orientation in each directory. We found {len(files)} files.')
             dat = self.load_dat_file(files[0])
             
             burst = dat.ExtractBurst(0)
             
-            singleorientation_attended_xarray = self._burst_to_xarray_attended(burst)
-            
-            print(singleorientation_attended_xarray.orientation.values)
+            singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
             
             # append the new xarray to a list
             list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
@@ -387,7 +388,9 @@ class xapres():
         )
         return xarray_out
     
-    def _burst_to_xarray_attended(self, burst, waypoint_number):
+    def _burst_to_xarray_attended(self, 
+                                  burst, 
+                                  waypoint_number):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
 
         #self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
@@ -397,11 +400,11 @@ class xapres():
         #dat = xa.load_dat_file(files[0])
         #burst = dat.ExtractBurst(0)
         #waypoint = 1
-        chirps_temp, profiles_temp = xa._burst_to_3d_arrays(burst)
-        chirp_time, profile_range = xa._coords_from_burst(burst)
-        time_temp = xa._timestamp_from_burst(burst)
+        chirps_temp, profiles_temp = self._burst_to_3d_arrays(burst)
+        chirp_time, profile_range = self._coords_from_burst(burst)
+        time_temp = self._timestamp_from_burst(burst)
         #self.logger.debug(f"Get orientation from filename")
-        orientation = xa._get_orientation(burst.Filename)
+        orientation = self._get_orientation(burst.Filename)
         
         chirps = chirps_temp[None,None,:,:,:]
         profiles = profiles_temp[None,None,:,:,:]
@@ -912,7 +915,6 @@ class DataFileObject:
             if setting_counter >= Burst.Header['nAttenuators']: # if the counter reaches nAttenuators, reset it to zero 
                 setting_counter = 0
 
-
         return Burst
 
 
@@ -959,7 +961,6 @@ class BurstObject:
             or any(i != Chirp.Header['AFGain_thisChirp'][0] for i in Chirp.Header['AFGain_thisChirp']):
             warnings.warn('This is stacking over chirps with different attenuator settings.')
 
-
         if self.Header["Average"] == 1:
             Chirp.vdat = self.v          
         elif self.Header["Average"] == 2:
@@ -973,7 +974,7 @@ class BurstObject:
                     chirpoffset = ind * self.Header["N_ADC_SAMPLES"]
                     Chirp.vdat = Chirp.vdat + self.v[chirpoffset:chirpoffset + self.Header["N_ADC_SAMPLES"]]
                 else:
-                    print('chirp index > number of chirps.')
+                    raise ValueError("chirp index > number of chirps.")
             Chirp.vdat = Chirp.vdat/no
 
         return Chirp
@@ -986,7 +987,6 @@ class BurstObject:
         plt.ylabel("Amplitude (V)")
         plt.grid()
         return(0)
-
 
 class ChirpObject:
     """
