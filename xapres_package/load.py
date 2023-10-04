@@ -13,9 +13,40 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 
-from utils import *
+from .utils import *
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+
+
+def sonify(self, play = True, save = False, wav_filename = "chirp"):
+    """
+    A function to sonify a chirp - play the signal as a sound.
+     
+    The function is added to xarray dataarrays as a bound method in two functions. 
+    
+    It requires soundfile and sounddevice to be installed.
+    """
+    
+    try:     
+        import soundfile as sf
+        import sounddevice as sd 
+    except ImportError:
+        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
+
+    # make sure the input is just one chirp    
+    if self.size != self.chirp_time.size: 
+        raise BaseException('sonify only works for single chirps.')    
+
+    # cut out the start and end to remove popping
+    chirp = self.isel(chirp_time =slice(5000,-500))
+
+
+    if play:
+        samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1] - chirp.chirp_time[0]) /np.timedelta64(1, 's'))
+        sd.play(chirp, samplerate = samplerate )
+
+    if save:
+        sf.write(f"{wav_filename} .wav", chirp, samplerate = samplerate)
 
 def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
@@ -27,45 +58,49 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
         engine = 'zarr', 
         chunks = {}) 
     
-    # add db function as new bound method of DataArrays
+    # add the db function as new bound method of DataArrays
     xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
     
-    
-    # add sonify function (only if soundfile and sounddevice are installed)
-    def sonify(self, play = True, save = False, wav_filename = "chirp"):
-
-    
-        # make sure the input is just one chirp    
-        if self.size != self.chirp_time.size: 
-            raise BaseException('sonify only works for single chirps.')    
-
-        #cut out the start and end to remove popping
-        chirp = self.isel(chirp_time =slice(5000,-500))
-
-
-        if play:
-            samplerate = chirp.chirp_time.size / (   (chirp.chirp_time[-1] - chirp.chirp_time[0]) /np.timedelta64(1, 's'))
-            sd.play(chirp, samplerate = samplerate )
-
-        if save:
-            sf.write(F"{wav_filename} .wav", chirp, samplerate = samplerate)
- 
-    try:     
-        import soundfile as sf
-        import sounddevice as sd
-
-        xr.DataArray.sonify = sonify 
-    except ImportError:
-        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
-    
+    # add the sonify function as a bound method of DataArrays
+    xr.DataArray.sonify = sonify 
+     
     return ds
 
+def xapres(directory=None, 
+           remote_load=False, 
+           file_numbers_to_process=None, 
+           file_names_to_process=None,
+           bursts_to_process="All",
+           attended=False, 
+           polarmetric=False,
+           loglevel='warning',
+           max_range = None,
+           ):
+    """Wrapper for load_from_dat.load_all that also add dB and sonify functions to the resulting xarray."""
 
+    xa = load_from_dat(loglevel=loglevel, 
+                max_range = max_range)
+    
+    xa.load_all(directory=directory, 
+                remote_load=remote_load, 
+                file_numbers_to_process=file_numbers_to_process, 
+                file_names_to_process=file_names_to_process,
+                bursts_to_process=bursts_to_process,
+                attended=attended, 
+                polarmetric=polarmetric,
+                )
+    
+    # add db function as new bound method of DataArrays
+    xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
 
+    # add the sonify function as a bound method of DataArrays
+    xr.DataArray.sonify = sonify    
 
-class xapres():
+    return xa.data
+
+class load_from_dat():
     """
-    An object containing an xarray of ApRES data and information about the data. 
+    An object ApRES data loaded from a dat file or many dat files, along with information about the data. 
     
         Can be instantiated with 2 optional keyword arguments, loglevel and max_range
     

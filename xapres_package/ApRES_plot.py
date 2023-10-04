@@ -28,7 +28,7 @@ Created on Sun Oct 18 16:36:29 2020
 @author: Keith Nicholls
 """
 
-from .ApRESDefs import *
+#from .load import *
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename
 from os.path import isfile

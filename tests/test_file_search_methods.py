@@ -1,9 +1,10 @@
 import pytest
-from xapres_package import ApRESDefs 
+from xapres_package import load 
 import numpy
 import os
+
 def test_file_search_methods():
-    xa = ApRESDefs.xapres()   
+    xa = load.load_from_dat()   
     data_directory = 'data'
     
     higher_level_list_of_dats = xa.list_files(data_directory + "/sample")
