@@ -66,7 +66,7 @@ def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2
      
     return ds
 
-def xapres(directory=None, 
+def generate_xarray(directory=None, 
            remote_load=False, 
            file_numbers_to_process=None, 
            file_names_to_process=None,
@@ -76,10 +76,10 @@ def xapres(directory=None,
            loglevel='warning',
            max_range = None,
            ):
-    """Wrapper for load_from_dat.load_all that also add dB and sonify functions to the resulting xarray."""
+    """Wrapper for load_from_dat.load_all and adds dB and sonify functions to the resulting xarray."""
 
     xa = load_from_dat(loglevel=loglevel, 
-                max_range = max_range)
+                max_range=max_range)
     
     xa.load_all(directory=directory, 
                 remote_load=remote_load, 
@@ -274,6 +274,8 @@ class load_from_dat():
         
         xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
+
+        return self.data
 
     def subset_files(self):
         """Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied. This only gets used for unattended data."""
