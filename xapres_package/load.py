@@ -18,7 +18,10 @@ from .utils import *
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
 
-def sonify(self, play = True, save = False, wav_filename = "chirp"):
+def sonify(self, 
+           play=True, 
+           save=False, 
+           wav_filename="chirp"):
     """
     A function to sonify a chirp - play the signal as a sound.
      
@@ -39,14 +42,16 @@ def sonify(self, play = True, save = False, wav_filename = "chirp"):
 
     # cut out the start and end to remove popping
     chirp = self.isel(chirp_time =slice(5000,-500))
-
+    chirp_values = chirp.values.squeeze()
+    
+    samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1].values - chirp.chirp_time[0].values))
+    samplerate = samplerate.astype(int)
 
     if play:
-        samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1] - chirp.chirp_time[0]) /np.timedelta64(1, 's'))
-        sd.play(chirp, samplerate = samplerate )
+        sd.play(chirp_values, samplerate=samplerate)
 
     if save:
-        sf.write(f"{wav_filename} .wav", chirp, samplerate = samplerate)
+        sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
 
 def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
