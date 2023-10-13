@@ -13,58 +13,24 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 
-from .utils import *
+from .utils import phase2range, sonify, dB
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
 
-
-def sonify(self, 
-           play=True, 
-           save=False, 
-           wav_filename="chirp"):
-    """
-    A function to sonify a chirp - play the signal as a sound.
-     
-    The function is added to xarray dataarrays as a bound method in two functions. 
-    
-    It requires soundfile and sounddevice to be installed.
-    """
-    
-    try:     
-        import soundfile as sf
-        import sounddevice as sd 
-    except ImportError:
-        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
-
-    # make sure the input is just one chirp    
-    if self.size != self.chirp_time.size: 
-        raise BaseException('sonify only works for single chirps.')    
-
-    # cut out the start and end to remove popping
-    chirp = self.isel(chirp_time =slice(5000,-500))
-    chirp_values = chirp.values.squeeze()
-    
-    samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1].values - chirp.chirp_time[0].values))
-    samplerate = samplerate.astype(int)
-
-    if play:
-        sd.play(chirp_values, samplerate=samplerate)
-
-    if save:
-        sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
-
-def load_zarr(site = "A101", directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"):
+def load_zarr(site = "A101", 
+            directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
+            ):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
     
     import numpy as np
     import xarray as xr
         
     ds = xr.open_dataset(directory + site,
-        engine = 'zarr', 
-        chunks = {}) 
+            engine = 'zarr', 
+            chunks = {}) 
     
     # add the db function as new bound method of DataArrays
-    xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
+    xr.DataArray.dB = dB
     
     # add the sonify function as a bound method of DataArrays
     xr.DataArray.sonify = sonify 
@@ -96,7 +62,7 @@ def generate_xarray(directory=None,
                 )
     
     # add db function as new bound method of DataArrays
-    xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
+    xr.DataArray.dB = dB
 
     # add the sonify function as a bound method of DataArrays
     xr.DataArray.sonify = sonify    

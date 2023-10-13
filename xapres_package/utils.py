@@ -34,3 +34,47 @@ def phase2range(phi, lambdac=0.5608, rc=None, K=2e8, ci=1.6823e8):
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
 
         return r
+
+def dB(self):
+    """
+    A function to convert profile data to decibels.
+    
+    The function is added to xarray dataarrays as a bound method in two functions. 
+    
+    """
+    return 20*np.log10(np.abs(self)) 
+
+def sonify(self, 
+           play=True, 
+           save=False, 
+           wav_filename="chirp"):
+    """
+    A function to sonify a chirp - play the signal as a sound.
+     
+    The function is added to xarray dataarrays as a bound method in two functions. 
+    
+    It requires soundfile and sounddevice to be installed.
+    """
+
+    try:     
+        import soundfile as sf
+        import sounddevice as sd 
+    except ImportError:
+        print("sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature") 
+
+    # make sure the input is just one chirp    
+    if self.size != self.chirp_time.size: 
+        raise BaseException('sonify only works for single chirps.')    
+
+    # cut out the start and end to remove popping
+    chirp = self.isel(chirp_time =slice(5000,-500))
+    chirp_values = chirp.values.squeeze()
+    
+    samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1].values - chirp.chirp_time[0].values))
+    samplerate = samplerate.astype(int)
+
+    if play:
+        sd.play(chirp_values, samplerate=samplerate)
+
+    if save:
+        sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
