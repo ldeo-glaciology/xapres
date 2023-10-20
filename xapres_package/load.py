@@ -45,12 +45,12 @@ def generate_xarray(directory=None,
            loglevel='warning',
            max_range = None,
            ):
-    """Wrapper for load_from_dat.load_all and adds dB and sonify functions to the resulting xarray."""
+    """Wrapper for from_dats.load_all and adds dB and sonify functions to the resulting xarray."""
 
-    xa = load_from_dat(loglevel=loglevel, 
+    fd = from_dats(loglevel=loglevel, 
                 max_range=max_range)
     
-    xa.load_all(directory=directory, 
+    fd.load_all(directory=directory, 
                 remote_load=remote_load, 
                 file_numbers_to_process=file_numbers_to_process, 
                 file_names_to_process=file_names_to_process,
@@ -65,11 +65,11 @@ def generate_xarray(directory=None,
     # add the sonify function as a bound method of DataArrays
     xr.DataArray.sonify = sonify    
 
-    return xa.data
+    return fd.data
 
-class load_from_dat():
+class from_dats():
     """
-    An object ApRES data loaded from a dat file or many dat files, along with information about the data. 
+    An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
     
         Can be instantiated with 2 optional keyword arguments, loglevel and max_range
     
@@ -241,7 +241,12 @@ class load_from_dat():
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
 
         
-        xr.DataArray.db = lambda self : 20*np.log10(np.abs(self))
+            # add db function as new bound method of DataArrays
+        xr.DataArray.dB = dB
+
+        # add the sonify function as a bound method of DataArrays
+        xr.DataArray.sonify = sonify  
+        
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
         return self.data
@@ -971,7 +976,8 @@ class ChirpObject:
         Profile.pad = pad
         Profile.rad2m = self.Header["CentreFreq"]*math.sqrt(self.Header["c0"])/ \
             (4.*math.pi*self.Header["ER_ICE"])
-        return(Profile)  
+        
+        return Profile
 
 
 class ProfileObject:
@@ -1015,12 +1021,12 @@ class ProfileObject:
         self.rad2m = 0
         self.bin2m = 0
 
-    def PlotProfile(self,dmax):
+    def PlotProfile(self, dmax):
         plt.plot(self.Range, 20*np.log10(np.abs(self.Profile)))
         plt.xlim(0, dmax)
         plt.xlabel("Range (m)")
         plt.ylabel("Amplitude (dB)")
         plt.grid("on")
 
-        return 0
+        return 
 
