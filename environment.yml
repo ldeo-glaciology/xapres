@@ -20,3 +20,4 @@ dependencies:
   - gcsfs
   - tqdm
   - pip
+  - zarr
