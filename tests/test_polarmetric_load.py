@@ -8,10 +8,10 @@ from xapres_package import load
 
 def test_polarmetric_load():
     
-    xa = load.load_from_dat()
-    xa.load_all(attended=True, 
+    fs = load.from_dats()
+    fs.load_all(attended=True, 
                 directory=["data/sample/polarmetric", "data/sample/polarmetric"], 
                 polarmetric=True)
     
-    assert len(xa.data.waypoint) == 2
-    assert all(xa.data.isel(waypoint=0).filename.values == xa.data.isel(waypoint=1).filename.values)
+    assert len(fs.data.waypoint) == 2
+    assert all(fs.data.isel(waypoint=0).filename.values == fs.data.isel(waypoint=1).filename.values)

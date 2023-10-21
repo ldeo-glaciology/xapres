@@ -6,14 +6,14 @@ from xapres_package import load
 
 def test_file_selection_methods():
     directory='gs://ldeo-glaciology/GL_apres_2022/A101'
-    xa1 = load.load_from_dat(max_range=1400)
-    xa1.load_all(directory, 
+    fs1 = load.from_dats(max_range=1400)
+    fs1.load_all(directory, 
                 remote_load = True,
                 file_numbers_to_process=[0,1])
 
-    xa2 = load.load_from_dat(max_range=1400)
-    xa2.load_all(directory, 
+    fs2 = load.load_from_dat(max_range=1400)
+    fs2.load_all(directory, 
                 remote_load = True,
-                file_names_to_process = xa1.dat_filenames_to_process)
+                file_names_to_process = fs1.dat_filenames_to_process)
 
-    assert xa1.data.identical(xa2.data)
+    assert fs1.data.identical(fs2.data)

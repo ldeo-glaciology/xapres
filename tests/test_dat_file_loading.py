@@ -6,10 +6,9 @@ import numpy
 
 def test_dat_file_loading():
     directory='gs://ldeo-glaciology/GL_apres_2022/A101'
-    xa = load.load_from_dat(max_range=1400)
-    xa.load_all(directory, 
+    fs = xa.load.from_dats(max_range=1400)
+    fs.load_all(directory, 
                 remote_load = True,
-                file_numbers_to_process=[0])
-
-    
-    assert numpy.isclose(xa.data.profile.mean().values.real, 8.093929591292018e-07)   
+                file_numbers_to_process=[0],
+                bursts_to_process=[0])
+    assert numpy.isclose(fs.data.chirp.mean().values, 0.02611298) 
