@@ -11,7 +11,7 @@ def test_file_selection_methods():
                 remote_load = True,
                 file_numbers_to_process=[0,1])
 
-    fs2 = load.load_from_dat(max_range=1400)
+    fs2 = load.from_dats(max_range=1400)
     fs2.load_all(directory, 
                 remote_load = True,
                 file_names_to_process = fs1.dat_filenames_to_process)

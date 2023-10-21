@@ -6,7 +6,7 @@ import numpy
 
 def test_dat_file_loading():
     directory='gs://ldeo-glaciology/GL_apres_2022/A101'
-    fs = xa.load.from_dats(max_range=1400)
+    fs = load.from_dats(max_range=1400)
     fs.load_all(directory, 
                 remote_load = True,
                 file_numbers_to_process=[0],
