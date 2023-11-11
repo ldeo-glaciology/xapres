@@ -172,13 +172,27 @@ def sonify(self,
     if self.size != self.chirp_time.size: 
         raise BaseException('sonify only works for single chirps.')    
 
-    # cut out the start and end to remove popping
+    # subset the chirp to remove popping
     chirp = self.isel(chirp_time =slice(5000,-500))
+
+    # convert to a numpy array and remove singleton dimensions
     chirp_values = chirp.values.squeeze()
-    
-    samplerate = chirp.chirp_time.size / ((chirp.chirp_time[-1].values - chirp.chirp_time[0].values))
+
+    t = chirp.chirp_time.values
+
+    # convert the start and end time of the subsetted chirp to seconds, dealing with the cases when chirp.chirp_time is numpy array and when it is a timeselta64
+    if isinstance(t[0], float):
+        startTimeInSeconds = t[0] 
+        endTimeInSeconds = t[-1] 
+    elif isinstance(t[0], np.timedelta64):
+        startTimeInSeconds = t[0] / np.timedelta64(1, 's')
+        endTimeInSeconds = t[-1] / np.timedelta64(1, 's')
+
+    # calculate the sample rate 
+    samplerate = chirp.chirp_time.size / (endTimeInSeconds - startTimeInSeconds)
     samplerate = samplerate.astype(int)
 
+    #
     if play:
         sd.play(chirp_values, samplerate=samplerate)
 
