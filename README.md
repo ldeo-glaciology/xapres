@@ -7,11 +7,13 @@ The structure of the resulting xarray depends on if the ApRES data were collecte
 ## Installation
 
 ```
-pip install xapres-package
+pip install xapres
 ```
 
 ## Usage
 See the notebooks/guides directory for examples of how to use both the core processing code and how to restructure the resulting profiles and chirps into an xarray.
+
+The most useful guide is notebooks/guides/UsingXaPRES.ipynb.
 
 The package includes the capability to write data to zarr stores, which can be accessed efficiently without immediately loading all the data to disk. This is particularly useful when performing analysis in the cloud, but can be useful when inspecting the data locally too. 
 
@@ -34,14 +36,14 @@ Alternatively, you can use a function built-in to the package which loads these 
 
 ```
 import xapres as xa
-ds = xa.load_zarr("A101")
+ds = xa.load.load_zarr(site="A101")
 ds
 ```
 
-Now you can compute decibels from a complex profile simply using 
+The dataset `ds` containing various variables, include the complex depth profile. You can compute decibels from complex depth profiles using 
 
 ```
-ds.profile.isel(time=300, chirp_num=0, attenuator_setting_pair=0).dB()
+ds.profile.dB().compute()
 ```
 
 You can also sonify the chirp. Because the frequencies contained in the chirps largely in the audible range, you can play them through the computer's speakers and hear what the ApRES data sound like:
