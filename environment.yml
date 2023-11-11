@@ -1,4 +1,4 @@
-name: xapres_package
+name: xapres
 channels:
   - conda-forge
 dependencies:
@@ -20,3 +20,4 @@ dependencies:
   - gcsfs
   - tqdm
   - pip
+  - zarr

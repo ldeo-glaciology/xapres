@@ -21,11 +21,11 @@ root = pathlib.Path(__file__).parent.parent.absolute()
 os.environ["PYTHONPATH"] = str(root)
 sys.path.insert(0, str(root))
 
-import xapres_package  # isort:skip
+import xapres  # isort:skip
 
 # -- Project information -----------------------------------------------------
 
-project = "xapres_package"
+project = "xapres"
 copyright = "2021, ldeo_glaciology"
 author = "ldeo_glaciology"
 
@@ -34,7 +34,7 @@ author = "ldeo_glaciology"
 # built documents.
 # see https://pypi.org/project/setuptools-scm/ for details
 from pkg_resources import get_distribution
-release = get_distribution('xapres_package').version
+release = get_distribution('xapres').version
 # for example take major/minor
 version = '.'.join(release.split('.')[:2])
 
