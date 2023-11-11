@@ -1,4 +1,4 @@
-# xapres_package
+# xapres
 
 A package for processing data from the Autonomous phase-sensitive Radio-Echo Sounder (ApRES) using xarray. The core ApRES processing code is adapted from code written by Keith Nicholls, British Antarctic Survey, UK. This package uses Keith's code to process the raw ApRES data from ApRES surveys. It then restructures the data into a convenient format using xarray. This simplifies the challenge of dealing with multiple attenuator and gain settings, makes stacking a straight-forward xarray operation, and allows us to store the large datasets in efficient zarr format in cloud storage.
 
@@ -33,7 +33,7 @@ A104 = reload("A104")
 Alternatively, you can use a function built-in to the package which loads these data, and also adds some functionality to the xarray it returns: 
 
 ```
-import xapres_package as xa
+import xapres as xa
 ds = xa.load_zarr("A101")
 ds
 ```

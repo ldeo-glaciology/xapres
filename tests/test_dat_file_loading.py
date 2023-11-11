@@ -1,5 +1,5 @@
 import pytest
-from xapres_package import load 
+from xapres import load 
 import numpy
 
 # Test the loading of a single dat file from the google bucket

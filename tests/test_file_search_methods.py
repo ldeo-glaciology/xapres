@@ -1,5 +1,5 @@
 import pytest
-from xapres_package import load 
+from xapres import load 
 
 def test_file_search_methods():
     fs = load.from_dats()   

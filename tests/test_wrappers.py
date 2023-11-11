@@ -1,5 +1,5 @@
 import pytest
-from xapres_package import load
+from xapres import load
 
 #  Test `generate_xarray` and `load_zarr` wrappers
 def test_wrappers():

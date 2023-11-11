@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to xapres_package's documentation!
+Welcome to xapres's documentation!
 =======================================
 
-This is an awesome description of xapres_package, written in `reStructuredText`_.
+This is an awesome description of xapres, written in `reStructuredText`_.
 
 You can contribute new sections by either adding a new file (see ``new_section.rst``) or just putting a jupyter notebook
 in the ``docs`` folder (see ``new_section_notebook.ipynb``).

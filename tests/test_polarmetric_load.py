@@ -1,5 +1,5 @@
 import pytest
-from xapres_package import load
+from xapres import load
 
 ## test polarmetric local loading by loading the same waypoint twice as if it is two different ones and chaeking 
 # that you get the same thing twice.

@@ -1,5 +1,5 @@
 import pytest
-from xapres_package import load
+from xapres import load
 
 ## Use two different methods for selecting the same ApRES DAT file from a google bucket. 
 #  In each case load it and then check that we have loaded the correct file. 
