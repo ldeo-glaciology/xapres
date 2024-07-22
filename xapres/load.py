@@ -586,18 +586,7 @@ class from_dats():
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
 
-    def dB(self, da):
-        '''Returns decibels from the DataArray, da, which needs be ApRES complex profile (or collection of them.'''
-        decibels = 20*np.log10(np.abs(da))
-        
-        
-        #try:
-        #    decibels = 20*np.log10(np.abs(self.data.profile))
-        #except AttributeError:
-        #   raise AttributeError("The xarray xapres.data does not yet exist, run xapres.load_all() to create it.")
-        
-        return decibels
-    
+       
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
@@ -631,7 +620,7 @@ class from_dats():
             fmt=f"%(levelname)s %(asctime)s (%(relativeCreated)d) \t %(pathname)s F%(funcName)s L%(lineno)s - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        fileHandler = logging.FileHandler(filename='test6.log')
+        fileHandler = logging.FileHandler(filename='generating_xarrays_from_dats.log')
         fileHandler.setFormatter(logFileFormatter)
         fileHandler.setLevel(level=numeric_level)
 
