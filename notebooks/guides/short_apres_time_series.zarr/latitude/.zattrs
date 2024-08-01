@@ -1,0 +1,8 @@
+{
+    "_ARRAY_DIMENSIONS": [
+        "time"
+    ],
+    "coordinates": "filename burst_number",
+    "long_name": "latitude of burst",
+    "units": "degrees"
+}

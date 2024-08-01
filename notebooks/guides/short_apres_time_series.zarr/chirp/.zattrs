@@ -1,0 +1,12 @@
+{
+    "_ARRAY_DIMENSIONS": [
+        "time",
+        "chirp_time",
+        "chirp_num",
+        "attenuator_setting_pair"
+    ],
+    "coordinates": "AFGain filename burst_number attenuator",
+    "description": "voltage from the analog-to-digital converter after the received signal has been mixed with the transmitted signal and the result has been filtered to leave only the low frequency compponent corresponding to the differences in the frequencies of the Tx and Rx signals",
+    "long_name": "de-ramped chirp",
+    "units": "volts"
+}
