@@ -23,12 +23,12 @@ The fastest way to do this is:
 ```
 # install the package
 !pip install xapres
-# import tha package
+# import the package
 import xapres as xa
 # load the chirps, perform an fft, and put them all in an xarray
 directory = 'data/sample/multi-burst-dat-file/'
 data = xa.load.generate_xarray(directory=directory)
-# stack the chirps in each burst, select one of the attenuator paris, compute the decibels and and plot
+# stack the chirps in each burst, select one of the attenuator pairs, compute the decibels and plot
 data.profile.mean(dim='chirp_num').isel(attenuator_setting_pair=0).dB().plot(x='time', yincrease=False)
 ```
 
@@ -36,7 +36,6 @@ You just need to change `directory` to the location of your .DAT files and the c
 
 
 ### Writing and loading from zarr
-
 
 The package includes the capability to write data to zarr stores, which can be accessed efficiently without immediately loading all the data to disk. This is particularly useful when performing analysis in the cloud, but can be useful when inspecting the data locally too. 
 
