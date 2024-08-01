@@ -21,3 +21,7 @@ dependencies:
   - tqdm
   - pip
   - zarr
+  - pip:
+      - ipympl
+      - sounddevice
+      - soundfile
