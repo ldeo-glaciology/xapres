@@ -13,7 +13,7 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 
-from .utils import phase2range, sonify, dB, coherence, generate_range_diff
+from .utils import sonify, dB, displacement_timeseries, compute_displacement
 
 def load_zarr(site = "A101", 
             directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
@@ -27,12 +27,8 @@ def load_zarr(site = "A101",
             engine = 'zarr', 
             chunks = {}) 
     
-    # add the db function as new bound method of DataArrays
-    xr.DataArray.dB = dB
-    
-    # add the sonify function as a bound method of DataArrays
-    xr.DataArray.sonify = sonify 
-     
+    add_methods_to_xarrays()
+
     return ds
 
 def generate_xarray(directory=None, 
@@ -59,13 +55,31 @@ def generate_xarray(directory=None,
                 polarmetric=polarmetric,
                 )
     
-    # add db function as new bound method of DataArrays
+    add_methods_to_xarrays()
+
+    return fd.data
+
+def add_methods_to_xarrays():
+    
+
+
+    
+    methods = [dB, sonify, displacement_timeseries, compute_displacement]
+    
+    
+    # add db function as new bound method of DataArrays   
     xr.DataArray.dB = dB
 
     # add the sonify function as a bound method of DataArrays
-    xr.DataArray.sonify = sonify    
+    xr.DataArray.sonify = sonify   
 
-    return fd.data
+    # add the displacement_timeseries_NB function as a bound method of DataArrays 
+    xr.DataArray.displacement_timeseries = displacement_timeseries
+
+    # add the compute_displacement function as a bound method of Datasets
+    xr.DataArray.compute_displacement = compute_displacement
+
+
 
 class from_dats():
     """
@@ -180,7 +194,7 @@ class from_dats():
         dimension of this xarray is 'time', which is the time of each burst. 
 
         In attended mode, the method locates the dat files corresponding to each waypoint. 
-        It does this based on a iterative function supplied by the user. The method groups the 
+        It does this based on list supplied by the user. The method groups the 
         data by waypoint (and optionally antenna orientation).
 
         """   
