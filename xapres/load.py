@@ -61,25 +61,11 @@ def generate_xarray(directory=None,
 
 def add_methods_to_xarrays():
     
-
-
-    
     methods = [dB, sonify, displacement_timeseries, compute_displacement]
     
-    
-    # add db function as new bound method of DataArrays   
-    xr.DataArray.dB = dB
-
-    # add the sonify function as a bound method of DataArrays
-    xr.DataArray.sonify = sonify   
-
-    # add the displacement_timeseries_NB function as a bound method of DataArrays 
-    xr.DataArray.displacement_timeseries = displacement_timeseries
-
-    # add the compute_displacement function as a bound method of Datasets
-    xr.DataArray.compute_displacement = compute_displacement
-
-
+    for method in methods:
+        setattr(xr.DataArray, method.__name__, method)
+        
 
 class from_dats():
     """
