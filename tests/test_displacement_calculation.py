@@ -1,5 +1,5 @@
 import pytest
-from xapres import load 
+from xapres import load, utils
 
 # test the displacement calculation
 def test_displacement_calculation():
