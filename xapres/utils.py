@@ -96,7 +96,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     disp_uncertainty.attrs["units"] = "m"
     disp_uncertainty.attrs["long_name"] = "uncertainty in displacement since previous measurement"
 
-    # compbine to an xarray dataset
+    # combine to an xarray dataset
     da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty]
     ds = xr.merge(da_list)
 
