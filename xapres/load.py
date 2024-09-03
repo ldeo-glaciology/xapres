@@ -202,7 +202,7 @@ class from_dats():
             self.logger.debug(f"Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data")
             self.data = xr.concat(list_of_multiBurstxarrays, dim='time') 
         
-            self._add_attrs()
+            
 
         elif attended is True:
             
@@ -223,6 +223,8 @@ class from_dats():
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
         
+        self._add_attrs()
+
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
         return self.data
