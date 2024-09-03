@@ -112,7 +112,6 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
     
     if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
-        print('attended mode')
         profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number')
     else:
 
@@ -136,7 +135,13 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
 
         # add the midpoint time 
         profiles = profiles.assign_coords(time=("time", t1+dt/2))
-    
+        profiles.time.attrs["description"] = "mid-point time of two profiles used in the computation"
+
+    profiles = profiles.assign_coords(shot_number=("shot_number", 1+profiles.shot_number.data))
+    profiles.shot_number.attrs['long_name'] = 'shot number'
+    profiles.shot_number.attrs['description'] = 'number of the shot used in each measurement'
+
+
     return profiles
 
 def bin_profiles(profiles, bin_size):

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from tqdm import tqdm
+import datetime
 
 from .utils import sonify, dB, displacement_timeseries, compute_displacement
 
@@ -564,6 +565,9 @@ class from_dats():
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
         
+        self.data.attrs["processing"] = f"Created on {datetime.datetime.now() }"
+
+
         if self.attended:
             self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
