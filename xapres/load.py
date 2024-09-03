@@ -563,7 +563,9 @@ class from_dats():
         #self.data.attrs['time created'] = pd.Timestamp.now()
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
-
+        
+        if self.attended:
+            self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
