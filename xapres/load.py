@@ -20,16 +20,9 @@ def load_zarr(site = "A101",
             ):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
     
-    import numpy as np
-    import xarray as xr
-        
-    ds = xr.open_dataset(directory + site,
+    return xr.open_dataset(directory + site,
             engine = 'zarr', 
             chunks = {}) 
-    
-    add_methods_to_xarrays()
-
-    return ds
 
 def generate_xarray(directory=None, 
            remote_load=False, 
@@ -54,18 +47,8 @@ def generate_xarray(directory=None,
                 attended=attended, 
                 polarmetric=polarmetric,
                 )
-    
-    add_methods_to_xarrays()
 
     return fd.data
-
-def add_methods_to_xarrays():
-    
-    methods = [dB, sonify, displacement_timeseries, compute_displacement]
-    
-    for method in methods:
-        setattr(xr.DataArray, method.__name__, method)
-        
 
 class from_dats():
     """
@@ -239,13 +222,6 @@ class from_dats():
 
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
-
-        
-            # add db function as new bound method of DataArrays
-        xr.DataArray.dB = dB
-
-        # add the sonify function as a bound method of DataArrays
-        xr.DataArray.sonify = sonify  
         
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
