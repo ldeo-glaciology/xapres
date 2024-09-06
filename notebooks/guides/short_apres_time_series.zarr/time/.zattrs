@@ -1,8 +1,0 @@
-{
-    "_ARRAY_DIMENSIONS": [
-        "time"
-    ],
-    "calendar": "proleptic_gregorian",
-    "long_name": "time of burst",
-    "units": "seconds since 2022-05-22T19:40:20"
-}

@@ -1,8 +1,0 @@
-{
-    "_ARRAY_DIMENSIONS": [
-        "time"
-    ],
-    "coordinates": "filename burst_number",
-    "long_name": "temperature measured inside the ApRES unit in a second location",
-    "units": "celsius"
-}

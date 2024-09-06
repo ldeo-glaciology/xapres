@@ -1,8 +1,0 @@
-{
-    "_ARRAY_DIMENSIONS": [
-        "chirp_time"
-    ],
-    "long_name": "time of samples during chirps",
-    "name": "time of samples during chirps",
-    "units": "seconds"
-}

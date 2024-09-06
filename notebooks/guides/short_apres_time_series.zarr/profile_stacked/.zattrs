@@ -1,8 +1,0 @@
-{
-    "_ARRAY_DIMENSIONS": [
-        "time",
-        "profile_range",
-        "attenuator_setting_pair"
-    ],
-    "coordinates": "AFGain burst_number attenuator filename"
-}

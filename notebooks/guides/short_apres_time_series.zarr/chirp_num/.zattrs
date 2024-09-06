@@ -1,7 +1,0 @@
-{
-    "_ARRAY_DIMENSIONS": [
-        "chirp_num"
-    ],
-    "description": "the number of each chirp within each burst",
-    "long_name": "chirp number"
-}
