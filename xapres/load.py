@@ -12,28 +12,18 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from tqdm import tqdm
+import datetime
 
-from .utils import phase2range, sonify, dB, coherence, generate_range_diff
+from .utils import sonify, dB, displacement_timeseries, compute_displacement
 
 def load_zarr(site = "A101", 
             directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
             ):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
     
-    import numpy as np
-    import xarray as xr
-        
-    ds = xr.open_dataset(directory + site,
+    return xr.open_dataset(directory + site,
             engine = 'zarr', 
             chunks = {}) 
-    
-    # add the db function as new bound method of DataArrays
-    xr.DataArray.dB = dB
-    
-    # add the sonify function as a bound method of DataArrays
-    xr.DataArray.sonify = sonify 
-     
-    return ds
 
 def generate_xarray(directory=None, 
            remote_load=False, 
@@ -58,12 +48,6 @@ def generate_xarray(directory=None,
                 attended=attended, 
                 polarmetric=polarmetric,
                 )
-    
-    # add db function as new bound method of DataArrays
-    xr.DataArray.dB = dB
-
-    # add the sonify function as a bound method of DataArrays
-    xr.DataArray.sonify = sonify    
 
     return fd.data
 
@@ -180,7 +164,7 @@ class from_dats():
         dimension of this xarray is 'time', which is the time of each burst. 
 
         In attended mode, the method locates the dat files corresponding to each waypoint. 
-        It does this based on a iterative function supplied by the user. The method groups the 
+        It does this based on list supplied by the user. The method groups the 
         data by waypoint (and optionally antenna orientation).
 
         """   
@@ -219,7 +203,7 @@ class from_dats():
             self.logger.debug(f"Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data")
             self.data = xr.concat(list_of_multiBurstxarrays, dim='time') 
         
-            self._add_attrs()
+            
 
         elif attended is True:
             
@@ -239,14 +223,9 @@ class from_dats():
 
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
-
         
-            # add db function as new bound method of DataArrays
-        xr.DataArray.dB = dB
+        self._add_attrs()
 
-        # add the sonify function as a bound method of DataArrays
-        xr.DataArray.sonify = sonify  
-        
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
         return self.data
@@ -585,7 +564,12 @@ class from_dats():
         #self.data.attrs['time created'] = pd.Timestamp.now()
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
+        
+        self.data.attrs["processing"] = f"Created on {datetime.datetime.now() }"
 
+
+        if self.attended:
+            self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)

@@ -7,113 +7,168 @@ Utility functions that are called by multiple different classes
 """
 import numpy as np
 import xarray as xr
+import datetime
 
-def coherence(s1, s2):
-        """
-        Phase correlation between two elements of the scattering matrix
-        Jordan et al. (2019) eq. 13
-        Parameters
-        ---------
-        s1: array
-            first acquisition
-        s2:
-            second acquisition
-        Output
-        ---------
-        c:  array
-            phase coherence
-        """
-        top = np.einsum('ij,ij->i', s1, np.conj(s2))
-        bottom = np.sqrt(np.sum(np.abs(s1)**2,axis=1)*np.sum(np.abs(s2)**2,axis=1))
-        c = top/bottom
 
-        return c
 
-def generate_range_diff(data1, data2, win_cor, step, range_ext=None, win_wrap=10, thresh=0.9, uncertainty='CR'):
+def displacement_timeseries(self: xr.DataArray, 
+                            offset: int=1,  
+                            bin_size: int=20): 
     """
-    Input data:
-    data1, data2: xarray.DataArrays describing the "profile" variable
-    range
-    """
+    Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
-    # Get times of burst:
-    t1 = data1.time.data
-    t2 = data2.time.data
-    dt = (t2-t1)/ np.timedelta64(1, 's')
-    #self.logger.info(f"Time between bursts : {dt}s")
-    # Get phase difference
+    Profiles offset by a user-defined number of time steps are compared to compute the time series of displacement. 
     
-    if range_ext is not None:
-        # Fill a depth array which will be more sparse than the full Range vector
-        idxs = np.arange(win_cor//2, range_ext.shape[0]-win_cor//2, step).astype(int)
-        ds = range_ext[idxs]
+    The time interval between outputted profiles is offset*dt where dt is the time between measurements. 
+
+    The profiles of displacement etc. are binned in depth, with bin_size samples in each bin.
+
+    Parameters:
+    - self (xr.DataArray): The input data array containing a time series of complex profiles.
+    - offset (int, optional): The time offset between the two time series. Default is 1.
+    - bin_size (int, optional): Size of the vertical bins. Default is 20.
+
+    Returns:
+    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
+
+    """
+    # extract two time series
+    profile1_unaligned = self.isel(time=slice(0,-offset))
+    profile2_unaligned= self.isel(time=slice(offset,None))
+    
+    # compute the binned coherence, phase, and displacement, with uncertainties and put them into an xarray dataset  
+    ds = compute_displacement(profile1_unaligned, profile2_unaligned, bin_size = bin_size)
+
+    # add attributes related to the this processing
+    ds.attrs["offset"] = offset
+    ds.attrs["processing"] = f"Created by the displacement_timeseries function in xapres using an offset of {offset} and bin size of {bin_size} on {datetime.datetime.now() }"
+
+    return ds
+
+def compute_displacement(profile1_unaligned: xr.DataArray, 
+                        profile2_unaligned: xr.DataArray, 
+                        bin_size: int=20):
+    """
+    Compute displacement, coherence, and related uncertainties for binned time series data.
+
+    Parameters:
+    - profile1_unaligned (xr.DataArray): Unaligned time series data for the first measurement.
+    - profile2_unaligned (xr.DataArray): Unaligned time series data for the second measurement.
+    - bin_size (int, optional): Size of the vertical bins. Default is 20.
+
+    Returns:
+    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
+
+    """
+
+    profiles = combine_profiles(profile1_unaligned, profile2_unaligned)
+
+    profiles_binned = bin_profiles(profiles, bin_size)
+
+    coherence = compute_coherence(profiles_binned.isel(shot_number=0), profiles_binned.isel(shot_number=1))
+   
+    # add attributes related to the bin_depth
+    coherence.bin_depth.attrs["units"] = "m"
+    coherence.bin_depth.attrs["long_name"] = "depth to the center of each bin"
+    coherence.bin_depth.attrs["standard_name"] = "bin depth"         
+
+    # add attributes related to the coherence
+    coherence.attrs["units"] = "unitless"
+    coherence.attrs["long_name"] = "complex coherence between measurements"
+
+    # compute the phase and add attributes
+    phase = -xr.apply_ufunc(np.angle, coherence, dask="allowed").rename("phase")
+    phase.attrs["units"] = "radians"
+    phase.attrs["long_name"] = "coherence phase"
+
+    # compute phase uncertainties
+    phase_uncertainty = ((1./abs(coherence))*np.sqrt((1.-abs(coherence)**2.)/(2.*bin_size))).rename('phase_uncertainty')
+    phase_uncertainty.attrs["units"] = "radians"
+    phase_uncertainty.attrs["long_name"] = "uncertainty in coherence phase"
+
+    # compute the displacement
+    displacement = phase2range(phase).rename("displacement")
+    displacement.attrs["units"] = "m"
+    displacement.attrs["long_name"] = "displacement since previous measurement"
+
+    # compute the displacement uncertainty
+    disp_uncertainty = phase2range(phase_uncertainty).rename('disp_uncertainty')
+    disp_uncertainty.attrs["units"] = "m"
+    disp_uncertainty.attrs["long_name"] = "uncertainty in displacement since previous measurement"
+
+    # combine to an xarray dataset
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty]
+    ds = xr.merge(da_list)
+
+    # add attributes related to this processing
+    ds.attrs["bin_size"] = bin_size
+    ds.attrs["description"] = "Time series of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth."
+    ds.attrs["processing"] = f"Created by the compute_displacement function in xapres using a bin size of {bin_size} on {datetime.datetime.now() }"
+
+    return ds
+
+def combine_profiles(profile1_unaligned, profile2_unaligned):
+    """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
+    
+    if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
+        # data is taken in attended mode and we dont need to get the midpoint time and align
+        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number')
     else:
-        idxs = np.arange(win_cor//2, data1.shape[1]-win_cor//2, step).astype(int)
-        ds = data1.profile_range[idxs]
 
-    # Create data and coherence vectors
-    acq1 = data1
-    acq2 = data2
-    co = np.empty_like(np.stack([ds.data]*data1.shape[0])).astype(np.cdouble)
-    for i, idx in enumerate(idxs):
-        # index two sub_arrays to compare
-        arr1 = acq1[:,idx-win_cor//2:idx+win_cor//2]
-        arr2 = acq2[:,idx-win_cor//2:idx+win_cor//2]
-        # correlation coefficient between acquisitions
-        # amplitude is coherence between acquisitions and phase is the offset
-        co[:,i] = self.coherence(arr1.data, arr2.data)
+        # in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
+        if 'time' not in profile1_unaligned.dims:
+            profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
+        if 'time' not in profile2_unaligned.dims:
+            profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
+
+        # record the time interval between measurements
+        t1 = profile1_unaligned.time.data
+        t2 = profile2_unaligned.time.data
+        dt = t2-t1
+
+        # change the name of the time coordinates so that they can be retained when the profiles are concatenated, then drop the original 'time' coordinates (the latter is achieved with drop_vars)
+        profile1_unaligned = profile1_unaligned.assign_coords(profile_time=("time", profile1_unaligned.time.data)).drop_vars("time")
+        profile2_unaligned = profile2_unaligned.assign_coords(profile_time=("time", profile2_unaligned.time.data)).drop_vars("time")
+
+        # concatenate the two profiles
+        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number', coords=['profile_time', 'burst_number', 'filename'])
+
+        # add the midpoint time 
+        profiles = profiles.assign_coords(time=("time", t1+dt/2))
+        profiles.time.attrs["description"] = "mid-point time of two profiles used in the computation"
+
+    profiles = profiles.assign_coords(shot_number=("shot_number", 1+profiles.shot_number.data))
+    profiles.shot_number.attrs['long_name'] = 'shot number'
+    profiles.shot_number.attrs['description'] = 'number of the shot used in each measurement'
+
+
+    return profiles
+
+def bin_profiles(profiles, bin_size):
+    """Put the time series into vertical bins"""
     
-    # Phase unwrapping
-    phi = -np.angle(co).astype(float)
-    for i in range(co.shape[1]-1):
-        for t in range(co.shape[0]):
-            idx = i+1
-            if np.all(abs(co[t,idx-win_wrap:idx+win_wrap]) < thresh):
-                continue
-            if phi[t,idx]-phi[t,idx-1] > np.pi:
-                phi[t,idx:] -= 2.*np.pi
-            elif phi[t,idx]-phi[t,idx-1] < -np.pi:
-                phi[t,idx:] += 2.*np.pi
-    # Range difference calculation
-    w = phase2range(phi,
-                        0.5608,
-                        ds.data,
-                        2e8,
-                        1.6823e8)
+    # Bin in depth
+    profiles_binned = profiles.coarsen(profile_range=bin_size, boundary='trim').construct(profile_range=("bin", "sample_in_bin"))
 
-    # If the individual acquisitions have had uncertainty calculations
-    
-    if uncertainty == 'CR':
-        # Error from Cramer-Rao bound, Jordan et al. (2020) Ann. Glac. eq. (5)
-        sigma = (1./abs(co))*np.sqrt((1.-abs(co)**2.)/(2.*win_cor))
-        # convert the phase offset to a distance vector
-        w_err = phase2range(sigma,
-                                0.5608,
-                                ds.data,
-                                2e8,
-                                1.6823e8)
+    # Compute the bin depth and add it to the DataArray
+    bin_depth = profiles_binned.profile_range.mean(dim='sample_in_bin').data
+    profiles_binned = profiles_binned.assign_coords(bin_depth=("bin", bin_depth))
 
-    '''elif uncertainty == 'noise_phasor':
-        # Uncertainty from Noise Phasor as in Kingslake et al. (2014)
-        # r_uncertainty should be calculated using the function phase_uncertainty defined in this script
-        r_uncertainty = phase2range(self, self.unc1, self.header.lambdac) +\
-            phase2range(self, self.unc2, self.header.lambdac)
-        idxs = np.arange(win//2, len(self.data)-win//2, step)
-        w_err = np.array([np.nanmean(r_uncertainty[i-win//2:i+win//2]) for i in idxs])'''
-    
-    coords = {'time':(['time'],t2,{'units': 'seconds','long_name':'Time of second burst'}),'profile_range':(['profile_range'],ds.profile_range.data,{'units': 'm','long_name':'Depth'})}
-    data_vars = {'time_diff':(['time'],np.cumsum(dt),{'units': 'seconds','long_name':'Time since first burst'}),
-                    'range_diff':(['time','profile_range'], w, #np.cumsum(w,axis=0), 
-                        {'units': 'm', 
-                        'long_name':'Range difference'}),
-        'err':(['time','profile_range'], w_err, 
-                        {'units': 'm', 
-                        'long_name':'Error'})}
-    ds_xr = xr.Dataset(data_vars=data_vars, coords=coords)
-    return ds_xr, co, phi # returning velocities in mm/day
+    return profiles_binned
 
+def compute_coherence(b1_binned, b2_binned):
+    # compute the coherence
+    top = (b1_binned * np.conj(b2_binned)).sum(dim="sample_in_bin")
+    bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim="sample_in_bin") * (np.abs(b2_binned)**2).sum(dim="sample_in_bin"))
+    coherence = (top/bottom).rename("coherence")
 
-def phase2range(phi, lambdac=0.5608, rc=None, K=2e8, ci=1.6823e8):
+    return (top/bottom).rename("coherence")
+
+def phase2range(phi, 
+                lambdac=0.5608, 
+                rc=None, 
+                K=2e8, 
+                ci=1.6823e8):
         """
         Convert phase difference to range for FMCW radar
         Parameters
@@ -137,8 +192,8 @@ def phase2range(phi, lambdac=0.5608, rc=None, K=2e8, ci=1.6823e8):
             r = lambdac*phi/(4.*np.pi)
         else:
             # Precise
+            # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
-
         return r
 
 def dB(self):
@@ -198,3 +253,10 @@ def sonify(self,
 
     if save:
         sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
+
+def add_methods_to_xarrays():
+    
+    methods = [dB, sonify, displacement_timeseries]
+    
+    for method in methods:
+        setattr(xr.DataArray, method.__name__, method)

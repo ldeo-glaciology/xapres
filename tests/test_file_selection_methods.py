@@ -16,4 +16,4 @@ def test_file_selection_methods():
                 remote_load = True,
                 file_names_to_process = fs1.dat_filenames_to_process)
 
-    assert fs1.data.identical(fs2.data)
+    assert fs1.data.equals(fs2.data)
