@@ -62,7 +62,7 @@ def test_file_search_methods():
 #  In each case load it and then check that we have loaded the correct file. 
 
 def test_file_selection_methods():
-    directory='gs://ldeo-glaciology/GL_apres_2022/A101_jkbkbk'
+    directory='gs://ldeo-glaciology/GL_apres_2022/A101'
     fs1 = load.from_dats()
     fs1.load_all(directory, 
                 remote_load = True,
