@@ -256,10 +256,20 @@ def sonify(self,
 
 def addProfileToDs(self: xr.Dataset, **kwargs):
 
-    constants_and_kwargs = self.attrs['constants'] | kwargs
-    profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
+    
+    if 'constants' in self.attrs:
+        profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
+    else:
+        profile = self.chirp.computeProfile(**kwargs)
 
-    return xr.merge([self, profile], combine_attrs='override')
+    # remove profile variable and profile range, if they exist 
+    if 'profile' in self.data_vars:
+        out = self.drop_dims('profile_range')
+    else: 
+        out = self
+
+        
+    return xr.merge([out, profile], combine_attrs='override')
 
 
 def computeProfile(self: xr.DataArray,
@@ -270,8 +280,8 @@ def computeProfile(self: xr.DataArray,
                    demean=False,
                    detrend=False,
                    stack=False,
-                   crop_chirp_start=None,
-                   crop_chirp_end=None,
+                   crop_chirp_start=0,
+                   crop_chirp_end=1,
                    max_range=None,
                    constants={}):
     """
@@ -294,11 +304,14 @@ def computeProfile(self: xr.DataArray,
     stack : bool, optional
         Whether to stack the chirp data (default is False).
     crop_chirp_start : float, optional
-        Start time for cropping chirps (default is None).
+        Start time for cropping chirps (default is 0).
     crop_chirp_end : float, optional
-        End time for cropping chirps (default is None).
+        End time for cropping chirps (default is 1).
     max_range : float, optional
         Maximum range for the profile (default is None).
+    constants : dict, optional
+        Dictionary of constants for the radar system. 
+        If not supplied defaults are used, defined in default_constants()
     Returns:
     --------
     xr.DataArray
@@ -313,26 +326,30 @@ def computeProfile(self: xr.DataArray,
     c = constants['c']       # speed of light in a vacuum [m/s]
     ep = constants['ep']     # permittivity of ice
     f_c = constants['f_c']   # center frequency [Hz]
+    dt = constants['dt']     # time step [s]
 
     def rdei(x):
-        """round down to the nearest even integer and return an integerr"""
+        """round down to the nearest even integer and return an integer"""
         return int(np.floor(x/2) * 2)
     
     
-    #def freq2range(frequencies):
-    #    """"return the range for a given frequency"""
-    #    return 
+    def freq2range(frequencies):
+        """"return the range for a given frequency"""
+        return c * frequencies / (2*np.sqrt(ep)*K)
 
-    if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
-        raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
+   # if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
+   #     raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
 
     chirps = self
 
-    dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
+    #dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
     sampling_frequency = 1/dt 
 
-    if crop_chirp_start is not None:
-        chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
+    if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
+        chirps['chirp_time'] = chirps.chirp_time.values.astype('float64')/1e9
+
+    #if crop_chirp_start is not None:
+    chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
 
     if drop_noisy_chirps:
         bad_chirps =  chirps.where(abs(chirps) > clip_threshold)
@@ -375,7 +392,7 @@ def computeProfile(self: xr.DataArray,
     # range
     indexes      = np.arange(s_wpr.chirp_time.size) 
     frequencies  = indexes * sampling_frequency/s_wpr.chirp_time.size
-    profile_range = c * frequencies / (2*np.sqrt(ep)*K)
+    profile_range = freq2range(frequencies)
 
     # reference array
     m = np.arange(len(S_wpr.chirp_time))/pad_factor
@@ -410,17 +427,16 @@ def default_constants():
     constants['c'] = 300000000.0     # speed of light in a vacuum [m/s]
     constants['ep'] = 3.18           # permittivity of ice
     constants['f_c'] = (constants['f_2']+constants['f_1'])/2   # center frequency [Hz]
-    
+    constants['dt'] = 1/40000        # time step [s]
+
     return constants
     
 def add_methods_to_xarrays():
     
     da_methods = [dB, sonify, displacement_timeseries, computeProfile]
-    
     for method in da_methods:
         setattr(xr.DataArray, method.__name__, method)
 
     ds_methods = [addProfileToDs]
-    
     for method in ds_methods:
         setattr(xr.Dataset, method.__name__, method)
