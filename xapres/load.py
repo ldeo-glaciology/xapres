@@ -404,7 +404,8 @@ class from_dats():
             burst = dat.ExtractBurst(0)
             
             singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
-            
+            self.current_burst = burst
+
             # append the new xarray to a list
             list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
         
