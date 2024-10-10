@@ -121,6 +121,9 @@ def test_fft_calculations():
     ## load from a local directory, compute the fft with the new method while  setting the crop-limits on the chirp to some other values (this will effect the answer)
     load_newfft_nonDefaultLimits = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 0.5}).profile
 
+    ## unattended and attended mode
+    attended = fd.load_all(directory, legacy_fft=False, attended=True)
+
     # Compute the ffts on pre-loaded data
     ## use the method .addProfileToDs() to compute the fft on a pre-loaded dataset
     afterLoad_newfft_ds  = load_newfft_full.addProfileToDs()
@@ -133,9 +136,10 @@ def test_fft_calculations():
     afterLoad_newfft_da_differentConstants = load_newfft_full.chirp.computeProfile(constants=constants)
 
     assert not npc(load_oldfft_uncorrectedPad.values, load_oldfft_correctedPad.values)
-    d = load_newfft.dims  #needed to transpose the dataarrays that use legacy_fft=True to be the same as those which use legacy_fft=False
+    d = load_newfft.dims  # needed to transpose the dataarrays that use legacy_fft=True to be the same as those which use legacy_fft=False
     assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft.values)
     assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft_defaultLimits.values)
+    assert npc(load_newfft.values, attended.profile.values)
     assert npc(afterLoad_newfft_ds.profile.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da_differentConstants.values, load_newfft_full.profile.values)
