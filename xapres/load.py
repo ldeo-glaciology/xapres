@@ -26,27 +26,33 @@ def load_zarr(site = "A101",
             chunks = {}) 
 
 def generate_xarray(directory=None, 
-           remote_load=False, 
-           file_numbers_to_process=None, 
-           file_names_to_process=None,
-           bursts_to_process="All",
-           attended=False, 
-           polarmetric=False,
-           loglevel='warning',
-           max_range = None,
-           ):
+                 remote_load=False, 
+                 file_numbers_to_process=None, 
+                 file_names_to_process=None, 
+                 bursts_to_process="All",
+                 attended=False, 
+                 polarmetric=False,
+                 legacy_fft = False,
+                 corrected_pad = False,
+                 max_range = None,
+                 addProfileToDs_kwargs = {},
+                 loglevel = 'warning'
+                 ):
     """Wrapper for from_dats.load_all and adds dB and sonify functions to the resulting xarray."""
 
     fd = from_dats(loglevel=loglevel)
     
     fd.load_all(directory=directory, 
-                remote_load=remote_load, 
-                file_numbers_to_process=file_numbers_to_process, 
-                file_names_to_process=file_names_to_process,
-                bursts_to_process=bursts_to_process,
-                attended=attended, 
-                polarmetric=polarmetric,
-                max_range=max_range
+                 remote_load=remote_load, 
+                 file_numbers_to_process=file_numbers_to_process, 
+                 file_names_to_process=file_names_to_process, 
+                 bursts_to_process=bursts_to_process,
+                 attended=attended, 
+                 polarmetric=polarmetric,
+                 legacy_fft = legacy_fft,
+                 corrected_pad = corrected_pad,
+                 max_range = max_range,
+                 addProfileToDs_kwargs = addProfileToDs_kwargs,
                 )
 
     return fd.data
@@ -155,7 +161,7 @@ class from_dats():
                  bursts_to_process="All",
                  attended=False, 
                  polarmetric=False,
-                 legacy_fft = True,
+                 legacy_fft = False,
                  corrected_pad = False,
                  max_range = None,
                  addProfileToDs_kwargs = {}
@@ -290,6 +296,7 @@ class from_dats():
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
         
         self._add_attrs()
+
 
         if self.legacy_fft is False:
             self.logger.debug(f"Call addProfileToDs to add the profiles to the xarray")
@@ -476,8 +483,6 @@ class from_dats():
                 ),
             )
 
-        ## to do: add burst header as an attribute
-
         return xarray_out
     
     def _burst_to_xarray_attended(self, 
@@ -495,7 +500,7 @@ class from_dats():
         chirps_temp, profiles_temp = self._burst_to_3d_arrays(burst)
         chirp_time, profile_range = self._coords_from_burst(burst)
         time_temp = self._timestamp_from_burst(burst)
-        #self.logger.debug(f"Get orientation from filename")
+        self.logger.debug(f"Get orientation from filename")
         orientation = self._get_orientation(burst.Filename)
         
         chirps = chirps_temp[None,None,:,:,:]
@@ -712,17 +717,16 @@ class from_dats():
                                          'ep': self.current_burst.Header['ER_ICE'],
                                          'B': self.current_burst.Header['B'],
                                          'f_c': self.current_burst.Header['CentreFreq']}
-
-        #self.data.attrs['time created'] = pd.Timestamp.now()
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
         
         self.data.attrs["processing"] = f"Created on {datetime.datetime.now() }"
 
-
         if self.attended:
             self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
+
+
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
