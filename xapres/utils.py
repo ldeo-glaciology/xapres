@@ -276,7 +276,7 @@ def computeProfile(self: xr.DataArray,
                    pad_factor=2, 
                    drop_noisy_chirps=False,
                    clip_threshold=1.2,
-                   min_chirps=20,
+                   min_chirps=0,
                    demean=False,
                    detrend=False,
                    stack=False,
@@ -353,7 +353,7 @@ def computeProfile(self: xr.DataArray,
 
     if drop_noisy_chirps:
         bad_chirps =  chirps.where(abs(chirps) > clip_threshold)
-        good_bursts = bad_chirps.max(dim='chirp_time').count(dim='chirp_num') <= 20-min_chirps
+        good_bursts = bad_chirps.max(dim='chirp_time').count(dim='chirp_num') > min_chirps
         chirps = chirps.where(good_bursts)
         chirps = chirps.where(abs(chirps).max(dim='chirp_time')<clip_threshold)
 
