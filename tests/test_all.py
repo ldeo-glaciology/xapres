@@ -24,16 +24,18 @@ def test_dat_file_loading():
     
 # test the displacement calculation
 def test_displacement_calculation():
-    from_zarr = load.load_zarr()  # lazily load a large APRES dataset from Greenland
-    p1 = from_zarr.isel(time=2000).profile_stacked # select a profile 
-    p2 = from_zarr.isel(time=2100).profile_stacked # select a different profile 
-       
-    utils.compute_displacement(p1, p2)    # calculate the displacement between the two profiles
+    fd = load.from_dats()
 
-    t = from_zarr.sel(time='2022-07-17').profile_stacked   # select all the profiles on a specfic date
-    results = t.displacement_timeseries(bin_size = 30, offset = 3) # compute a time series of displacement from these data. Use non-default values for offset and bin_size 
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', legacy_fft=False) # load the data from a local directory
+    p1 = from_local.isel(time=2, attenuator_setting_pair=0).profile # select a profile 
+    p2 = from_local.isel(time=5, attenuator_setting_pair=0).profile # select a different profile 
 
-    assert (abs(results)>0).all().load()
+    utils.compute_displacement(p1, p2, bin_size = 25)    # calculate the displacement between the two profiles. Use a non-default value for bin_size
+
+
+    profiles = from_local.isel(attenuator_setting_pair=0).profile  # select all the profiles on a specfic date
+    results = profiles.displacement_timeseries(bin_size = 30, offset = 3) # compute a time series of displacement from these data. Use non-default values for offset and bin_size. 
+    assert results
 
 
 
@@ -62,16 +64,12 @@ def test_file_search_methods():
 #  In each case load it and then check that we have loaded the correct file. 
 
 def test_file_selection_methods():
-    directory='gs://ldeo-glaciology/GL_apres_2022/A101'
+    directory='data/sample/polarmetric'
     fs1 = load.from_dats()
-    fs1.load_all(directory, 
-                remote_load = True,
-                file_numbers_to_process=[0,1])
+    fs1.load_all(directory, legacy_fft=False, file_numbers_to_process=[0,1])
 
     fs2 = load.from_dats()
-    fs2.load_all(directory, 
-                remote_load = True,
-                file_names_to_process = fs1.dat_filenames_to_process)
+    fs2.load_all(directory, legacy_fft=False, file_names_to_process = fs1.dat_filenames_to_process)
 
     assert fs1.data.equals(fs2.data)
 
@@ -101,3 +99,44 @@ def test_wrappers():
                 )
 
     from_zarr = load.load_zarr()
+
+from numpy import allclose as npc
+
+def test_fft_calculations():
+    # initialize
+    fd = load.from_dats()
+    directory='data/sample/single_dat_file/'
+    
+    # load the data from dat files
+    ## load data from a local directory, compute the fft with the legacy method and dont correct the padding error
+    load_oldfft_uncorrectedPad = fd.load_all(directory, legacy_fft=True, corrected_pad=False).profile
+    ## load data from a local directory, compute the fft with the legacy method, but this time correct the padding error
+    load_oldfft_correctedPad = fd.load_all(directory, legacy_fft=True, corrected_pad=True).profile
+
+    ## load from a local directory, compute the fft with the new method
+    load_newfft_full = fd.load_all(directory, legacy_fft=False)
+    load_newfft = load_newfft_full.profile
+    ## load from a local directory, compute the fft with the new method while  setting the crop-limits on the chirp to be their default values (this shouldnt effect the answer from the line above)
+    load_newfft_defaultLimits = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 1}).profile
+    ## load from a local directory, compute the fft with the new method while  setting the crop-limits on the chirp to some other values (this will effect the answer)
+    load_newfft_nonDefaultLimits = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 0.5}).profile
+
+    # Compute the ffts on pre-loaded data
+    ## use the method .addProfileToDs() to compute the fft on a pre-loaded dataset
+    afterLoad_newfft_ds  = load_newfft_full.addProfileToDs()
+    ## use the method .computeProfile() to compute the fft on a pre-loaded chirp dataarray
+    afterLoad_newfft_da  = load_newfft_full.chirp.computeProfile()
+
+    # Change a constant used in the calculation of the range, this dosesnt effect the profiles, just the profile_range
+    constants = load_newfft_full.attrs['constants']
+    constants['c'] = 2e8
+    afterLoad_newfft_da_differentConstants = load_newfft_full.chirp.computeProfile(constants=constants)
+
+    assert not npc(load_oldfft_uncorrectedPad.values, load_oldfft_correctedPad.values)
+    d = load_newfft.dims  #needed to transpose the dataarrays that use legacy_fft=True to be the same as those which use legacy_fft=False
+    assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft.values)
+    assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft_defaultLimits.values)
+    assert npc(afterLoad_newfft_ds.profile.values, load_newfft_full.profile.values)
+    assert npc(afterLoad_newfft_da.values, load_newfft_full.profile.values)
+    assert npc(afterLoad_newfft_da_differentConstants.values, load_newfft_full.profile.values)
+    assert not npc(afterLoad_newfft_da_differentConstants.profile_range.values, load_newfft_full.profile_range.values)
