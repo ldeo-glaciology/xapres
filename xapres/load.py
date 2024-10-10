@@ -404,6 +404,7 @@ class from_dats():
             burst = dat.ExtractBurst(0)
             
             singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
+            
             self.current_burst = burst
 
             # append the new xarray to a list
@@ -482,7 +483,7 @@ class from_dats():
     def _burst_to_xarray_attended(self, 
                                   burst, 
                                   waypoint_number):
-        """Return an xarray containing all data from one burst with appropriate coordinates"""
+        """Return an xarray containing all data from one burst with appropriate coordinates - for attended data"""
 
         #self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
         
@@ -498,33 +499,58 @@ class from_dats():
         orientation = self._get_orientation(burst.Filename)
         
         chirps = chirps_temp[None,None,:,:,:]
-        profiles = profiles_temp[None,None,:,:,:]
         #time = time_temp[None,None,:]
         #time = np.expand_dims(time_temp, axis=0)
         
-        xarray_out = xr.Dataset(
-            data_vars=dict(
-                chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
-                profile         = (["orientation", "waypoint", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
-                latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
-                longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
-                battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
-                temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
-                temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
-            ),
-            coords=dict(
-                time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
-                chirp_time            = chirp_time,
-                profile_range         = profile_range, 
-                chirp_num             = np.arange(burst.Header['NSubBursts']),
-                filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
-                burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
-                AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
-                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
-                orientation           = [orientation],
-                waypoint              = [waypoint_number]
-            ),
-        )
+        if self.legacy_fft:
+            profiles = profiles_temp[None,None,:,:,:]
+            self.logger.debug(f"Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage")
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    profile         = (["orientation", "waypoint", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
+                    latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
+                    temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
+                    temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    profile_range         = profile_range, 
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
+        else:
+            self.logger.debug(f"Not using the legacy fft method, so we dont return the profiles at this stage, only chirps and all the other variables")
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
+                    temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
+                    temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
         return xarray_out
 
     def _burst_to_3d_arrays(self, burst):
