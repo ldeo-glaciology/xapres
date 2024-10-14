@@ -100,15 +100,15 @@ class from_dats():
         
     def load_single(self, 
                     dat_filename, 
-                    remote_load=False, 
                     burst_number=0, 
                     chirp_num=0
                     ):
         """Load a single chirp, from a single burst, from a single data file."""
-        
+        self.is_this_a_remote_load(dat_filename)
+
         self.files_to_be_processed = dat_filename
-        self.logger.debug(f"Load dat file {dat_filename} with remote_load = {remote_load}")
-        self.single_dat = self.load_dat_file(dat_filename,remote_load)
+        self.logger.debug(f"Load dat file {dat_filename}")
+        self.single_dat = self.load_dat_file(dat_filename)
         self.logger.debug(f"Extract burst number {burst_number}")
         self.single_burst = self.single_dat.ExtractBurst(burst_number)
         self.logger.debug(f"Extract chirp number {chirp_num}")
@@ -117,33 +117,37 @@ class from_dats():
         self.single_profile = self.single_chirp.FormProfile()
         self.logger.debug(f"Finish call to load_single.")
     
-    def load_dat_file(self, dat_filename, remote_load=False):
+    def load_dat_file(self, dat_filename):
         """Return a DataFileObject, given a filename."""
-        return DataFileObject(dat_filename, remote_load)
+        return DataFileObject(dat_filename, self.remote_load)
       
     def list_files(self, 
                    directory=None, 
-                   remote_load=False,
                    search_suffix=""
                    ):    
         """Recursively list all the .DAT files in a given location dir. 
         
         Arguments:
-        dir -- the directory that will be looked in recursivly to find .DAT files.
-        remote_load -- True/False, indicating if the data are stored locally or rmeotely. Default is False.
+        directory -- the directory that will be looked in recursivly to find .DAT files.
+        search_suffix -- a string that can be used to search for files with a specific suffix.
         """
 
-        self.logger.debug(f"Find all the dat files in the directory {directory} with remote_load = {remote_load}")
+        self.logger.debug(f"Find all the dat files in the directory {directory}")
 
-        
         if directory is None:
-            directory = os.getcwd()
-                        
-        if remote_load:   
-            fs = gcsfs.GCSFileSystem()
-            dat_filenames = fs.glob(directory + '/**/*' + search_suffix + '.[dD][aA][tT]', recursive = True)
+            self.directory = os.getcwd()
         else:
-            dat_filenames = glob.glob(directory + '/**/*' + search_suffix  +'.[dD][aA][tT]',recursive = True)
+            self.directory = directory
+
+        self.is_this_a_remote_load()
+
+        if self.remote_load:   
+            fs = gcsfs.GCSFileSystem()
+            dat_filenames_without_gs_prefix = fs.glob(directory + '/**/*' + search_suffix + '.[dD][aA][tT]', recursive = True)
+            dat_filenames = ['gs://' + x for x in dat_filenames_without_gs_prefix]
+
+        else:
+            dat_filenames = glob.glob(directory + '/**/*' + search_suffix  +'.[dD][aA][tT]', recursive = True)
         
         self.dat_filenames = dat_filenames
         
@@ -154,7 +158,7 @@ class from_dats():
           
     def load_all(self,
                  directory=None, 
-                 remote_load=False, 
+                 remote_load=None,
                  file_numbers_to_process=None, 
                  file_names_to_process=None, 
                  bursts_to_process="All",
@@ -187,10 +191,6 @@ class from_dats():
             Directory or list of directories containing .DAT files. 
             If attended is False, this should be a single directory which will be search recusrivley for dat fies.  
             If attended is True, this should be a list of directories, one for each waypoint. Default is None.
-        remote_load : bool, optional
-            If True, load data from a remote source, e.g., a google bucket, and Directory should be a url, 
-            e.g., 'gs://ldeo-glaciology/apres/thwaites/2022-2023/Point/G1-25-05'. Note that this should not have a '/' at the end.
-            Default is False.
         file_numbers_to_process : list, optional
             List of file numbers to process. If None, all files will be processed. Default is None.
         file_names_to_process : list, optional
@@ -238,7 +238,7 @@ class from_dats():
             If attended mode is True and directory_list is None.
             If both file_numbers_to_process and file_names_to_process are supplied.
         """   
-        
+
         self.file_numbers_to_process = file_numbers_to_process
         self.file_names_to_process = file_names_to_process
         self.attended = attended
@@ -249,8 +249,17 @@ class from_dats():
         self.max_range = max_range
         self.computeProfiles = computeProfiles
         #self.bursts_to_process = bursts_to_process
-       
-        self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
+        
+        if directory is None:
+            self.directory = os.getcwd()
+        else:
+            self.directory = directory
+
+        self.is_this_a_remote_load()
+        
+        self.logger.debug(f"Start call to load_all with remote_load = {self.remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
+      
+        
         
         if attended is True and isinstance(directory, str):
             directory_list = [directory]
@@ -258,7 +267,7 @@ class from_dats():
             directory_list = directory
 
         if attended is False:
-            self.list_files(directory, remote_load)    # adds self.dat_filenames
+            self.list_files(directory)    # adds self.dat_filenames
 
             self.subset_files()   # adds self.dat_filenames_to_process
         
@@ -267,7 +276,7 @@ class from_dats():
             list_of_multiBurstxarrays = []   
             for dat_filename in self.dat_filenames_to_process:
                 self.logger.debug(f"Load dat file {dat_filename}")
-                dat = self.load_dat_file(dat_filename, remote_load)
+                dat = self.load_dat_file(dat_filename)
                 
                 multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
             
@@ -579,7 +588,7 @@ class from_dats():
         cropped_profile_3d -- 3D numpy array containing all the profiles from all the chirps in this burst        
         """
         
-        self.logger.debug(f"Set max range from _burst_to_3d_arrays")
+        #self.logger.debug(f"Set max range from _burst_to_3d_arrays")
         #if self.legacy_fft:      
         #    self._set_max_range(burst)
         
@@ -775,6 +784,15 @@ class from_dats():
         
         self.logger.debug(f"File logging level set to {loglevel.upper()}")
         
+
+    def is_this_a_remote_load(self, filename = None):
+        """Detect if we are trying to load from Google Cloud Storage based on the filename being supplied"""
+        
+        name_to_check_for_gs = filename if filename is not None else self.directory
+
+        self.remote_load = "gs://" in name_to_check_for_gs
+        self.logger.debug(f"remote_load set to {self.remote_load}")
+
     def _try_logging(self):
         """Simple test of the diffrent logging levels. Not for use by users"""
         self.logger.debug("debugging something")
@@ -811,7 +829,7 @@ class DataFileObject:
         self.remote_load = remote_load
         
 
-        if remote_load:
+        if self.remote_load:
             fs = gcsfs.GCSFileSystem()
             datafile = fs.open(self.Filename, mode = 'rb')
         else: 
