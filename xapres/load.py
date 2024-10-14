@@ -14,12 +14,11 @@ import pandas as pd
 from tqdm import tqdm
 import datetime
 
-from .utils import sonify, dB, displacement_timeseries, compute_displacement
 
 def load_zarr(site = "A101", 
             directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
             ):
-    """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
+    """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
     
     return xr.open_dataset(directory + site,
             engine = 'zarr', 
@@ -35,10 +34,11 @@ def generate_xarray(directory=None,
                  legacy_fft = False,
                  corrected_pad = False,
                  max_range = None,
+                 computeProfiles = True,
                  addProfileToDs_kwargs = {},
                  loglevel = 'warning'
                  ):
-    """Wrapper for from_dats.load_all and adds dB and sonify functions to the resulting xarray."""
+    """Wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object."""
 
     fd = from_dats(loglevel=loglevel)
     
@@ -52,6 +52,7 @@ def generate_xarray(directory=None,
                  legacy_fft = legacy_fft,
                  corrected_pad = corrected_pad,
                  max_range = max_range,
+                 computeProfiles = computeProfiles,
                  addProfileToDs_kwargs = addProfileToDs_kwargs,
                 )
 
@@ -67,9 +68,7 @@ class from_dats():
             loglevel --- allows the user to select the level of logging messages are displayed. 
             The default loglevel is warning, which means that no messages are displayed. 
             If you want to see detailed log messages, use loglevel = 'debug'
-    
-            max_range --- the depth the computed profiles are clipped to. 
-    
+        
         Methods:
             load_single --- load a single chirp from a single burst from a single dat file
             load_dat_file --- load a dat file as a DataFileObject
@@ -164,6 +163,7 @@ class from_dats():
                  legacy_fft = False,
                  corrected_pad = False,
                  max_range = None,
+                 computeProfiles = True,
                  addProfileToDs_kwargs = {}
                  ):
         
@@ -211,6 +211,8 @@ class from_dats():
             The original erroneously replaced a two data points in each chirp with zeros. Default is False.
         max_range : float, optional
             A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
+        computeProfiles : bool, optional
+            If True, compute profiles from the chirp data. Default is True.
         addProfileToDs_kwargs : dict, optional
             Additional keyword arguments for addProfileToDs method. 
             The following can be set:
@@ -245,6 +247,7 @@ class from_dats():
         self.legacy_fft = legacy_fft
         self.corrected_pad = corrected_pad
         self.max_range = max_range
+        self.computeProfiles = computeProfiles
         #self.bursts_to_process = bursts_to_process
        
         self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
@@ -298,7 +301,7 @@ class from_dats():
         self._add_attrs()
 
 
-        if self.legacy_fft is False:
+        if self.legacy_fft is False and self.computeProfiles is True:
             self.logger.debug(f"Call addProfileToDs to add the profiles to the xarray")
             self.data = self.data.addProfileToDs(**addProfileToDs_kwargs)
 
@@ -433,7 +436,7 @@ class from_dats():
 
         chirps = chirps[None,:,:,:]
         
-        if self.legacy_fft:
+        if self.legacy_fft and self.computeProfiles:
             profiles = profiles[None,:,:,:]
             self.logger.debug(f"Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage")
 
