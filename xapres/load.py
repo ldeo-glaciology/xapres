@@ -727,6 +727,7 @@ class from_dats():
        
     def correct_temperature(self, threshold=300, correction = -512):
         """Correct temperature values that are above a certain threshold. This appears to result from the temperature data being in the wrong format."""
+        self.logger.debug(f"Correct temperature values above {threshold} by adding {correction}")
         T1 = self.data['temperature_1']
         T2 = self.data['temperature_2']
 
