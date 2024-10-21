@@ -8,6 +8,8 @@ Utility functions that are called by multiple different classes
 import numpy as np
 import xarray as xr
 import datetime
+import dask.array as da
+
 
 
 
@@ -382,6 +384,9 @@ def computeProfile(self: xr.DataArray,
     # roll
     s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
 
+    if contains_dask_array(s_wpr):
+        s_wpr = s_wpr.chunk({'chirp_time':-1})
+
     # fft
     S_wpr = xr.apply_ufunc(np.fft.fft, 
                         s_wpr,
@@ -440,3 +445,6 @@ def add_methods_to_xarrays():
     ds_methods = [addProfileToDs]
     for method in ds_methods:
         setattr(xr.Dataset, method.__name__, method)
+
+def contains_dask_array(dataarray):
+    return isinstance(dataarray.data, da.Array)
