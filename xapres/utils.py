@@ -103,13 +103,16 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     dt_years.attrs['long_name'] = 'Time between shots'
     dt_years.attrs['description'] = 'Time in years between shots used in each measurement of displacement, vertical velocity, etc. dt_years[i] is the time between shot [j] and shot [j-1]'
 
-    # verticla velocity
+    # vertical velocity
     velocity = (displacement / dt_years).rename('velocity')
     velocity.attrs['units'] = 'meters/year'
     velocity.attrs['long_name'] = 'Vertical velocity'
 
+    # strain rates
+    strain_rates = computeStrainRates(velocity)
+
     # combine to an xarray dataset
-    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity]
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
     ds = xr.merge(da_list)
 
     # add attributes related to this processing
@@ -207,6 +210,30 @@ def phase2range(phi,
             # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
         return r
+
+def computeStrainRates(velocity, lower_limit_on_fit = 800):
+    """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
+    velocity_cropped = velocity\
+            .squeeze()\
+            .where(velocity.bin_depth < lower_limit_on_fit)
+    
+    fit_ds = velocity_cropped.polyfit('bin', 1, full = True)
+            
+    strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename('strain_rate')
+    surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename('surface_intercept') 
+
+    strain_rate.attrs['units'] = '1/year'
+    strain_rate.attrs['long_name'] = f"vertical strain rate in upper {lower_limit_on_fit} m"
+    surface_intercept.attrs['units'] = 'meters/year'
+    surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
+    
+    y_mean = velocity_cropped.mean(dim = 'bin')
+    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin')
+    R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename('r_squared')
+    R2.attrs['long_name'] = 'r-squared value for the linear fit'
+    R2.attrs['units'] = '-'   
+    
+    return xr.merge([strain_rate, surface_intercept, R2])
 
 def dB(self):
     """
