@@ -15,12 +15,10 @@ from tqdm import tqdm
 import datetime
 
 
-def load_zarr(site = "A101", 
-            directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
-            ):
+def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
     
-    return xr.open_dataset(directory + site,
+    return xr.open_dataset(directory,
             engine = 'zarr', 
             chunks = {}) 
 

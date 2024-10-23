@@ -15,7 +15,8 @@ import dask.array as da
 
 def displacement_timeseries(self: xr.DataArray, 
                             offset: int=1,  
-                            bin_size: int=20): 
+                            bin_size: int=20, 
+                            lower_limit_on_fit: float=800.0): 
     """
     Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
@@ -39,7 +40,10 @@ def displacement_timeseries(self: xr.DataArray,
     profile2_unaligned= self.isel(time=slice(offset,None))
     
     # compute the binned coherence, phase, and displacement, with uncertainties and put them into an xarray dataset  
-    ds = compute_displacement(profile1_unaligned, profile2_unaligned, bin_size = bin_size)
+    ds = compute_displacement(profile1_unaligned, 
+                              profile2_unaligned, 
+                              bin_size = bin_size,
+                              lower_limit_on_fit = lower_limit_on_fit)
 
     # add attributes related to the this processing
     ds.attrs["offset"] = offset
@@ -49,7 +53,8 @@ def displacement_timeseries(self: xr.DataArray,
 
 def compute_displacement(profile1_unaligned: xr.DataArray, 
                         profile2_unaligned: xr.DataArray, 
-                        bin_size: int=20):
+                        bin_size: int=20, 
+                        lower_limit_on_fit: float=800.0):
     """
     Compute displacement, coherence, and related uncertainties for binned time series data.
 
@@ -98,8 +103,21 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     disp_uncertainty.attrs["units"] = "m"
     disp_uncertainty.attrs["long_name"] = "uncertainty in displacement since previous measurement"
 
+    dt_years = ((profiles.profile_time.sel(shot_number=2) - profiles.profile_time.sel(shot_number=1)) / np.timedelta64(1,'D') / 365.25).rename('dt_years')
+    dt_years.attrs['units'] = 'years'
+    dt_years.attrs['long_name'] = 'Time between shots'
+    dt_years.attrs['description'] = 'Time in years between shots used in each measurement of displacement, vertical velocity, etc. dt_years[i] is the time between shot [j] and shot [j-1]'
+
+    # vertical velocity
+    velocity = (displacement / dt_years).rename('velocity')
+    velocity.attrs['units'] = 'meters/year'
+    velocity.attrs['long_name'] = 'Vertical velocity'
+
+    # strain rates
+    strain_rates = velocity.computeStrainRates(lower_limit_on_fit = lower_limit_on_fit)
+
     # combine to an xarray dataset
-    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty]
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
     ds = xr.merge(da_list)
 
     # add attributes related to this processing
@@ -112,17 +130,19 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
 def combine_profiles(profile1_unaligned, profile2_unaligned):
     """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
     
+# in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
+    if 'time' not in profile1_unaligned.dims:
+        profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
+    if 'time' not in profile2_unaligned.dims:
+        profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
+
+
     if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
         profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number')
     else:
 
-        # in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
-        if 'time' not in profile1_unaligned.dims:
-            profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
-        if 'time' not in profile2_unaligned.dims:
-            profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
-
+        
         # record the time interval between measurements
         t1 = profile1_unaligned.time.data
         t2 = profile2_unaligned.time.data
@@ -197,6 +217,37 @@ def phase2range(phi,
             # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
         return r
+
+def computeStrainRates(self, lower_limit_on_fit = 800):
+    """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
+    velocity_cropped = self\
+            .squeeze()\
+            .where(self.bin_depth < lower_limit_on_fit)
+    
+    fit_ds = velocity_cropped.polyfit('bin', 1, full = True)
+            
+    strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename('strain_rate')
+
+    surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename('surface_intercept') 
+
+    # R^2
+    y_mean = velocity_cropped.mean(dim = 'bin')
+    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin')
+    R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename('r_squared')
+
+    # add attrs
+    strain_rate.attrs['units'] = '1/year'
+    strain_rate.attrs['long_name'] = f"vertical strain rate in upper {lower_limit_on_fit} m"
+    strain_rate.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
+
+    surface_intercept.attrs['units'] = 'meters/year'
+    surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
+    surface_intercept.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
+    
+    R2.attrs['long_name'] = 'r-squared value for the linear fit'
+    R2.attrs['units'] = '-' 
+    
+    return xr.merge([strain_rate, surface_intercept, R2])
 
 def dB(self):
     """
@@ -438,7 +489,7 @@ def default_constants():
     
 def add_methods_to_xarrays():
     
-    da_methods = [dB, sonify, displacement_timeseries, computeProfile]
+    da_methods = [dB, sonify, displacement_timeseries, computeProfile, computeStrainRates]
     for method in da_methods:
         setattr(xr.DataArray, method.__name__, method)
 

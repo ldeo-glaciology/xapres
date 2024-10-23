@@ -21,15 +21,18 @@ A common thing that you may want to do with XApRES is to gather multiple ApRES m
 
 The fastest way to do this is:
 ```
-# install the package
-!pip install xapres
 # import the package
 import xapres as xa
 # load the chirps, perform an fft, and put them all in an xarray
-directory = 'data/sample/multi-burst-dat-file/'
+directory = '../../data/sample/thwaites/'
 data = xa.load.generate_xarray(directory=directory)
-# stack the chirps in each burst, select one of the attenuator pairs, compute the decibels and plot
-data.profile.mean(dim='chirp_num').isel(attenuator_setting_pair=0).dB().plot(x='time', yincrease=False)
+# stack the chirps in each burst,
+profiles = data.profile.mean(dim='chirp_num')
+# select one of the attenuator pairs, compute the decibels and plot
+profiles.isel(attenuator_setting_pair=0).dB().plot(x='time', yincrease=False)
+# compute velocities and strain rates
+w = profiles.displacement_timeseries()
+w.velocity.plot(y = 'bin_depth', yincrease=False, xlim = (-2, 7), ylim = (1200,0))
 ```
 
 You just need to change `directory` to the location of your .DAT files and the code will search recursively through the directory and its sub-directories to find and process all the .DAT they contain. 
