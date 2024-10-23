@@ -61,7 +61,7 @@ Alternatively, you can use a function built-in to the package which loads these 
 
 ```
 import xapres as xa
-ds = xa.load.load_zarr(site="A101")
+ds = xa.load.load_zarr()
 ds
 ```
 
