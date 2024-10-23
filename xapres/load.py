@@ -14,39 +14,46 @@ import pandas as pd
 from tqdm import tqdm
 import datetime
 
-from .utils import sonify, dB, displacement_timeseries, compute_displacement
 
 def load_zarr(site = "A101", 
             directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/"
             ):
-    """Load ApRES data stored in a zarr directory as an xarray and add functionality"""
+    """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
     
     return xr.open_dataset(directory + site,
             engine = 'zarr', 
             chunks = {}) 
 
 def generate_xarray(directory=None, 
-           remote_load=False, 
-           file_numbers_to_process=None, 
-           file_names_to_process=None,
-           bursts_to_process="All",
-           attended=False, 
-           polarmetric=False,
-           loglevel='warning',
-           max_range = None,
-           ):
-    """Wrapper for from_dats.load_all and adds dB and sonify functions to the resulting xarray."""
+                 remote_load=False, 
+                 file_numbers_to_process=None, 
+                 file_names_to_process=None, 
+                 bursts_to_process="All",
+                 attended=False, 
+                 polarmetric=False,
+                 legacy_fft = False,
+                 corrected_pad = False,
+                 max_range = None,
+                 computeProfiles = True,
+                 addProfileToDs_kwargs = {},
+                 loglevel = 'warning'
+                 ):
+    """Wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object."""
 
-    fd = from_dats(loglevel=loglevel, 
-                max_range=max_range)
+    fd = from_dats(loglevel=loglevel)
     
     fd.load_all(directory=directory, 
-                remote_load=remote_load, 
-                file_numbers_to_process=file_numbers_to_process, 
-                file_names_to_process=file_names_to_process,
-                bursts_to_process=bursts_to_process,
-                attended=attended, 
-                polarmetric=polarmetric,
+                 remote_load=remote_load, 
+                 file_numbers_to_process=file_numbers_to_process, 
+                 file_names_to_process=file_names_to_process, 
+                 bursts_to_process=bursts_to_process,
+                 attended=attended, 
+                 polarmetric=polarmetric,
+                 legacy_fft = legacy_fft,
+                 corrected_pad = corrected_pad,
+                 max_range = max_range,
+                 computeProfiles = computeProfiles,
+                 addProfileToDs_kwargs = addProfileToDs_kwargs,
                 )
 
     return fd.data
@@ -61,9 +68,7 @@ class from_dats():
             loglevel --- allows the user to select the level of logging messages are displayed. 
             The default loglevel is warning, which means that no messages are displayed. 
             If you want to see detailed log messages, use loglevel = 'debug'
-    
-            max_range --- the depth the computed profiles are clipped to. 
-    
+        
         Methods:
             load_single --- load a single chirp from a single burst from a single dat file
             load_dat_file --- load a dat file as a DataFileObject
@@ -89,9 +94,9 @@ class from_dats():
             NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
     
     """
-    def __init__(self, loglevel='warning', max_range = None):
+    def __init__(self, loglevel='warning'):
         self._setup_logging(loglevel)
-        self.max_range = max_range
+        
         
     def load_single(self, 
                     dat_filename, 
@@ -155,18 +160,83 @@ class from_dats():
                  bursts_to_process="All",
                  attended=False, 
                  polarmetric=False,
+                 legacy_fft = False,
+                 corrected_pad = False,
+                 max_range = None,
+                 computeProfiles = True,
+                 addProfileToDs_kwargs = {}
                  ):
+        
         """
+        Method to recursively ApRES .dat files and put them in an xarray dataset. It also computes profiles from the chirp data 
+        and includes them in the output. 
+        
         This method has two modes. One for unattended ApRES data and one for attended data. 
         
-        For unattended data (i.e. attended=false, the default), it puts all the data from all 
+        For unattended data (i.e. attended=False, the default), it puts all the data from all 
         the .DAT files found recursively in 'directory', into one xarray. The most important 
         dimension of this xarray is 'time', which is the time of each burst. 
 
         In attended mode, the method locates the dat files corresponding to each waypoint. 
-        It does this based on list supplied by the user. The method groups the 
+        It does this based on a user-supplied list of directories 'directory'. The method groups the 
         data by waypoint (and optionally antenna orientation).
 
+        Parameters
+        ----------
+        directory : str or list, optional
+            Directory or list of directories containing .DAT files. 
+            If attended is False, this should be a single directory which will be search recusrivley for dat fies.  
+            If attended is True, this should be a list of directories, one for each waypoint. Default is None.
+        remote_load : bool, optional
+            If True, load data from a remote source, e.g., a google bucket, and Directory should be a url, 
+            e.g., 'gs://ldeo-glaciology/apres/thwaites/2022-2023/Point/G1-25-05'. Note that this should not have a '/' at the end.
+            Default is False.
+        file_numbers_to_process : list, optional
+            List of file numbers to process. If None, all files will be processed. Default is None.
+        file_names_to_process : list, optional
+            List of file names to process. If None, all files will be processed. Default is None. 
+            Note that you can set either file_numbers_to_process or file_names_to_process, but not both. 
+        bursts_to_process : str or list, optional
+            Bursts to process from within each dat file. Default is "All".
+        attended : bool, optional
+            If True, load data in attended mode. Default is False.
+        polarmetric : bool, optional
+            If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
+            It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
+            Default is False.
+        legacy_fft : bool, optional
+            If True, use legacy FFT processing. Default is True.
+        corrected_pad : bool, optional
+            If True, use the corrected padding procedure in the legacy fft processing.
+            The original erroneously replaced a two data points in each chirp with zeros. Default is False.
+        max_range : float, optional
+            A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
+        computeProfiles : bool, optional
+            If True, compute profiles from the chirp data. Default is True.
+        addProfileToDs_kwargs : dict, optional
+            Additional keyword arguments for addProfileToDs method. 
+            The following can be set:
+                pad_factor = 2
+                drop_noisy_chirps = False,
+                clip_threshold = 1.2,
+                min_chirps = 20,
+                demean = False,
+                detrend = False,
+                stack = False,
+                crop_chirp_start = None,
+                crop_chirp_end = None,
+                max_range = None
+
+        Returns
+        -------
+        xarray.Dataset
+            The loaded data as an xarray dataset.
+
+        Raises
+        ------
+        ValueError
+            If attended mode is True and directory_list is None.
+            If both file_numbers_to_process and file_names_to_process are supplied.
         """   
         
         self.file_numbers_to_process = file_numbers_to_process
@@ -174,6 +244,10 @@ class from_dats():
         self.attended = attended
         self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
         self.polarmetric = polarmetric
+        self.legacy_fft = legacy_fft
+        self.corrected_pad = corrected_pad
+        self.max_range = max_range
+        self.computeProfiles = computeProfiles
         #self.bursts_to_process = bursts_to_process
        
         self.logger.debug(f"Start call to load_all with remote_load = {remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}")
@@ -225,6 +299,11 @@ class from_dats():
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
         
         self._add_attrs()
+
+
+        if self.legacy_fft is False and self.computeProfiles is True:
+            self.logger.debug(f"Call addProfileToDs to add the profiles to the xarray")
+            self.data = self.data.addProfileToDs(**addProfileToDs_kwargs)
 
         self.logger.debug(f"Finish call to load_all. Call xapres.data to see the xarray this produced.")
 
@@ -292,6 +371,7 @@ class from_dats():
             self.logger.debug(f"Extract burst number {burst_number}")   
             burst = dat.ExtractBurst(burst_number)
             singleBurst_xarray = self._burst_to_xarray_unattended(burst)
+            self.current_burst = burst
             list_of_singleBurst_xarrays.append(singleBurst_xarray)
 
         self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat.Filename}")
@@ -335,13 +415,16 @@ class from_dats():
             
             singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
             
+            self.current_burst = burst
+
             # append the new xarray to a list
             list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
         
         # concatenate the xarrays in the list along the orientation dimension
         return xr.concat(list_of_singleorientation_attended_xarrays, dim='orientation')
             
-    def _burst_to_xarray_unattended(self, burst):
+    def _burst_to_xarray_unattended(self, 
+                                    burst: xr.Dataset):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
 
         self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
@@ -352,36 +435,63 @@ class from_dats():
         orientation = self._get_orientation(burst.Filename)
 
         chirps = chirps[None,:,:,:]
-        profiles = profiles[None,:,:,:]
+        
+        if self.legacy_fft and self.computeProfiles:
+            profiles = profiles[None,:,:,:]
+            self.logger.debug(f"Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage")
 
-        xarray_out = xr.Dataset(
-            data_vars=dict(
-                chirp           = (["time","chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
-                profile         = (["time", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
-                latitude        = (["time"], [burst.Header['Latitude']]),
-                longitude       = (["time"], [burst.Header['Longitude']]),  
-                battery_voltage = (["time"], [burst.Header['BatteryVoltage']]), 
-                temperature_1   = (["time"], [burst.Header['Temp1']]),
-                temperature_2   = (["time"], [burst.Header['Temp2']])
-            ),
-            coords=dict(
-                time                  = [time],
-                chirp_time            = chirp_time,
-                profile_range         = profile_range, 
-                chirp_num             = np.arange(burst.Header['NSubBursts']),
-                filename              = (["time"], [burst.Filename]),
-                burst_number          = (["time"], [burst.BurstNo]),
-                AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
-                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
-                orientation           = (["time"], [orientation])
-            ),
-        )
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["time","chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    profile         = (["time", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
+                    latitude        = (["time"], [burst.Header['Latitude']]),
+                    longitude       = (["time"], [burst.Header['Longitude']]),  
+                    battery_voltage = (["time"], [burst.Header['BatteryVoltage']]), 
+                    temperature_1   = (["time"], [burst.Header['Temp1']]),
+                    temperature_2   = (["time"], [burst.Header['Temp2']])
+                ),
+                coords=dict(
+                    time                  = [time],
+                    chirp_time            = chirp_time,
+                    profile_range         = profile_range, 
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["time"], [burst.Filename]),
+                    burst_number          = (["time"], [burst.BurstNo]),
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = (["time"], [orientation])
+                ),
+            )
+
+        else:
+            self.logger.debug(f"Not using the legacy fft method, so we dont return the profiles at this stage, only chirps and all the other variables")
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["time","chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    latitude        = (["time"], [burst.Header['Latitude']]),
+                    longitude       = (["time"], [burst.Header['Longitude']]),  
+                    battery_voltage = (["time"], [burst.Header['BatteryVoltage']]), 
+                    temperature_1   = (["time"], [burst.Header['Temp1']]),
+                    temperature_2   = (["time"], [burst.Header['Temp2']])
+                ),
+                coords=dict(    
+                    time                  = [time],
+                    chirp_time            = chirp_time,
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["time"], [burst.Filename]),
+                    burst_number          = (["time"], [burst.BurstNo]),
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = (["time"], [orientation])
+                ),
+            )
+
         return xarray_out
     
     def _burst_to_xarray_attended(self, 
                                   burst, 
                                   waypoint_number):
-        """Return an xarray containing all data from one burst with appropriate coordinates"""
+        """Return an xarray containing all data from one burst with appropriate coordinates - for attended data"""
 
         #self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
         
@@ -393,37 +503,62 @@ class from_dats():
         chirps_temp, profiles_temp = self._burst_to_3d_arrays(burst)
         chirp_time, profile_range = self._coords_from_burst(burst)
         time_temp = self._timestamp_from_burst(burst)
-        #self.logger.debug(f"Get orientation from filename")
+        self.logger.debug(f"Get orientation from filename")
         orientation = self._get_orientation(burst.Filename)
         
         chirps = chirps_temp[None,None,:,:,:]
-        profiles = profiles_temp[None,None,:,:,:]
         #time = time_temp[None,None,:]
         #time = np.expand_dims(time_temp, axis=0)
         
-        xarray_out = xr.Dataset(
-            data_vars=dict(
-                chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
-                profile         = (["orientation", "waypoint", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
-                latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
-                longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
-                battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
-                temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
-                temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
-            ),
-            coords=dict(
-                time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
-                chirp_time            = chirp_time,
-                profile_range         = profile_range, 
-                chirp_num             = np.arange(burst.Header['NSubBursts']),
-                filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
-                burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
-                AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
-                attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
-                orientation           = [orientation],
-                waypoint              = [waypoint_number]
-            ),
-        )
+        if self.legacy_fft:
+            profiles = profiles_temp[None,None,:,:,:]
+            self.logger.debug(f"Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage")
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    profile         = (["orientation", "waypoint", "profile_range", "chirp_num", "attenuator_setting_pair"], profiles),
+                    latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
+                    temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
+                    temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    profile_range         = profile_range, 
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
+        else:
+            self.logger.debug(f"Not using the legacy fft method, so we dont return the profiles at this stage, only chirps and all the other variables")
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = (["orientation", "waypoint", "chirp_time", "chirp_num", "attenuator_setting_pair"], chirps),
+                    latitude        = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    longitude       = (["orientation", "waypoint"], np.array(burst.Header['Latitude'], ndmin = 2)),
+                    battery_voltage = (["orientation", "waypoint"], np.array(burst.Header['BatteryVoltage'], ndmin = 2)),
+                    temperature_1   = (["orientation", "waypoint"], np.array(burst.Header['Temp1'], ndmin = 2)),
+                    temperature_2   = (["orientation", "waypoint"], np.array(burst.Header['Temp2'], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = (["orientation", "waypoint"], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    chirp_num             = np.arange(burst.Header['NSubBursts']),
+                    filename              = (["orientation", "waypoint"], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = (["orientation", "waypoint"], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = (["attenuator_setting_pair"], burst.Header['AFGain'][0:burst.Header['nAttenuators']]),
+                    attenuator            = (["attenuator_setting_pair"], burst.Header['Attenuator1'][0:burst.Header['nAttenuators']]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
         return xarray_out
 
     def _burst_to_3d_arrays(self, burst):
@@ -448,7 +583,8 @@ class from_dats():
         """
         
         self.logger.debug(f"Set max range from _burst_to_3d_arrays")
-        self._set_max_range(burst)
+        #if self.legacy_fft:      
+        #    self._set_max_range(burst)
         
         # pre-allocate 3D numpy arrays
         chirp_3d = np.zeros((burst.Header['N_ADC_SAMPLES'],burst.Header['NSubBursts'],burst.Header['nAttenuators']))
@@ -462,20 +598,34 @@ class from_dats():
         # loop over all chirps in this burst
         for i in np.arange(burst.Header['NChirps']):
             chirp_new = burst.ExtractChirp([i]) 
-            profile_new = chirp_new.FormProfile()
-
             chirp_3d[:,chirp_counter,setting_counter] = chirp_new.vdat
-            profile_3d[:,chirp_counter,setting_counter] = profile_new.Profile  
 
+            if self.legacy_fft:
+                self.logger.debug(f"using legacy fft method to compute profiles")
+                profile_new = chirp_new.FormProfile(corrected_pad=self.corrected_pad)
+                profile_3d[:,chirp_counter,setting_counter] = profile_new.Profile  
+            else:
+                self.logger.debug(f"Not using legacy fft method, so returning some None's")
+                profile_new = None
+                profile_3d = None
+            
             # keep track of which pair of settings we are using
             setting_counter += 1
             if setting_counter >= burst.Header['nAttenuators']: # if the counter reaches nAttenuators, reset it to zero 
                 setting_counter = 0
                 chirp_counter += 1
 
-        # crop the profile to a reasonable depth to save space 
-        n = np.argmin(profile_new.Range<=self.max_range)
-        cropped_profile_3d = profile_3d[:n,:,:]    
+        if self.legacy_fft:
+            self.logger.debug(f"using legacy fft method to compute profiles, so crop based on max_depth (if it is set)")
+            if self.max_range is not None:
+                 
+                n = np.argmin(profile_new.Range<=self.max_range)
+                cropped_profile_3d = profile_3d[:n,:,:]  
+            else: 
+                cropped_profile_3d = profile_3d  
+        else: 
+            self.logger.debug(f"Not using legacy fft method, so returning cropped_profile as None")
+            cropped_profile_3d = None
 
         return chirp_3d, cropped_profile_3d
 
@@ -483,13 +633,21 @@ class from_dats():
         """Return the time vector and depth vector from the first chirp in a burst. They should be the same for the whole burst."""
         
         self.logger.debug(f"Set max range from _coords_from_burst")
-        self._set_max_range(burst)
         
         chirp = burst.ExtractChirp([0])
 
-        profile = chirp.FormProfile()
-        n = np.argmin(profile.Range<=self.max_range)
-        cropped_range = profile.Range[:n] 
+        if self.legacy_fft:
+            #self._set_max_range(burst)
+            profile = chirp.FormProfile()
+            if self.max_range is not None:
+                
+                n = np.argmin(profile.Range<=self.max_range)
+                cropped_range = profile.Range[:n]
+            else:
+                cropped_range = profile.Range
+        else:
+            cropped_range = None
+
         return  chirp.t, cropped_range
 
     def _timestamp_from_burst(self, burst):
@@ -507,7 +665,7 @@ class from_dats():
 
         return orientation
     
-    def _set_max_range(self,burst):
+    def _set_max_range(self, burst):
         
         # if not supplied with a max_range, use what is defined in the header
         if self.max_range is None:
@@ -524,9 +682,6 @@ class from_dats():
         self.data.chirp_time.attrs['name'] = 'time of samples during chirps'
         self.data.chirp_time.attrs['units'] = 'seconds'
 
-        self.data.profile_range.attrs['long_name'] = 'depth'
-        self.data.profile_range.attrs['units'] = 'meters'
-
         self.data.chirp_num.attrs['long_name'] = 'chirp number'
         self.data.chirp_num.attrs['description'] = 'the number of each chirp within each burst'
 
@@ -539,10 +694,6 @@ class from_dats():
         self.data.chirp.attrs['long_name'] = 'de-ramped chirp'
         self.data.chirp.attrs['units'] = 'volts'
         self.data.chirp.attrs['description'] = 'voltage from the analog-to-digital converter after the received signal has been mixed with the transmitted signal and the result has been filtered to leave only the low frequency compponent corresponding to the differences in the frequencies of the Tx and Rx signals'
-
-        self.data.profile.attrs['long_name'] = 'profile' 
-        self.data.profile.attrs['units'] = '-'
-        self.data.profile.attrs['description'] = 'complex profile computed from the fourier transform of the de-ramped chirp'
 
         self.data.latitude.attrs['units'] = 'degrees'
         self.data.latitude.attrs['long_name'] = 'latitude of burst'
@@ -561,16 +712,24 @@ class from_dats():
         self.data.filename.attrs['description'] = 'the name of the file that contains each burst'
         self.data.burst_number.attrs['description'] = 'the number of each burst within each file'
         
-        #self.data.attrs['time created'] = pd.Timestamp.now()
+        self.data.attrs['constants'] = {'c': self.current_burst.Header['c0'],
+                                         'K': self.current_burst.Header['K'],
+                                         'f_1': self.current_burst.Header['StartFreq'],
+                                         'f_2': self.current_burst.Header['StopFreq'],
+                                         'dt': self.current_burst.Header['dt'],
+                                         'ep': self.current_burst.Header['ER_ICE'],
+                                         'B': self.current_burst.Header['B'],
+                                         'f_c': self.current_burst.Header['CentreFreq']}
             
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
         
         self.data.attrs["processing"] = f"Created on {datetime.datetime.now() }"
 
-
         if self.attended:
             self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
+
+
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
@@ -912,7 +1071,7 @@ class ChirpObject:
         plt.grid("on")
         return(0)
 
-    def FormProfile(self, F0=200000000, F1=400000000, pad=2, ref=1):
+    def FormProfile(self, F0=200000000, F1=400000000, pad=2, ref=1, corrected_pad=False):
         Profile = ProfileObject()
         if self.Header["StartFreq"] > F0:
             F0 = self.Header["StartFreq"]
@@ -929,8 +1088,16 @@ class ChirpObject:
         Nfft = math.floor(Nt*pad)
 
         padchirp = np.zeros(Nfft)
-        padchirp[0:math.floor(Nt/2)-1] = winchirp[math.floor(Nt/2):-1]
-        padchirp[-math.floor(Nt/2):-1] = winchirp[0:math.floor(Nt/2)-1]
+        
+        if corrected_pad:
+            padchirp[0:math.floor(Nt/2)] = winchirp[math.floor(Nt/2):]
+            padchirp[-math.floor(Nt/2):] = winchirp[0:math.floor(Nt/2)]
+        else:
+            padchirp[0:math.floor(Nt/2)-1] = winchirp[math.floor(Nt/2):-1]
+            padchirp[-math.floor(Nt/2):-1] = winchirp[0:math.floor(Nt/2)-1]
+
+
+    
         Profile.Profile = np.fft.fft(padchirp)/Nfft * math.sqrt(2*pad) 
         Profile.bin2m = self.Header["c0"]/(2.*(T1-T0)*pad*math.sqrt(self.Header["ER_ICE"])*self.Header["K"])
         Profile.Range = np.asarray([i for i in range(Nfft)]) * Profile.bin2m       

@@ -8,6 +8,8 @@ Utility functions that are called by multiple different classes
 import numpy as np
 import xarray as xr
 import datetime
+import dask.array as da
+
 
 
 
@@ -254,9 +256,195 @@ def sonify(self,
     if save:
         sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
 
+def addProfileToDs(self: xr.Dataset, **kwargs):
+
+    
+    if 'constants' in self.attrs:
+        profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
+    else:
+        profile = self.chirp.computeProfile(**kwargs)
+
+    # remove profile variable and profile range, if they exist 
+    if 'profile' in self.data_vars:
+        out = self.drop_dims('profile_range')
+    else: 
+        out = self
+
+        
+    return xr.merge([out, profile], combine_attrs='override')
+
+
+def computeProfile(self: xr.DataArray,
+                   pad_factor=2, 
+                   drop_noisy_chirps=False,
+                   clip_threshold=1.2,
+                   min_chirps=0,
+                   demean=False,
+                   detrend=False,
+                   stack=False,
+                   crop_chirp_start=0,
+                   crop_chirp_end=1,
+                   max_range=None,
+                   constants={}):
+    """
+    Compute profiles from chirp data.
+    -----------
+    self : xr.DataArray
+        The input chirp data array.
+    pad_factor : int, optional
+        Factor by which to pad the chirp data (default is 2).
+    drop_noisy_chirps : bool, optional
+        Whether to drop noisy chirps (default is False).
+    clip_threshold : float, optional
+        Threshold for clipping noisy chirps (default is 1.2).
+    min_chirps : int, optional
+        Minimum number of chirps required to keep a burst (default is 20).
+    demean : bool, optional
+        Whether to demean the chirp data (default is False).
+    detrend : bool, optional
+        Whether to detrend the chirp data (default is False).
+    stack : bool, optional
+        Whether to stack the chirp data (default is False).
+    crop_chirp_start : float, optional
+        Start time for cropping chirps (default is 0).
+    crop_chirp_end : float, optional
+        End time for cropping chirps (default is 1).
+    max_range : float, optional
+        Maximum range for the profile (default is None).
+    constants : dict, optional
+        Dictionary of constants for the radar system. 
+        If not supplied defaults are used, defined in default_constants()
+    Returns:
+    --------
+    xr.DataArray
+        The computed radar profile with range as the coordinate.
+    """
+    
+    if constants == {}:
+        constants = default_constants()
+    
+    B = constants['B']       # bandwidth [Hz]
+    K = constants['K']       # rate of chnge of frequency [Hz/s]
+    c = constants['c']       # speed of light in a vacuum [m/s]
+    ep = constants['ep']     # permittivity of ice
+    f_c = constants['f_c']   # center frequency [Hz]
+    dt = constants['dt']     # time step [s]
+
+    def rdei(x):
+        """round down to the nearest even integer and return an integer"""
+        return int(np.floor(x/2) * 2)
+    
+    
+    def freq2range(frequencies):
+        """"return the range for a given frequency"""
+        return c * frequencies / (2*np.sqrt(ep)*K)
+
+   # if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
+   #     raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
+
+    chirps = self
+
+    #dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
+    sampling_frequency = 1/dt 
+
+    if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
+        chirps['chirp_time'] = chirps.chirp_time.values.astype('float64')/1e9
+
+    #if crop_chirp_start is not None:
+    chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
+
+    if drop_noisy_chirps:
+        bad_chirps =  chirps.where(abs(chirps) > clip_threshold)
+        good_bursts = bad_chirps.max(dim='chirp_time').count(dim='chirp_num') > min_chirps
+        chirps = chirps.where(good_bursts)
+        chirps = chirps.where(abs(chirps).max(dim='chirp_time')<clip_threshold)
+
+    if demean:
+        chirps = chirps - chirps.mean(dim='chirp_time')
+
+    if detrend:
+        p = chirps.polyfit('chirp_time', 1)
+        fit = xr.polyval(chirps.chirp_time, p.polyfit_coefficients)
+        chirps = chirps - fit
+
+    if stack:   
+        chirps = chirps.mean(dim='chirp_num', skipna=True)
+
+
+    Nt = rdei(chirps.chirp_time.size)   # add a -2 here to see the effect on one of the fft methods below and not all of them. 
+    s = chirps.isel(chirp_time = slice(0, Nt))
+
+    # window
+    filter = xr.DataArray(np.blackman(Nt), dims = 'chirp_time')
+    s_w = s * filter
+    
+    # pad
+    s_wp = s_w.pad(chirp_time=int((Nt*pad_factor-Nt)/2), constant_values=0)
+
+    # roll
+    s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
+
+    if contains_dask_array(s_wpr):
+        s_wpr = s_wpr.chunk({'chirp_time':-1})
+
+    # fft
+    S_wpr = xr.apply_ufunc(np.fft.fft, 
+                        s_wpr,
+                        input_core_dims=[["chirp_time"]],
+                        output_core_dims=[["chirp_time"]])
+    S_wpr = S_wpr/s_wpr.chirp_time.size * np.sqrt(2*pad_factor) 
+
+    # range
+    indexes      = np.arange(s_wpr.chirp_time.size) 
+    frequencies  = indexes * sampling_frequency/s_wpr.chirp_time.size
+    profile_range = freq2range(frequencies)
+
+    # reference array
+    m = np.arange(len(S_wpr.chirp_time))/pad_factor
+    phiref = 2*np.pi*f_c*m/B -  m * m * 2*np.pi * K/2/B**2
+    S_wprr = S_wpr * np.exp(phiref*(-1j))
+    S_wprr = S_wprr.rename('profile')
+    S_wprr = S_wprr.rename({'chirp_time': 'profile_range'})
+    S_wprr['profile_range'] = profile_range
+
+    if max_range is None:
+        max_range = S_wprr.profile_range[-1]/2
+        S_wprr = S_wprr.isel(profile_range = slice(0, S_wprr.profile_range.size//2-1))
+    else:
+        S_wprr = S_wprr.where(S_wprr.profile_range <= max_range, drop=True)
+    
+    S_wprr.attrs['long_name'] = 'profile' 
+    S_wprr.attrs['units'] = '-'
+    S_wprr.attrs['description'] = 'complex profile computed from the fourier transform of the de-ramped chirp'
+    S_wprr.profile_range.attrs['long_name'] = 'depth'
+    S_wprr.profile_range.attrs['units'] = 'meters'
+
+
+    return S_wprr
+
+def default_constants():
+    constants = {}
+    constants['T'] = 1               # chirp duration [s]
+    constants['f_1'] = 200e6         # starting frequency [Hz]
+    constants['f_2'] = 400e6         # ending frequency [Hz]
+    constants['B'] = constants['f_2']-constants['f_1']          # bandwidth [Hz]
+    constants['K'] = constants['B']/constants['T']            # rate of chnge of frequency [Hz/s]
+    constants['c'] = 300000000.0     # speed of light in a vacuum [m/s]
+    constants['ep'] = 3.18           # permittivity of ice
+    constants['f_c'] = (constants['f_2']+constants['f_1'])/2   # center frequency [Hz]
+    constants['dt'] = 1/40000        # time step [s]
+
+    return constants
+    
 def add_methods_to_xarrays():
     
-    methods = [dB, sonify, displacement_timeseries]
-    
-    for method in methods:
+    da_methods = [dB, sonify, displacement_timeseries, computeProfile]
+    for method in da_methods:
         setattr(xr.DataArray, method.__name__, method)
+
+    ds_methods = [addProfileToDs]
+    for method in ds_methods:
+        setattr(xr.Dataset, method.__name__, method)
+
+def contains_dask_array(dataarray):
+    return isinstance(dataarray.data, da.Array)
