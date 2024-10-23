@@ -98,8 +98,18 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     disp_uncertainty.attrs["units"] = "m"
     disp_uncertainty.attrs["long_name"] = "uncertainty in displacement since previous measurement"
 
+    dt_years = ((displacement.profile_time.sel(shot_number=2) - displacement.profile_time.sel(shot_number=1)) / np.timedelta64(1,'D') / 365.25).rename('dt_years')
+    dt_years.attrs['units'] = 'years'
+    dt_years.attrs['long_name'] = 'Time between shots'
+    dt_years.attrs['description'] = 'Time in years between shots used in each measurement of displacement, vertical velocity, etc. dt_years[i] is the time between shot [j] and shot [j-1]'
+
+    # verticla velocity
+    velocity = (displacement / dt_years).rename('velocity')
+    velocity.attrs['units'] = 'meters/year'
+    velocity.attrs['long_name'] = 'Vertical velocity'
+
     # combine to an xarray dataset
-    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty]
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity]
     ds = xr.merge(da_list)
 
     # add attributes related to this processing
