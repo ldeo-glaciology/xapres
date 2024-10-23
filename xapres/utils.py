@@ -170,11 +170,11 @@ def bin_profiles(profiles, bin_size):
     """Put the time series into vertical bins"""
     
     # Bin in depth
-    profiles_binned = profiles.coarsen(profile_range=bin_size, boundary='trim').construct(profile_range=("bin", "sample_in_bin"))
+    profiles_binned = profiles.coarsen(profile_range=bin_size, boundary='trim').construct(profile_range=("bin_depth", "sample_in_bin"))
 
     # Compute the bin depth and add it to the DataArray
     bin_depth = profiles_binned.profile_range.mean(dim='sample_in_bin').data
-    profiles_binned = profiles_binned.assign_coords(bin_depth=("bin", bin_depth))
+    profiles_binned = profiles_binned.assign_coords(bin_depth=("bin_depth", bin_depth))
 
     return profiles_binned
 
@@ -224,15 +224,15 @@ def computeStrainRates(self, lower_limit_on_fit = 800):
             .squeeze()\
             .where(self.bin_depth < lower_limit_on_fit)
     
-    fit_ds = velocity_cropped.polyfit('bin', 1, full = True)
+    fit_ds = velocity_cropped.polyfit('bin_depth', 1, full = True)
             
     strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename('strain_rate')
 
     surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename('surface_intercept') 
 
     # R^2
-    y_mean = velocity_cropped.mean(dim = 'bin')
-    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin')
+    y_mean = velocity_cropped.mean(dim = 'bin_depth')
+    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin_depth')
     R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename('r_squared')
 
     # add attrs
