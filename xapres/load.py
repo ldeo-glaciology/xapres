@@ -300,6 +300,7 @@ class from_dats():
         
         self._add_attrs()
 
+        self.correct_temperature()
 
         if self.legacy_fft is False and self.computeProfiles is True:
             self.logger.debug(f"Call addProfileToDs to add the profiles to the xarray")
@@ -393,7 +394,6 @@ class from_dats():
         """This is the attended equivalent to _all_bursts_in_dat_to_xarray"""
     
         # initialize an empty array to contain the individual xarrays
-        
         list_of_singleorientation_attended_xarrays = []
         
         if self.polarmetric is True:
@@ -410,11 +410,8 @@ class from_dats():
             if len(files) != 1:
                 raise Exception(f'there should by one dat file for each orientation in each directory. We found {len(files)} files.')
             dat = self.load_dat_file(files[0])
-            
             burst = dat.ExtractBurst(0)
-            
             singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
-            
             self.current_burst = burst
 
             # append the new xarray to a list
@@ -728,7 +725,14 @@ class from_dats():
         if self.attended:
             self.data.waypoint.attrs['description'] = 'the number of the waypoint where the data was collected'
        
+    def correct_temperature(self, threshold=300, correction = -512):
+        """Correct temperature values that are above a certain threshold. This appears to result from the temperature data being in the wrong format."""
+        self.logger.debug(f"Correct temperature values above {threshold} by adding {correction}")
+        T1 = self.data['temperature_1']
+        T2 = self.data['temperature_2']
 
+        self.data['temperature_1'] = xr.where(T1>threshold, T1+correction, T1)
+        self.data['temperature_2'] = xr.where(T2>threshold, T2+correction, T2) 
 
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
