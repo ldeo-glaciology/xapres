@@ -330,9 +330,11 @@ def computeProfile(self: xr.DataArray,
                    drop_noisy_chirps=False,
                    clip_threshold=1.2,
                    min_chirps=0,
-                   demean=False,
+                   demean=True,
                    detrend=False,
                    stack=False,
+                   trim = True,
+                   scale_for_window=True,
                    crop_chirp_start=0,
                    crop_chirp_end=1,
                    max_range=None,
@@ -356,15 +358,24 @@ def computeProfile(self: xr.DataArray,
         Whether to detrend the chirp data (default is False).
     stack : bool, optional
         Whether to stack the chirp data (default is False).
+    trim : bool, optional
+        Whether to trim the chirp data (default is True). 
+        This is only an option to allow tests to effectively compare the output of 
+        this function with the output of the legacy fft method.
+    scale_for_window : bool, optional
+        Whether to scale the chirp data for the window (default is True).
+        This is only an option to allow tests to effectively compare the output of 
+        this function with the output of the legacy fft method.
     crop_chirp_start : float, optional
-        Start time for cropping chirps (default is 0).
+        Start time for cropping chirps in seconds (default is 0, the start of the chirp).
     crop_chirp_end : float, optional
-        End time for cropping chirps (default is 1).
+        End time for cropping chirps in seconds (default is 1, the end f the chirp).
     max_range : float, optional
-        Maximum range for the profile (default is None).
+        Maximum range for the profile in meters (default is None).
     constants : dict, optional
         Dictionary of constants for the radar system. 
-        If not supplied defaults are used, defined in default_constants()
+        If not supplied, defaults are used, defined in default_constants()
+    
     Returns:
     --------
     xr.DataArray
@@ -392,8 +403,10 @@ def computeProfile(self: xr.DataArray,
 
    # if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
    #     raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
-
-    chirps = self
+    if trim:
+        chirps = self.isel(chirp_time = slice(0, -1))   # trim the chirps by one element to make them the same length as chirps loaded using the matlab code fmcw_load
+    else:
+        chirps = self
 
     #dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
     sampling_frequency = 1/dt 
@@ -401,7 +414,7 @@ def computeProfile(self: xr.DataArray,
     if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
         chirps['chirp_time'] = chirps.chirp_time.values.astype('float64')/1e9
 
-    #if crop_chirp_start is not None:
+    # if crop_chirp_start is not None:
     chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
 
     if drop_noisy_chirps:
@@ -421,8 +434,7 @@ def computeProfile(self: xr.DataArray,
     if stack:   
         chirps = chirps.mean(dim='chirp_num', skipna=True)
 
-
-    Nt = rdei(chirps.chirp_time.size)   # add a -2 here to see the effect on one of the fft methods below and not all of them. 
+    Nt = rdei(chirps.chirp_time.size)   
     s = chirps.isel(chirp_time = slice(0, Nt))
 
     # window
@@ -443,9 +455,14 @@ def computeProfile(self: xr.DataArray,
                         s_wpr,
                         input_core_dims=[["chirp_time"]],
                         output_core_dims=[["chirp_time"]])
+    
+    # scale for padding
     S_wpr = S_wpr/s_wpr.chirp_time.size * np.sqrt(2*pad_factor) 
-
-    # range
+    
+    if scale_for_window:
+        S_wpr = S_wpr/ np.sqrt(np.mean((np.blackman(Nt))**2)) # scale for window
+    
+    # compute range
     indexes      = np.arange(s_wpr.chirp_time.size) 
     frequencies  = indexes * sampling_frequency/s_wpr.chirp_time.size
     profile_range = freq2range(frequencies)
@@ -458,18 +475,19 @@ def computeProfile(self: xr.DataArray,
     S_wprr = S_wprr.rename({'chirp_time': 'profile_range'})
     S_wprr['profile_range'] = profile_range
 
+    # crop to max_range
     if max_range is None:
         max_range = S_wprr.profile_range[-1]/2
         S_wprr = S_wprr.isel(profile_range = slice(0, S_wprr.profile_range.size//2-1))
     else:
         S_wprr = S_wprr.where(S_wprr.profile_range <= max_range, drop=True)
     
+    # add attributes
     S_wprr.attrs['long_name'] = 'profile' 
     S_wprr.attrs['units'] = '-'
     S_wprr.attrs['description'] = 'complex profile computed from the fourier transform of the de-ramped chirp'
     S_wprr.profile_range.attrs['long_name'] = 'depth'
     S_wprr.profile_range.attrs['units'] = 'meters'
-
 
     return S_wprr
 
