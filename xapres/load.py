@@ -932,7 +932,7 @@ class DataFileObject:
             inbuff = datafile.read(NsamplesInBurst * 4)
             Burst.v = np.frombuffer(inbuff, dtype=np.uint32)
         else:
-            NsamplesInBurst = Burst.Header["N_ADC_SAMPLES"] * Burst.Header["NSubBursts"] *  Burst.Header["nAttenuators"]  # because each subburst conatins a certain number of chirps given by Burst.Header["nAttenuators"]
+            NsamplesInBurst = Burst.Header["N_ADC_SAMPLES"] * Burst.Header["NSubBursts"] *  Burst.Header["nAttenuators"]  # because each subburst contains a certain number of chirps given by Burst.Header["nAttenuators"]
             inbuff = datafile.read(NsamplesInBurst * 2)
             Burst.v = (np.frombuffer(inbuff, dtype=np.uint16))/2**16*2.5-1.25
         datafile.close()
