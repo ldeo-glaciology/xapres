@@ -330,7 +330,7 @@ def computeProfile(self: xr.DataArray,
                    drop_noisy_chirps=False,
                    clip_threshold=1.2,
                    min_chirps=0,
-                   demean=False,
+                   demean=True,
                    detrend=False,
                    stack=False,
                    crop_chirp_start=0,
@@ -393,7 +393,7 @@ def computeProfile(self: xr.DataArray,
    # if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
    #     raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
 
-    chirps = self
+    chirps = self.isel(chirp_time = slice(0, -1))   # trim the chirps by one element to make them the same length as chirps loaded using the matlab code fmcw_load
 
     #dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
     sampling_frequency = 1/dt 
@@ -421,8 +421,7 @@ def computeProfile(self: xr.DataArray,
     if stack:   
         chirps = chirps.mean(dim='chirp_num', skipna=True)
 
-
-    Nt = rdei(chirps.chirp_time.size)   # add a -2 here to see the effect on one of the fft methods below and not all of them. 
+    Nt = rdei(chirps.chirp_time.size)   
     s = chirps.isel(chirp_time = slice(0, Nt))
 
     # window
@@ -443,7 +442,8 @@ def computeProfile(self: xr.DataArray,
                         s_wpr,
                         input_core_dims=[["chirp_time"]],
                         output_core_dims=[["chirp_time"]])
-    S_wpr = S_wpr/s_wpr.chirp_time.size * np.sqrt(2*pad_factor) 
+    S_wpr = S_wpr/s_wpr.chirp_time.size * np.sqrt(2*pad_factor) # scale for padding
+    S_wpr = S_wpr/ np.sqrt(np.mean((np.blackman(Nt))**2)) # scale for window
 
     # range
     indexes      = np.arange(s_wpr.chirp_time.size) 
