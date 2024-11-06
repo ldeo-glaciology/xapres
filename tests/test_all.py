@@ -113,9 +113,9 @@ def test_fft_calculations():
     ## load data from a local directory, compute the fft with the legacy method, but this time correct the padding error
     load_oldfft_correctedPad = fd.load_all(directory, legacy_fft=True, corrected_pad=True).profile
 
-    ## define some options for the new fft to use the older defaults, i.e. before we corrected things to agree eactly with fmcw_load (https://github.com/ldeo-glaciology/xapres/pull/62)
-    ops = {'demean': False, 'trim': False, 'scale_for_window': False}
-
+   ## define some options for the new fft to use the older defaults, i.e. before we corrected things to agree eactly with fmcw_load (https://github.com/ldeo-glaciology/xapres/pull/62)
+    ops = {'demean': False, 'scale_for_window': False}
+    
     ## load from a local directory, compute the fft with the new method
     load_newfft_full = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs=ops)
     load_newfft = load_newfft_full.profile
