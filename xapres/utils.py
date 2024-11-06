@@ -333,7 +333,6 @@ def computeProfile(self: xr.DataArray,
                    demean=True,
                    detrend=False,
                    stack=False,
-                   trim = True,
                    scale_for_window=True,
                    crop_chirp_start=0,
                    crop_chirp_end=1,
@@ -358,10 +357,6 @@ def computeProfile(self: xr.DataArray,
         Whether to detrend the chirp data (default is False).
     stack : bool, optional
         Whether to stack the chirp data (default is False).
-    trim : bool, optional
-        Whether to trim the chirp data (default is True). 
-        This is only an option to allow tests to effectively compare the output of 
-        this function with the output of the legacy fft method.
     scale_for_window : bool, optional
         Whether to scale the chirp data for the window (default is True).
         This is only an option to allow tests to effectively compare the output of 
@@ -396,19 +391,13 @@ def computeProfile(self: xr.DataArray,
         """round down to the nearest even integer and return an integer"""
         return int(np.floor(x/2) * 2)
     
-    
     def freq2range(frequencies):
         """"return the range for a given frequency"""
         return c * frequencies / (2*np.sqrt(ep)*K)
 
-   # if (crop_chirp_start is not None) ^ (crop_chirp_end is not None):   # xor operation (only one of them is True)
-   #     raise ValueError("If either of crop_chirp_start or crop_chirp_end is supplied, the other must also be supplied.")
-    if trim:
-        chirps = self.isel(chirp_time = slice(0, -1))   # trim the chirps by one element to make them the same length as chirps loaded using the matlab code fmcw_load
-    else:
-        chirps = self
+    Nt = rdei(self.chirp_time.size)   
+    chirps = self.isel(chirp_time = slice(0, Nt))
 
-    #dt = chirps.chirp_time.values[1] - chirps.chirp_time.values[0]
     sampling_frequency = 1/dt 
 
     if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
@@ -434,15 +423,14 @@ def computeProfile(self: xr.DataArray,
     if stack:   
         chirps = chirps.mean(dim='chirp_num', skipna=True)
 
-    Nt = rdei(chirps.chirp_time.size)   
-    s = chirps.isel(chirp_time = slice(0, Nt))
-
+    # note on variable naming below: s stands for the pre-fft signal, following others' notation, w stands for windowed, p stands for padding, and so on
+   
     # window
-    filter = xr.DataArray(np.blackman(Nt), dims = 'chirp_time')
-    s_w = s * filter
+    window = xr.DataArray(np.blackman(chirps.chirp_time.size), dims = 'chirp_time')
+    s_w = chirps * window  
     
     # pad
-    s_wp = s_w.pad(chirp_time=int((Nt*pad_factor-Nt)/2), constant_values=0)
+    s_wp = s_w.pad(chirp_time=int((Nt*pad_factor-Nt)/2), constant_values=0)  
 
     # roll
     s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
