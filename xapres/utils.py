@@ -378,16 +378,13 @@ def computeProfile(self: xr.DataArray,
     """
 
     constants = default_constants() | constants
-    
-    for key, values in constants.items():
-        exec(f"{(key)} = {values}")
 
-    #B = constants['B']       # bandwidth [Hz]
-    #K = constants['K']       # rate of chnge of frequency [Hz/s]
-    #c = constants['c']       # speed of light in a vacuum [m/s]
-    #ep = constants['ep']     # permittivity of ice
-    #f_c = constants['f_c']   # center frequency [Hz]
-    #dt = constants['dt']     # time step [s]
+    B = constants['B']       # bandwidth [Hz]
+    K = constants['K']       # rate of chnge of frequency [Hz/s]
+    c = constants['c']       # speed of light in a vacuum [m/s]
+    ep = constants['ep']     # permittivity of ice
+    f_c = constants['f_c']   # center frequency [Hz]
+    dt = constants['dt']     # time step [s]
 
     def rdei(x):
         """round down to the nearest even integer and return an integer"""
@@ -399,7 +396,7 @@ def computeProfile(self: xr.DataArray,
 
     Nt = rdei(self.chirp_time.size)   
     chirps = self.isel(chirp_time = slice(0, Nt))
-
+    
     sampling_frequency = 1/dt 
 
     if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
@@ -478,6 +475,7 @@ def computeProfile(self: xr.DataArray,
     S_wprr.attrs['description'] = 'complex profile computed from the fourier transform of the de-ramped chirp'
     S_wprr.profile_range.attrs['long_name'] = 'depth'
     S_wprr.profile_range.attrs['units'] = 'meters'
+    S_wprr.attrs['constants'] = constants
 
     return S_wprr
 
