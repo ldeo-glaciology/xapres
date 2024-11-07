@@ -368,24 +368,26 @@ def computeProfile(self: xr.DataArray,
     max_range : float, optional
         Maximum range for the profile in meters (default is None).
     constants : dict, optional
-        Dictionary of constants for the radar system. 
-        If not supplied, defaults are used, defined in default_constants()
+        Dictionary of user-defined constants for the radar system. 
+        Any constants that are not supplied in constants are defined in default_constants()
     
     Returns:
     --------
     xr.DataArray
         The computed radar profile with range as the coordinate.
     """
+
+    constants = default_constants() | constants
     
-    if constants == {}:
-        constants = default_constants()
-    
-    B = constants['B']       # bandwidth [Hz]
-    K = constants['K']       # rate of chnge of frequency [Hz/s]
-    c = constants['c']       # speed of light in a vacuum [m/s]
-    ep = constants['ep']     # permittivity of ice
-    f_c = constants['f_c']   # center frequency [Hz]
-    dt = constants['dt']     # time step [s]
+    for key, values in constants.items():
+        exec(f"{(key)} = {values}")
+
+    #B = constants['B']       # bandwidth [Hz]
+    #K = constants['K']       # rate of chnge of frequency [Hz/s]
+    #c = constants['c']       # speed of light in a vacuum [m/s]
+    #ep = constants['ep']     # permittivity of ice
+    #f_c = constants['f_c']   # center frequency [Hz]
+    #dt = constants['dt']     # time step [s]
 
     def rdei(x):
         """round down to the nearest even integer and return an integer"""
