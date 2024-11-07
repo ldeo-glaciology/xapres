@@ -131,8 +131,7 @@ def test_fft_calculations():
     afterLoad_newfft_da  = load_newfft_full.chirp.computeProfile(**ops)
 
     # Change a constant used in the calculation of the range, this dosesnt effect the profiles, just the profile_range
-    constants = load_newfft_full.attrs['constants']
-    constants['c'] = 2e8
+    constants = {'c': 1e8}
     afterLoad_newfft_da_differentConstants = load_newfft_full.chirp.computeProfile(constants=constants, **ops)
 
     assert not npc(load_oldfft_uncorrectedPad.values, load_oldfft_correctedPad.values)
