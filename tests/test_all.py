@@ -202,3 +202,16 @@ def test_comparison_with_matlab_code():
    
     # compare all the profiles to the atlab-loaded ones.
     assert np.allclose(m_profiles, temp_new_constants)
+
+'''
+def test_usingxapresNB():
+
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor 
+
+    notebook_filename ='notebooks/guides/UsingXApRES.ipynb'
+    with open(notebook_filename) as f:
+        nb = nbformat.read(f, as_version=4)
+    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
+    ep.preprocess(nb)
+'''
