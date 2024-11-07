@@ -368,18 +368,17 @@ def computeProfile(self: xr.DataArray,
     max_range : float, optional
         Maximum range for the profile in meters (default is None).
     constants : dict, optional
-        Dictionary of constants for the radar system. 
-        If not supplied, defaults are used, defined in default_constants()
+        Dictionary of user-defined constants for the radar system. 
+        Any constants that are not supplied in constants are defined in default_constants()
     
     Returns:
     --------
     xr.DataArray
         The computed radar profile with range as the coordinate.
     """
-    
-    if constants == {}:
-        constants = default_constants()
-    
+
+    constants = default_constants() | constants
+
     B = constants['B']       # bandwidth [Hz]
     K = constants['K']       # rate of chnge of frequency [Hz/s]
     c = constants['c']       # speed of light in a vacuum [m/s]
@@ -397,7 +396,7 @@ def computeProfile(self: xr.DataArray,
 
     Nt = rdei(self.chirp_time.size)   
     chirps = self.isel(chirp_time = slice(0, Nt))
-
+    
     sampling_frequency = 1/dt 
 
     if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
@@ -476,6 +475,7 @@ def computeProfile(self: xr.DataArray,
     S_wprr.attrs['description'] = 'complex profile computed from the fourier transform of the de-ramped chirp'
     S_wprr.profile_range.attrs['long_name'] = 'depth'
     S_wprr.profile_range.attrs['units'] = 'meters'
+    S_wprr.attrs['constants'] = constants
 
     return S_wprr
 

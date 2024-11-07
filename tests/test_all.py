@@ -131,8 +131,7 @@ def test_fft_calculations():
     afterLoad_newfft_da  = load_newfft_full.chirp.computeProfile(**ops)
 
     # Change a constant used in the calculation of the range, this dosesnt effect the profiles, just the profile_range
-    constants = load_newfft_full.attrs['constants']
-    constants['c'] = 2e8
+    constants = {'c': 1e8}
     afterLoad_newfft_da_differentConstants = load_newfft_full.chirp.computeProfile(constants=constants, **ops)
 
     assert not npc(load_oldfft_uncorrectedPad.values, load_oldfft_correctedPad.values)
@@ -203,3 +202,16 @@ def test_comparison_with_matlab_code():
    
     # compare all the profiles to the atlab-loaded ones.
     assert np.allclose(m_profiles, temp_new_constants)
+
+'''
+def test_usingxapresNB():
+
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor 
+
+    notebook_filename ='notebooks/guides/UsingXApRES.ipynb'
+    with open(notebook_filename) as f:
+        nb = nbformat.read(f, as_version=4)
+    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
+    ep.preprocess(nb)
+'''
