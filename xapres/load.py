@@ -13,7 +13,7 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 import datetime
-
+from apres import ApRESFile
 
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
@@ -274,9 +274,9 @@ class from_dats():
             list_of_multiBurstxarrays = []   
             for dat_filename in tqdm(self.dat_filenames_to_process):
                 self.logger.debug(f"Load dat file {dat_filename}")
-                dat = self.load_dat_file(dat_filename)
+                #dat = self.load_dat_file(dat_filename)
                 
-                multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
+                multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat_filename, bursts_to_process)
             
                 list_of_multiBurstxarrays.append(multiBurstxarray)
                 self.logger.debug(f"Finished processing file {dat_filename}")
@@ -344,7 +344,7 @@ class from_dats():
             self.dat_filenames_to_process = self.dat_filenames          
         
     def _all_bursts_in_dat_to_xarray(self, 
-                                     dat, 
+                                     dat_filename, 
                                      bursts_selected,
                                      ):
         """Take data from all the bursts in one .DAT file and put it in an xarray, concatenated by time. 
@@ -355,43 +355,41 @@ class from_dats():
         bursts_selected -- a list of the burst numbers to process, or "All" to process all the bursts in the dat file.
         """
         self.logger.debug("Attended is False. Generating xarray for unattended data")   
-        self.logger.debug(f"This dat file has {dat.NoBurstsInFile} bursts.")
+        #self.logger.debug(f"This dat file has {dat.NoBurstsInFile} bursts.")
         self.logger.debug(f"bursts_to_process = {bursts_selected} at the start of _all_bursts_in_dat_to_xarray.")
+
+
+        # load all data in the dat file
+        with ApRESFile(dat_filename) as f: 
+            f.read()
+
 
         # Choose which bursts to process. The default is all of the burst in each dat file).
         if bursts_selected == "All":
-            bursts_to_process = range(dat.NoBurstsInFile)
+            bursts_to_process = range(len(f.bursts))
             self.logger.debug("bursts_to_process set to \"All\"")
         else:
             bursts_to_process = bursts_selected
         
-        if any(np.array(bursts_to_process) > (dat.NoBurstsInFile-1)):
+        if any(np.array(bursts_to_process) > (len(f.bursts)-1)):
             self.logger.debug(f"The burst numbers requested in bursts_to_process ({bursts_to_process}) is greater than the number of bursts in\
-                the dat file ({dat.NoBurstsInFile}), so we will just process all the bursts.")
-            bursts_to_process = range(dat.NoBurstsInFile)
+                the dat file ({len(f.bursts)}), so we will just process all the bursts.")
+            bursts_to_process = range(len(f.bursts))
 
         self.logger.debug(f"After the initial parse in _all_bursts_in_dat_to_xarray, bursts_to_process = {list(bursts_to_process)}.")
-        self.logger.debug(f"Start loop over burst numbers {list(bursts_to_process)} in dat file {dat.Filename}")     
+        self.logger.debug(f"Start loop over burst numbers {list(bursts_to_process)} in dat file {dat_filename}")     
         
         list_of_singleBurst_xarrays = []     
         # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray_unattended, and appending it to the list list_of_singleBurst_xarrays
         for burst_number in bursts_to_process:#tqdm(bursts_to_process):
             self.logger.debug(f"Extract burst number {burst_number}")   
-            burst = dat.ExtractBurst(burst_number)
+            burst = f.bursts[burst_number]
             singleBurst_xarray = self._burst_to_xarray_unattended(burst)
             self.current_burst = burst
             list_of_singleBurst_xarrays.append(singleBurst_xarray)
 
-        self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat.Filename}")
+        self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat_filename}")
         
-        # If the data was collected in unattended mode concat along the time dimension.
-        #
-        # If the data was collected in attended mode concat along the waypoint dimension.
-        # match self.attended:
-        #    case False:
-        #        return xr.concat(list_of_singleBurst_xarrays, dim='time') 
-        #    case True:
-        #        return xr.concat(list_of_singleBurst_xarrays, dim='waypoint')
         self.burst_load_counter = 0
         return xr.concat(list_of_singleBurst_xarrays, dim='time') 
 
@@ -428,18 +426,20 @@ class from_dats():
         return xr.concat(list_of_singleorientation_attended_xarrays, dim='orientation')
             
     def _burst_to_xarray_unattended(self, 
-                                    burst: xr.Dataset):
+                                    burst):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
 
         self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
-        chirps, profiles = self._burst_to_3d_arrays(burst)
-        chirp_time, profile_range = self._coords_from_burst(burst)
+        #chirps, profiles = self._burst_to_3d_arrays(burst)
+        #chirp_time, profile_range = self._coords_from_burst(burst)
         time = self._timestamp_from_burst(burst)
         self.logger.debug(f"Get orientation from filename")
         orientation = self._get_orientation(burst.Filename)
 
-        chirps = chirps[None,:,:,:]
+        #chirps = chirps[None,:,:,:]
         
+        chirp_time = np.linspace(start = 0, stop = 1, num = int(burst.header["N_ADC_SAMPLES"]))
+
         if self.legacy_fft and self.computeProfiles:
             profiles = profiles[None,:,:,:]
             self.logger.debug(f"Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage")
