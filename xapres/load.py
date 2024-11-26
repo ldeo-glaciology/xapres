@@ -13,7 +13,10 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 import datetime
-from apres import ApRESFile
+#from apres import ApRESFile
+
+sys.path.append("/Users/jkingslake/Documents/science/ApRES/bas-apres")
+import apres as ap
 
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
     """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
@@ -305,9 +308,11 @@ class from_dats():
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
             self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
         
+        self.correct_temperature()
+
+
         self._add_attrs()
 
-        self.correct_temperature()
 
         if self.legacy_fft is False and self.computeProfiles is True:
             self.logger.debug(f"Call addProfileToDs to add the profiles to the xarray")
@@ -354,33 +359,58 @@ class from_dats():
         dat -- a DataFileObject  
         bursts_selected -- a list of the burst numbers to process, or "All" to process all the bursts in the dat file.
         """
+        self.bursts_selected = bursts_selected
+        
         self.logger.debug("Attended is False. Generating xarray for unattended data")   
-        #self.logger.debug(f"This dat file has {dat.NoBurstsInFile} bursts.")
         self.logger.debug(f"bursts_to_process = {bursts_selected} at the start of _all_bursts_in_dat_to_xarray.")
 
 
-        # load all data in the dat file
-        with ApRESFile(dat_filename) as f: 
-            f.read()
-
-
-        # Choose which bursts to process. The default is all of the burst in each dat file).
-        if bursts_selected == "All":
-            bursts_to_process = range(len(f.bursts))
-            self.logger.debug("bursts_to_process set to \"All\"")
-        else:
-            bursts_to_process = bursts_selected
+        with ap.ApRESFile(dat_filename) as self.f: 
+            self.f.read()
         
-        if any(np.array(bursts_to_process) > (len(f.bursts)-1)):
-            self.logger.debug(f"The burst numbers requested in bursts_to_process ({bursts_to_process}) is greater than the number of bursts in\
-                the dat file ({len(f.bursts)}), so we will just process all the bursts.")
-            bursts_to_process = range(len(f.bursts))
-
-        self.logger.debug(f"After the initial parse in _all_bursts_in_dat_to_xarray, bursts_to_process = {list(bursts_to_process)}.")
-        self.logger.debug(f"Start loop over burst numbers {list(bursts_to_process)} in dat file {dat_filename}")     
+        self.header_cleaning()
         
-        list_of_singleBurst_xarrays = []     
-        # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray_unattended, and appending it to the list list_of_singleBurst_xarrays
+        self.subset_bursts_to_process()
+
+        
+        filename = os.path.basename(self.f.path)
+        
+        bursts = [self.f.bursts[burst_number] for burst_number in self.bursts_to_process]  
+
+        list_of_singleBurst_xarrays = [
+            xr.Dataset(
+                        data_vars=dict(
+                            chirp           = (["time", "chirp_num", "chirp_time", "attenuator_setting_pair"], self.reshape_burst(burst)/2**16*2.5-1.25),
+                            latitude        = (["time"], [burst.header['Latitude']]),
+                            longitude       = (["time"], [burst.header['Longitude']]),  
+                            battery_voltage = (["time"], [burst.header['BatteryVoltage']]), 
+                            temperature_1   = (["time"], [burst.header['Temp1']]),
+                            temperature_2   = (["time"], [burst.header['Temp2']])
+                        ),
+                        coords=dict( 
+                            time                  = [pd.to_datetime(burst.header["Time stamp"]) ],
+                            chirp_time            = np.arange(burst.header["N_ADC_SAMPLES"]) * burst.header['TStepUp'],
+                            chirp_num             = np.arange(burst.header['NSubBursts']),
+                            filename              = (["time"], [filename]),
+                            burst_number          = (["time"], [burstNo]),
+                            AFGain                = (["attenuator_setting_pair"], burst.header['AFGain'][0:int(burst.header['nAttenuators'])]),
+                            attenuator            = (["attenuator_setting_pair"], burst.header['Attenuator1'][0:int(burst.header['nAttenuators'])]),                   
+                            orientation           = (["time"], [self._get_orientation(filename)]),
+                        ),
+                    )
+                    for burstNo, burst in enumerate(bursts)
+        ]
+        
+        self.current_burst = bursts[-1]
+        
+        return xr.concat(list_of_singleBurst_xarrays, dim='time') 
+
+        
+        
+        
+        
+        
+        """
         for burst_number in bursts_to_process:#tqdm(bursts_to_process):
             self.logger.debug(f"Extract burst number {burst_number}")   
             burst = f.bursts[burst_number]
@@ -391,7 +421,7 @@ class from_dats():
         self.logger.debug(f"Concatenating all the single-burst xarrays from dat file {dat_filename}")
         
         self.burst_load_counter = 0
-        return xr.concat(list_of_singleBurst_xarrays, dim='time') 
+        """
 
     def _all_bursts_at_waypoint_to_xarray(self, 
                                           directory,
@@ -428,6 +458,9 @@ class from_dats():
     def _burst_to_xarray_unattended(self, 
                                     burst):
         """Return an xarray containing all data from one burst with appropriate coordinates"""
+
+    
+
 
         self.logger.debug(f"Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays")
         #chirps, profiles = self._burst_to_3d_arrays(burst)
@@ -633,6 +666,62 @@ class from_dats():
 
         return chirp_3d, cropped_profile_3d
 
+    
+    
+    def header_cleaning(self):
+  
+        def line_by_line_cleaning(header):
+        
+            keys_to_skip = ['Time stamp']
+
+            for key, value in header.items():
+                if key in keys_to_skip:
+                    continue
+                try:
+                    header[key] = np.array(value, dtype='float64')
+                except:
+                    try:    
+                        header[key] = np.fromstring(value, sep=',')
+                    except:
+                        pass
+                    pass
+            
+            if "FreqStepUp" in header:
+                header["K"] = header["FreqStepUp"] / header["TStepUp"]
+            else:
+                header["K"] = 2e8
+                header["StartFreq"] = 2e8
+                header["StopFreq"] = 4e8
+                
+            header["c0"] = 3e8
+            if  not ("ER_ICE" in header):
+                header["ER_ICE"] = 3.18
+            header["CentreFreq"] = (header["StartFreq"] + header["StopFreq"])/2
+            header["B"] = (header["StopFreq"] - header["StartFreq"])
+        
+            return header
+
+        for i, b in enumerate(self.f.bursts):
+            self.f.bursts[i].header = line_by_line_cleaning(b.header)
+
+
+    def subset_bursts_to_process(self):
+        """Subset the bursts to process based on the user-supplied list of burst numbers.
+        The default is all of the burst in each dat file."""
+
+        if self.bursts_selected == "All":
+            self.bursts_to_process = range(len(self.f.bursts))
+            self.logger.debug("bursts_to_process set to \"All\"")
+        else:
+            self.bursts_to_process = self.bursts_selected
+        
+        if any(np.array(self.bursts_to_process) > (len(self.f.bursts)-1)):
+            self.logger.debug(f"The burst numbers requested in bursts_to_process ({self.bursts_to_process}) is greater than the number of bursts in\
+                the dat file ({len(self.f.bursts)}), so we will just process all the bursts.")
+            self.bursts_to_process = range(len(self.f.bursts))
+        self.logger.debug(f"After the initial parse in _all_bursts_in_dat_to_xarray, bursts_to_process = {list(self.bursts_to_process)}.")
+
+
     def _coords_from_burst(self, burst):
         """Return the time vector and depth vector from the first chirp in a burst. They should be the same for the whole burst."""
         
@@ -656,12 +745,12 @@ class from_dats():
 
     def _timestamp_from_burst(self, burst):
         """Return the time stamp of a burst"""  
-        return pd.to_datetime(burst.Header["Time stamp"])  
+        return pd.to_datetime(burst.header["Time stamp"])  
 
     def _get_orientation(self, filename):
 
         orientation = filename[-6:-4]
-        #add funciton to make sure orientation is capitalized
+        #add function to make sure orientation is capitalized
 
         #if no orientation at end of filename, mark as unknown
         if orientation not in ['HH','HV','VH','VV']:
@@ -673,11 +762,20 @@ class from_dats():
         
         # if not supplied with a max_range, use what is defined in the header
         if self.max_range is None:
-            self.max_range = burst.Header['maxDepthToGraph']
+            self.max_range = burst.header['maxDepthToGraph']
         else: 
             self.max_range = self.max_range 
         self.logger.debug(f"Max_range has been set to {self.max_range}")
- 
+    
+    def reshape_burst(self, burst):
+        shape = burst.data.shape
+        if burst.header['nAttenuators'] == 1:
+            shape = [1] + list(shape) + [1]
+        else:
+            shape = [1] + list(shape)
+        
+        return burst.data.reshape(shape)
+    
     def _add_attrs(self):
         """Add attributes to the xarray self.data"""
         self.logger.debug("Adding attributes to the xapres.data")
@@ -716,15 +814,17 @@ class from_dats():
         self.data.filename.attrs['description'] = 'the name of the file that contains each burst'
         self.data.burst_number.attrs['description'] = 'the number of each burst within each file'
         
-        self.data.attrs['constants'] = {'c': self.current_burst.Header['c0'],
-                                         'K': self.current_burst.Header['K'],
-                                         'f_1': self.current_burst.Header['StartFreq'],
-                                         'f_2': self.current_burst.Header['StopFreq'],
-                                         'dt': self.current_burst.Header['dt'],
-                                         'ep': self.current_burst.Header['ER_ICE'],
-                                         'B': self.current_burst.Header['B'],
-                                         'f_c': self.current_burst.Header['CentreFreq']}
-            
+        self.data.attrs['constants'] = {'c': self.current_burst.header['c0'],
+                                         'K': self.current_burst.header['K'],
+                                         'f_1': self.current_burst.header['StartFreq'],
+                                         'f_2': self.current_burst.header['StopFreq'],
+                                         'dt': self.current_burst.header['TStepUp'], 
+                                         'ep': self.current_burst.header['ER_ICE'],
+                                         'B': self.current_burst.header['B'],
+                                         'f_c': self.current_burst.header['CentreFreq']}
+
+        #self.data.attrs['header from last burst'] = self.current_burst.header
+
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
         
         self.data.attrs["processing"] = f"Created on {datetime.datetime.now() }"
@@ -738,8 +838,8 @@ class from_dats():
         T1 = self.data['temperature_1']
         T2 = self.data['temperature_2']
 
-        self.data['temperature_1'] = xr.where(T1>threshold, T1+correction, T1)
-        self.data['temperature_2'] = xr.where(T2>threshold, T2+correction, T2) 
+        self.data['temperature_1'] = xr.where(T1>threshold, T1+correction, T1, keep_attrs=True)
+        self.data['temperature_2'] = xr.where(T2>threshold, T2+correction, T2, keep_attrs=True) 
 
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
