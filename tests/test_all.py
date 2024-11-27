@@ -265,4 +265,22 @@ def test_sonify_method():
     ds = fs.load_all(directory)
     ds.chirp.isel(chirp_num=0).sonify(save=True)
     with pytest.raises(BaseException):
-        ds.chirp.sonify()
+        ds.chirp.sonify() # rasies an error because we are asking for more than one chirp to be sonified
+    
+    # test the case when chirp_time is in timedelta format
+    from_zarr = load.load_zarr() 
+    from_zarr.isel(chirp_num=0, time = 100, attenuator_setting_pair = 0 ).chirp.sonify()
+
+
+def test_fft_with_no_constants_supplied():
+    directory='data/sample/single_dat_file/'
+    fs = load.from_dats()
+    ds = fs.load_all(directory)
+    p1 = ds._replace(attrs={}).addProfileToDs().profile
+    p2 = ds.addProfileToDs().profile
+    assert p1.equals(p2)
+
+def test_attended_fft():
+    fd = load.from_dats()
+    fd.load_all(attended=True, directory='data/sample/attended/').addProfileToDs()
+    fd.load_all(attended=True, directory='data/sample/attended/').chirp.computeProfile()
