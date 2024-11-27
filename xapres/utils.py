@@ -182,7 +182,6 @@ def compute_coherence(b1_binned, b2_binned):
     # compute the coherence
     top = (b1_binned * np.conj(b2_binned)).sum(dim="sample_in_bin")
     bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim="sample_in_bin") * (np.abs(b2_binned)**2).sum(dim="sample_in_bin"))
-    coherence = (top/bottom).rename("coherence")
 
     return (top/bottom).rename("coherence")
 
@@ -206,17 +205,19 @@ def phase2range(phi,
         ### Original Matlab File Notes ###
         Craig Stewart
         2014/6/10
-        """
+        
 
         if not all([K,ci]) or rc is None:
             # First order method
             # Brennan et al. (2014) eq 15
+            print('not precise')
             r = lambdac*phi/(4.*np.pi)
         else:
-            # Precise
+            print('Precise')
             # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
-        return r
+        """
+        return lambdac*phi/(4.*np.pi)
 
 def computeStrainRates(self, lower_limit_on_fit = 800):
     """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
@@ -295,6 +296,7 @@ def sonify(self,
     elif isinstance(t[0], np.timedelta64):
         startTimeInSeconds = t[0] / np.timedelta64(1, 's')
         endTimeInSeconds = t[-1] / np.timedelta64(1, 's')
+        print(startTimeInSeconds, endTimeInSeconds)
 
     # calculate the sample rate 
     samplerate = chirp.chirp_time.size / (endTimeInSeconds - startTimeInSeconds)
@@ -320,7 +322,6 @@ def addProfileToDs(self: xr.Dataset, **kwargs):
         out = self.drop_dims('profile_range')
     else: 
         out = self
-
         
     return xr.merge([out, profile], combine_attrs='override')
 

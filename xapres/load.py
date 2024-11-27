@@ -5,7 +5,6 @@ import logging
 
 import gcsfs
 import numpy as np
-import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from tqdm import tqdm
@@ -101,7 +100,7 @@ class from_dats():
 
         self.add_attrs()
 
-        if  computeProfiles is True:
+        if computeProfiles is True:
             self.data = self.data.addProfileToDs(**addProfileToDs_kwargs)
 
         return self.data
@@ -130,7 +129,6 @@ class from_dats():
             fs = gcsfs.GCSFileSystem()
             dat_filenames_without_gs_prefix = fs.glob(self.directory + '/**/*' + search_suffix + '.[dD][aA][tT]', recursive = True)
             dat_filenames = ['gs://' + x for x in dat_filenames_without_gs_prefix]
-
         else:
             dat_filenames = glob.glob(self.directory + '/**/*' + search_suffix  +'.[dD][aA][tT]', recursive = True)
         
@@ -138,7 +136,6 @@ class from_dats():
         
         self.logger.debug(f"Finish call to list_files. Found {len(dat_filenames)} files")
 
-        
         return dat_filenames
           
     def load_all(self,
@@ -188,8 +185,6 @@ class from_dats():
             If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
             It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
             Default is False.
-        legacy_fft : bool, optional
-            If True, use legacy FFT processing. Default is True.
         corrected_pad : bool, optional
             If True, use the corrected padding procedure in the legacy fft processing.
             The original erroneously replaced a two data points in each chirp with zeros. Default is False.
@@ -335,7 +330,6 @@ class from_dats():
         self.logger.debug("Attended is False. Generating xarray for unattended data")   
         self.logger.debug(f"bursts_to_process = {bursts_selected} at the start of _all_bursts_in_dat_to_xarray.")
 
-
         with ap.ApRESFile(dat_filename) as self.f: 
             self.f.read()
         
@@ -433,6 +427,7 @@ class from_dats():
         return xr.concat(list_of_singleorientation_attended_xarrays, dim='orientation')
     
     def header_cleaning(self):
+        """Clean the header of the dat file. This is done line by line, with different cleaning procedures for different header values."""
         def line_by_line_cleaning(header):
         
             to_int_list = ["rxant", "txant", "afgain"]
@@ -475,7 +470,6 @@ class from_dats():
         for i, b in enumerate(self.f.bursts):
             self.f.bursts[i].header = line_by_line_cleaning(b.header)
 
-
     def subset_bursts_to_process(self):
         """Subset the bursts to process based on the user-supplied list of burst numbers.
         The default is all of the burst in each dat file."""
@@ -501,7 +495,7 @@ class from_dats():
         return np.arange(burst.header["N_ADC_SAMPLES"]) * burst.header['TStepUp']
 
     def _get_orientation(self, filename):
-
+        """Get the orientation of the antenna from the filename"""
         orientation = filename[-6:-4]
         #add function to make sure orientation is capitalized
 
@@ -603,7 +597,6 @@ class from_dats():
         if not isinstance(numeric_level, int):
             raise ValueError(f"Invalid log level: {loglevel}")
 
-
         self.logger = logging.getLogger("default_logger")
         # Clear old logging handlers to avoid a build up of multiple similar handlers with repeat calls
         self.logger.handlers.clear()
@@ -611,7 +604,6 @@ class from_dats():
         # Set stream logging level to loglevel
         self.logger.setLevel(level=numeric_level)
         
-
         logStreamFormatter = logging.Formatter(
             fmt=f"%(levelname)-8s %(asctime)s \t %(filename)s @function %(funcName)s line %(lineno)s - %(message)s", 
             datefmt="%H:%M:%S"
@@ -620,13 +612,11 @@ class from_dats():
         consoleHandler.setFormatter(logStreamFormatter)
         consoleHandler.setLevel(level=numeric_level)
                
-        
         self.logger.addHandler(consoleHandler)
         
         self.logger.debug(f"Stream logging level set to {loglevel.upper()}")
         self.logger.debug('Add console handler to logger')
      
-           
         logFileFormatter = logging.Formatter(
             fmt=f"%(levelname)s %(asctime)s (%(relativeCreated)d) \t %(pathname)s F%(funcName)s L%(lineno)s - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
