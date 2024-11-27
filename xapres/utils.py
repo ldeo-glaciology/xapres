@@ -435,7 +435,7 @@ def computeProfile(self: xr.DataArray,
     s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
 
     if contains_dask_array(s_wpr):
-        s_wpr = s_wpr.chunk({'chirp_time':-1})
+        s_wpr = s_wpr.chunk({'chirp_time':-1}).load()
 
     # fft
     S_wpr = xr.apply_ufunc(np.fft.fft, 
