@@ -10,6 +10,7 @@ dependencies:
   - tqdm
   - pip
   - zarr
+  - dask
   - pip:
       - ipympl
       - sounddevice
