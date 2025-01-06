@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.5">
+<title>xapres.utils API documentation</title>
+<meta name="description" content="Created on Fri Jan 06, 2023 by George Lu …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>xapres.utils</code></h1>
+</header>
+<section id="section-intro">
+<p>Created on Fri Jan 06, 2023 by George Lu</p>
+<p>Utility functions that are called by multiple different classes</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="xapres.utils.addProfileToDs"><code class="name flex">
+<span>def <span class="ident">addProfileToDs</span></span>(<span>self: xarray.core.dataset.Dataset, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def addProfileToDs(self: xr.Dataset, **kwargs):
+
+    
+    if &#39;constants&#39; in self.attrs:
+        profile = self.chirp.computeProfile(constants = self.attrs[&#39;constants&#39;], **kwargs)
+    else:
+        profile = self.chirp.computeProfile(**kwargs)
+
+    # remove profile variable and profile range, if they exist 
+    if &#39;profile&#39; in self.data_vars:
+        out = self.drop_dims(&#39;profile_range&#39;)
+    else: 
+        out = self
+
+        
+    return xr.merge([out, profile], combine_attrs=&#39;override&#39;)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.utils.add_methods_to_xarrays"><code class="name flex">
+<span>def <span class="ident">add_methods_to_xarrays</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_methods_to_xarrays():
+    
+    da_methods = [dB, sonify, displacement_timeseries, computeProfile, computeStrainRates]
+    for method in da_methods:
+        setattr(xr.DataArray, method.__name__, method)
+
+    ds_methods = [addProfileToDs]
+    for method in ds_methods:
+        setattr(xr.Dataset, method.__name__, method)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.utils.bin_profiles"><code class="name flex">
+<span>def <span class="ident">bin_profiles</span></span>(<span>profiles, bin_size)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def bin_profiles(profiles, bin_size):
+    &#34;&#34;&#34;Put the time series into vertical bins&#34;&#34;&#34;
+    
+    # Bin in depth
+    profiles_binned = profiles.coarsen(profile_range=bin_size, boundary=&#39;trim&#39;).construct(profile_range=(&#34;bin_depth&#34;, &#34;sample_in_bin&#34;))
+
+    # Compute the bin depth and add it to the DataArray
+    bin_depth = profiles_binned.profile_range.mean(dim=&#39;sample_in_bin&#39;).data
+    profiles_binned = profiles_binned.assign_coords(bin_depth=(&#34;bin_depth&#34;, bin_depth))
+
+    return profiles_binned</code></pre>
+</details>
+<div class="desc"><p>Put the time series into vertical bins</p></div>
+</dd>
+<dt id="xapres.utils.combine_profiles"><code class="name flex">
+<span>def <span class="ident">combine_profiles</span></span>(<span>profile1_unaligned, profile2_unaligned)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def combine_profiles(profile1_unaligned, profile2_unaligned):
+    &#34;&#34;&#34;Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile&#34;&#34;&#34;
+    
+# in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
+    if &#39;time&#39; not in profile1_unaligned.dims:
+        profile1_unaligned = profile1_unaligned.expand_dims(dim=&#34;time&#34;)
+    if &#39;time&#39; not in profile2_unaligned.dims:
+        profile2_unaligned = profile2_unaligned.expand_dims(dim=&#34;time&#34;)
+
+
+    if &#39;time&#39; not in profile1_unaligned.dims and &#39;time&#39; in profile1_unaligned.coords:
+        # data is taken in attended mode and we dont need to get the midpoint time and align
+        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim=&#39;shot_number&#39;)
+    else:
+
+        
+        # record the time interval between measurements
+        t1 = profile1_unaligned.time.data
+        t2 = profile2_unaligned.time.data
+        dt = t2-t1
+
+        # change the name of the time coordinates so that they can be retained when the profiles are concatenated, then drop the original &#39;time&#39; coordinates (the latter is achieved with drop_vars)
+        profile1_unaligned = profile1_unaligned.assign_coords(profile_time=(&#34;time&#34;, profile1_unaligned.time.data)).drop_vars(&#34;time&#34;)
+        profile2_unaligned = profile2_unaligned.assign_coords(profile_time=(&#34;time&#34;, profile2_unaligned.time.data)).drop_vars(&#34;time&#34;)
+
+        # concatenate the two profiles
+        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim=&#39;shot_number&#39;, coords=[&#39;profile_time&#39;, &#39;burst_number&#39;, &#39;filename&#39;])
+
+        # add the midpoint time 
+        profiles = profiles.assign_coords(time=(&#34;time&#34;, t1+dt/2))
+        profiles.time.attrs[&#34;description&#34;] = &#34;mid-point time of two profiles used in the computation&#34;
+
+    profiles = profiles.assign_coords(shot_number=(&#34;shot_number&#34;, 1+profiles.shot_number.data))
+    profiles.shot_number.attrs[&#39;long_name&#39;] = &#39;shot number&#39;
+    profiles.shot_number.attrs[&#39;description&#39;] = &#39;number of the shot used in each measurement&#39;
+
+
+    return profiles</code></pre>
+</details>
+<div class="desc"><p>Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile</p></div>
+</dd>
+<dt id="xapres.utils.computeProfile"><code class="name flex">
+<span>def <span class="ident">computeProfile</span></span>(<span>self: xarray.core.dataarray.DataArray,<br>pad_factor=2,<br>drop_noisy_chirps=False,<br>clip_threshold=1.2,<br>min_chirps=0,<br>demean=True,<br>detrend=False,<br>stack=False,<br>scale_for_window=True,<br>crop_chirp_start=0,<br>crop_chirp_end=1,<br>max_range=None,<br>constants={})</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def computeProfile(self: xr.DataArray,
+                   pad_factor=2, 
+                   drop_noisy_chirps=False,
+                   clip_threshold=1.2,
+                   min_chirps=0,
+                   demean=True,
+                   detrend=False,
+                   stack=False,
+                   scale_for_window=True,
+                   crop_chirp_start=0,
+                   crop_chirp_end=1,
+                   max_range=None,
+                   constants={}):
+    &#34;&#34;&#34;
+    Compute profiles from chirp data.
+    -----------
+    self : xr.DataArray
+        The input chirp data array.
+    pad_factor : int, optional
+        Factor by which to pad the chirp data (default is 2).
+    drop_noisy_chirps : bool, optional
+        Whether to drop noisy chirps (default is False).
+    clip_threshold : float, optional
+        Threshold for clipping noisy chirps (default is 1.2).
+    min_chirps : int, optional
+        Minimum number of chirps required to keep a burst (default is 20).
+    demean : bool, optional
+        Whether to demean the chirp data (default is False).
+    detrend : bool, optional
+        Whether to detrend the chirp data (default is False).
+    stack : bool, optional
+        Whether to stack the chirp data (default is False).
+    scale_for_window : bool, optional
+        Whether to scale the chirp data for the window (default is True).
+        This is only an option to allow tests to effectively compare the output of 
+        this function with the output of the legacy fft method.
+    crop_chirp_start : float, optional
+        Start time for cropping chirps in seconds (default is 0, the start of the chirp).
+    crop_chirp_end : float, optional
+        End time for cropping chirps in seconds (default is 1, the end f the chirp).
+    max_range : float, optional
+        Maximum range for the profile in meters (default is None).
+    constants : dict, optional
+        Dictionary of user-defined constants for the radar system. 
+        Any constants that are not supplied in constants are defined in default_constants()
+    
+    Returns:
+    --------
+    xr.DataArray
+        The computed radar profile with range as the coordinate.
+    &#34;&#34;&#34;
+
+    constants = default_constants() | constants
+
+    B = constants[&#39;B&#39;]       # bandwidth [Hz]
+    K = constants[&#39;K&#39;]       # rate of chnge of frequency [Hz/s]
+    c = constants[&#39;c&#39;]       # speed of light in a vacuum [m/s]
+    ep = constants[&#39;ep&#39;]     # permittivity of ice
+    f_c = constants[&#39;f_c&#39;]   # center frequency [Hz]
+    dt = constants[&#39;dt&#39;]     # time step [s]
+
+    def rdei(x):
+        &#34;&#34;&#34;round down to the nearest even integer and return an integer&#34;&#34;&#34;
+        return int(np.floor(x/2) * 2)
+    
+    def freq2range(frequencies):
+        &#34;&#34;&#34;&#34;return the range for a given frequency&#34;&#34;&#34;
+        return c * frequencies / (2*np.sqrt(ep)*K)
+
+    Nt = rdei(self.chirp_time.size)   
+    chirps = self.isel(chirp_time = slice(0, Nt))
+    
+    sampling_frequency = 1/dt 
+
+    if not np.issubdtype(chirps.chirp_time.dtype, &#39;float64&#39;):
+        chirps[&#39;chirp_time&#39;] = chirps.chirp_time.values.astype(&#39;float64&#39;)/1e9
+
+    # if crop_chirp_start is not None:
+    chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
+
+    if drop_noisy_chirps:
+        bad_chirps =  chirps.where(abs(chirps) &gt; clip_threshold)
+        good_bursts = bad_chirps.max(dim=&#39;chirp_time&#39;).count(dim=&#39;chirp_num&#39;) &gt; min_chirps
+        chirps = chirps.where(good_bursts)
+        chirps = chirps.where(abs(chirps).max(dim=&#39;chirp_time&#39;)&lt;clip_threshold)
+
+    if demean:
+        chirps = chirps - chirps.mean(dim=&#39;chirp_time&#39;)
+
+    if detrend:
+        p = chirps.polyfit(&#39;chirp_time&#39;, 1)
+        fit = xr.polyval(chirps.chirp_time, p.polyfit_coefficients)
+        chirps = chirps - fit
+
+    if stack:   
+        chirps = chirps.mean(dim=&#39;chirp_num&#39;, skipna=True)
+
+    # note on variable naming below: s stands for the pre-fft signal, following others&#39; notation, w stands for windowed, p stands for padding, and so on
+   
+    # window
+    window = xr.DataArray(np.blackman(chirps.chirp_time.size), dims = &#39;chirp_time&#39;)
+    s_w = chirps * window  
+    
+    # pad
+    s_wp = s_w.pad(chirp_time=int((Nt*pad_factor-Nt)/2), constant_values=0)  
+
+    # roll
+    s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
+
+    if contains_dask_array(s_wpr):
+        s_wpr = s_wpr.chunk({&#39;chirp_time&#39;:-1})
+
+    # fft
+    S_wpr = xr.apply_ufunc(np.fft.fft, 
+                        s_wpr,
+                        input_core_dims=[[&#34;chirp_time&#34;]],
+                        output_core_dims=[[&#34;chirp_time&#34;]])
+    
+    # scale for padding
+    S_wpr = S_wpr/s_wpr.chirp_time.size * np.sqrt(2*pad_factor) 
+    
+    if scale_for_window:
+        S_wpr = S_wpr/ np.sqrt(np.mean((np.blackman(Nt))**2)) # scale for window
+    
+    # compute range
+    indexes      = np.arange(s_wpr.chirp_time.size) 
+    frequencies  = indexes * sampling_frequency/s_wpr.chirp_time.size
+    profile_range = freq2range(frequencies)
+
+    # reference array
+    m = np.arange(len(S_wpr.chirp_time))/pad_factor
+    phiref = 2*np.pi*f_c*m/B -  m * m * 2*np.pi * K/2/B**2
+    S_wprr = S_wpr * np.exp(phiref*(-1j))
+    S_wprr = S_wprr.rename(&#39;profile&#39;)
+    S_wprr = S_wprr.rename({&#39;chirp_time&#39;: &#39;profile_range&#39;})
+    S_wprr[&#39;profile_range&#39;] = profile_range
+
+    # crop to max_range
+    if max_range is None:
+        max_range = S_wprr.profile_range[-1]/2
+        S_wprr = S_wprr.isel(profile_range = slice(0, S_wprr.profile_range.size//2-1))
+    else:
+        S_wprr = S_wprr.where(S_wprr.profile_range &lt;= max_range, drop=True)
+    
+    # add attributes
+    S_wprr.attrs[&#39;long_name&#39;] = &#39;profile&#39; 
+    S_wprr.attrs[&#39;units&#39;] = &#39;-&#39;
+    S_wprr.attrs[&#39;description&#39;] = &#39;complex profile computed from the fourier transform of the de-ramped chirp&#39;
+    S_wprr.profile_range.attrs[&#39;long_name&#39;] = &#39;depth&#39;
+    S_wprr.profile_range.attrs[&#39;units&#39;] = &#39;meters&#39;
+    S_wprr.attrs[&#39;constants&#39;] = constants
+
+    return S_wprr</code></pre>
+</details>
+<div class="desc"><h2 id="compute-profiles-from-chirp-data">Compute profiles from chirp data.</h2>
+<p>self : xr.DataArray
+The input chirp data array.
+pad_factor : int, optional
+Factor by which to pad the chirp data (default is 2).
+drop_noisy_chirps : bool, optional
+Whether to drop noisy chirps (default is False).
+clip_threshold : float, optional
+Threshold for clipping noisy chirps (default is 1.2).
+min_chirps : int, optional
+Minimum number of chirps required to keep a burst (default is 20).
+demean : bool, optional
+Whether to demean the chirp data (default is False).
+detrend : bool, optional
+Whether to detrend the chirp data (default is False).
+stack : bool, optional
+Whether to stack the chirp data (default is False).
+scale_for_window : bool, optional
+Whether to scale the chirp data for the window (default is True).
+This is only an option to allow tests to effectively compare the output of
+this function with the output of the legacy fft method.
+crop_chirp_start : float, optional
+Start time for cropping chirps in seconds (default is 0, the start of the chirp).
+crop_chirp_end : float, optional
+End time for cropping chirps in seconds (default is 1, the end f the chirp).
+max_range : float, optional
+Maximum range for the profile in meters (default is None).
+constants : dict, optional
+Dictionary of user-defined constants for the radar system.
+Any constants that are not supplied in constants are defined in default_constants()</p>
+<h2 id="returns">Returns:</h2>
+<p>xr.DataArray
+The computed radar profile with range as the coordinate.</p></div>
+</dd>
+<dt id="xapres.utils.computeStrainRates"><code class="name flex">
+<span>def <span class="ident">computeStrainRates</span></span>(<span>self, lower_limit_on_fit=800)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def computeStrainRates(self, lower_limit_on_fit = 800):
+    &#34;&#34;&#34;Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`&#34;&#34;&#34;
+    velocity_cropped = self\
+            .squeeze()\
+            .where(self.bin_depth &lt; lower_limit_on_fit)
+    
+    fit_ds = velocity_cropped.polyfit(&#39;bin_depth&#39;, 1, full = True)
+            
+    strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename(&#39;strain_rate&#39;)
+
+    surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename(&#39;surface_intercept&#39;) 
+
+    # R^2
+    y_mean = velocity_cropped.mean(dim = &#39;bin_depth&#39;)
+    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = &#39;bin_depth&#39;)
+    R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename(&#39;r_squared&#39;)
+
+    # add attrs
+    strain_rate.attrs[&#39;units&#39;] = &#39;1/year&#39;
+    strain_rate.attrs[&#39;long_name&#39;] = f&#34;vertical strain rate in upper {lower_limit_on_fit} m&#34;
+    strain_rate.attrs[&#39;lower_limit_on_fit_meters&#39;] = lower_limit_on_fit
+
+    surface_intercept.attrs[&#39;units&#39;] = &#39;meters/year&#39;
+    surface_intercept.attrs[&#39;long_name&#39;] = &#39;vertical velocity at the surface from the linear fit&#39;
+    surface_intercept.attrs[&#39;lower_limit_on_fit_meters&#39;] = lower_limit_on_fit
+    
+    R2.attrs[&#39;long_name&#39;] = &#39;r-squared value for the linear fit&#39;
+    R2.attrs[&#39;units&#39;] = &#39;-&#39; 
+    
+    return xr.merge([strain_rate, surface_intercept, R2])</code></pre>
+</details>
+<div class="desc"><p>Compute strain rates from a dataset of ApRES data. For use by the function <code><a title="xapres.utils.compute_displacement" href="#xapres.utils.compute_displacement">compute_displacement()</a></code></p></div>
+</dd>
+<dt id="xapres.utils.compute_coherence"><code class="name flex">
+<span>def <span class="ident">compute_coherence</span></span>(<span>b1_binned, b2_binned)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compute_coherence(b1_binned, b2_binned):
+    # compute the coherence
+    top = (b1_binned * np.conj(b2_binned)).sum(dim=&#34;sample_in_bin&#34;)
+    bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim=&#34;sample_in_bin&#34;) * (np.abs(b2_binned)**2).sum(dim=&#34;sample_in_bin&#34;))
+    coherence = (top/bottom).rename(&#34;coherence&#34;)
+
+    return (top/bottom).rename(&#34;coherence&#34;)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.utils.compute_displacement"><code class="name flex">
+<span>def <span class="ident">compute_displacement</span></span>(<span>profile1_unaligned: xarray.core.dataarray.DataArray,<br>profile2_unaligned: xarray.core.dataarray.DataArray,<br>bin_size: int = 20,<br>lower_limit_on_fit: float = 800.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compute_displacement(profile1_unaligned: xr.DataArray, 
+                        profile2_unaligned: xr.DataArray, 
+                        bin_size: int=20, 
+                        lower_limit_on_fit: float=800.0):
+    &#34;&#34;&#34;
+    Compute displacement, coherence, and related uncertainties for binned time series data.
+
+    Parameters:
+    - profile1_unaligned (xr.DataArray): Unaligned time series data for the first measurement.
+    - profile2_unaligned (xr.DataArray): Unaligned time series data for the second measurement.
+    - bin_size (int, optional): Size of the vertical bins. Default is 20.
+
+    Returns:
+    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
+
+    &#34;&#34;&#34;
+
+    profiles = combine_profiles(profile1_unaligned, profile2_unaligned)
+
+    profiles_binned = bin_profiles(profiles, bin_size)
+
+    coherence = compute_coherence(profiles_binned.isel(shot_number=0), profiles_binned.isel(shot_number=1))
+   
+    # add attributes related to the bin_depth
+    coherence.bin_depth.attrs[&#34;units&#34;] = &#34;m&#34;
+    coherence.bin_depth.attrs[&#34;long_name&#34;] = &#34;depth to the center of each bin&#34;
+    coherence.bin_depth.attrs[&#34;standard_name&#34;] = &#34;bin depth&#34;         
+
+    # add attributes related to the coherence
+    coherence.attrs[&#34;units&#34;] = &#34;unitless&#34;
+    coherence.attrs[&#34;long_name&#34;] = &#34;complex coherence between measurements&#34;
+
+    # compute the phase and add attributes
+    phase = -xr.apply_ufunc(np.angle, coherence, dask=&#34;allowed&#34;).rename(&#34;phase&#34;)
+    phase.attrs[&#34;units&#34;] = &#34;radians&#34;
+    phase.attrs[&#34;long_name&#34;] = &#34;coherence phase&#34;
+
+    # compute phase uncertainties
+    phase_uncertainty = ((1./abs(coherence))*np.sqrt((1.-abs(coherence)**2.)/(2.*bin_size))).rename(&#39;phase_uncertainty&#39;)
+    phase_uncertainty.attrs[&#34;units&#34;] = &#34;radians&#34;
+    phase_uncertainty.attrs[&#34;long_name&#34;] = &#34;uncertainty in coherence phase&#34;
+
+    # compute the displacement
+    displacement = phase2range(phase).rename(&#34;displacement&#34;)
+    displacement.attrs[&#34;units&#34;] = &#34;m&#34;
+    displacement.attrs[&#34;long_name&#34;] = &#34;displacement since previous measurement&#34;
+
+    # compute the displacement uncertainty
+    disp_uncertainty = phase2range(phase_uncertainty).rename(&#39;disp_uncertainty&#39;)
+    disp_uncertainty.attrs[&#34;units&#34;] = &#34;m&#34;
+    disp_uncertainty.attrs[&#34;long_name&#34;] = &#34;uncertainty in displacement since previous measurement&#34;
+
+    dt_years = ((profiles.profile_time.sel(shot_number=2) - profiles.profile_time.sel(shot_number=1)) / np.timedelta64(1,&#39;D&#39;) / 365.25).rename(&#39;dt_years&#39;)
+    dt_years.attrs[&#39;units&#39;] = &#39;years&#39;
+    dt_years.attrs[&#39;long_name&#39;] = &#39;Time between shots&#39;
+    dt_years.attrs[&#39;description&#39;] = &#39;Time in years between shots used in each measurement of displacement, vertical velocity, etc. dt_years[i] is the time between shot [j] and shot [j-1]&#39;
+
+    # vertical velocity
+    velocity = (displacement / dt_years).rename(&#39;velocity&#39;)
+    velocity.attrs[&#39;units&#39;] = &#39;meters/year&#39;
+    velocity.attrs[&#39;long_name&#39;] = &#39;Vertical velocity&#39;
+
+    # strain rates
+    strain_rates = velocity.computeStrainRates(lower_limit_on_fit = lower_limit_on_fit)
+
+    # combine to an xarray dataset
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
+    ds = xr.merge(da_list)
+
+    # add attributes related to this processing
+    ds.attrs[&#34;bin_size&#34;] = bin_size
+    ds.attrs[&#34;description&#34;] = &#34;Time series of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.&#34;
+    ds.attrs[&#34;processing&#34;] = f&#34;Created by the compute_displacement function in xapres using a bin size of {bin_size} on {datetime.datetime.now() }&#34;
+
+    return ds</code></pre>
+</details>
+<div class="desc"><p>Compute displacement, coherence, and related uncertainties for binned time series data.</p>
+<p>Parameters:
+- profile1_unaligned (xr.DataArray): Unaligned time series data for the first measurement.
+- profile2_unaligned (xr.DataArray): Unaligned time series data for the second measurement.
+- bin_size (int, optional): Size of the vertical bins. Default is 20.</p>
+<p>Returns:
+xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.</p></div>
+</dd>
+<dt id="xapres.utils.contains_dask_array"><code class="name flex">
+<span>def <span class="ident">contains_dask_array</span></span>(<span>dataarray)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def contains_dask_array(dataarray):
+    return isinstance(dataarray.data, da.Array)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.utils.dB"><code class="name flex">
+<span>def <span class="ident">dB</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def dB(self):
+    &#34;&#34;&#34;
+    A function to convert profile data to decibels.
+    
+    The function is added to xarray dataarrays as a bound method in two functions. 
+    
+    &#34;&#34;&#34;
+    return 20*np.log10(np.abs(self)) </code></pre>
+</details>
+<div class="desc"><p>A function to convert profile data to decibels.</p>
+<p>The function is added to xarray dataarrays as a bound method in two functions.</p></div>
+</dd>
+<dt id="xapres.utils.default_constants"><code class="name flex">
+<span>def <span class="ident">default_constants</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def default_constants():
+    constants = {}
+    constants[&#39;T&#39;] = 1               # chirp duration [s]
+    constants[&#39;f_1&#39;] = 200e6         # starting frequency [Hz]
+    constants[&#39;f_2&#39;] = 400e6         # ending frequency [Hz]
+    constants[&#39;B&#39;] = constants[&#39;f_2&#39;]-constants[&#39;f_1&#39;]          # bandwidth [Hz]
+    constants[&#39;K&#39;] = constants[&#39;B&#39;]/constants[&#39;T&#39;]            # rate of chnge of frequency [Hz/s]
+    constants[&#39;c&#39;] = 300000000.0     # speed of light in a vacuum [m/s]
+    constants[&#39;ep&#39;] = 3.18           # permittivity of ice
+    constants[&#39;f_c&#39;] = (constants[&#39;f_2&#39;]+constants[&#39;f_1&#39;])/2   # center frequency [Hz]
+    constants[&#39;dt&#39;] = 1/40000        # time step [s]
+
+    return constants</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.utils.displacement_timeseries"><code class="name flex">
+<span>def <span class="ident">displacement_timeseries</span></span>(<span>self: xarray.core.dataarray.DataArray,<br>offset: int = 1,<br>bin_size: int = 20,<br>lower_limit_on_fit: float = 800.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def displacement_timeseries(self: xr.DataArray, 
+                            offset: int=1,  
+                            bin_size: int=20, 
+                            lower_limit_on_fit: float=800.0): 
+    &#34;&#34;&#34;
+    Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
+
+    Profiles offset by a user-defined number of time steps are compared to compute the time series of displacement. 
+    
+    The time interval between outputted profiles is offset*dt where dt is the time between measurements. 
+
+    The profiles of displacement etc. are binned in depth, with bin_size samples in each bin.
+
+    Parameters:
+    - self (xr.DataArray): The input data array containing a time series of complex profiles.
+    - offset (int, optional): The time offset between the two time series. Default is 1.
+    - bin_size (int, optional): Size of the vertical bins. Default is 20.
+
+    Returns:
+    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
+
+    &#34;&#34;&#34;
+    # extract two time series
+    profile1_unaligned = self.isel(time=slice(0,-offset))
+    profile2_unaligned= self.isel(time=slice(offset,None))
+    
+    # compute the binned coherence, phase, and displacement, with uncertainties and put them into an xarray dataset  
+    ds = compute_displacement(profile1_unaligned, 
+                              profile2_unaligned, 
+                              bin_size = bin_size,
+                              lower_limit_on_fit = lower_limit_on_fit)
+
+    # add attributes related to the this processing
+    ds.attrs[&#34;offset&#34;] = offset
+    ds.attrs[&#34;processing&#34;] = f&#34;Created by the displacement_timeseries function in xapres using an offset of {offset} and bin size of {bin_size} on {datetime.datetime.now() }&#34;
+
+    return ds</code></pre>
+</details>
+<div class="desc"><p>Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. </p>
+<p>Profiles offset by a user-defined number of time steps are compared to compute the time series of displacement. </p>
+<p>The time interval between outputted profiles is offset*dt where dt is the time between measurements. </p>
+<p>The profiles of displacement etc. are binned in depth, with bin_size samples in each bin.</p>
+<p>Parameters:
+- self (xr.DataArray): The input data array containing a time series of complex profiles.
+- offset (int, optional): The time offset between the two time series. Default is 1.
+- bin_size (int, optional): Size of the vertical bins. Default is 20.</p>
+<p>Returns:
+xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.</p></div>
+</dd>
+<dt id="xapres.utils.phase2range"><code class="name flex">
+<span>def <span class="ident">phase2range</span></span>(<span>phi, lambdac=0.5608, rc=None, K=200000000.0, ci=168230000.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def phase2range(phi, 
+                lambdac=0.5608, 
+                rc=None, 
+                K=2e8, 
+                ci=1.6823e8):
+        &#34;&#34;&#34;
+        Convert phase difference to range for FMCW radar
+        Parameters
+        ---------
+        lambdac: float
+            wavelength (m) at center frequency
+        rc: float; optional
+            coarse range of bin center (m)
+        K:  float; optional
+            chirp gradient (rad/s/s)
+        ci: float; optional
+            propagation velocity (m/s)
+        ### Original Matlab File Notes ###
+        Craig Stewart
+        2014/6/10
+        &#34;&#34;&#34;
+
+        if not all([K,ci]) or rc is None:
+            # First order method
+            # Brennan et al. (2014) eq 15
+            r = lambdac*phi/(4.*np.pi)
+        else:
+            # Precise
+            # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
+            r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
+        return r</code></pre>
+</details>
+<div class="desc"><p>Convert phase difference to range for FMCW radar
+Parameters</p>
+<hr>
+<dl>
+<dt><strong><code>lambdac</code></strong> :&ensp;<code>float</code></dt>
+<dd>wavelength (m) at center frequency</dd>
+<dt><strong><code>rc</code></strong> :&ensp;<code>float; optional</code></dt>
+<dd>coarse range of bin center (m)</dd>
+<dt><strong><code>K</code></strong> :&ensp;<code>float; optional</code></dt>
+<dd>chirp gradient (rad/s/s)</dd>
+<dt><strong><code>ci</code></strong> :&ensp;<code>float; optional</code></dt>
+<dd>propagation velocity (m/s)</dd>
+</dl>
+<h3 id="original-matlab-file-notes">Original Matlab File Notes</h3>
+<p>Craig Stewart
+2014/6/10</p></div>
+</dd>
+<dt id="xapres.utils.sonify"><code class="name flex">
+<span>def <span class="ident">sonify</span></span>(<span>self, play=True, save=False, wav_filename='chirp')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sonify(self, 
+           play=True, 
+           save=False, 
+           wav_filename=&#34;chirp&#34;):
+    &#34;&#34;&#34;
+    A function to sonify a chirp - play the signal as a sound.
+     
+    The function is added to xarray dataarrays as a bound method in two functions. 
+    
+    It requires soundfile and sounddevice to be installed.
+    &#34;&#34;&#34;
+
+    try:     
+        import soundfile as sf
+        import sounddevice as sd 
+    except ImportError:
+        print(&#34;sounddevice and soundfile are required to sonify the chirps. pip install them if you need this feature&#34;) 
+
+    # make sure the input is just one chirp    
+    if self.size != self.chirp_time.size: 
+        raise BaseException(&#39;sonify only works for single chirps.&#39;)    
+
+    # subset the chirp to remove popping
+    chirp = self.isel(chirp_time =slice(5000,-500))
+
+    # convert to a numpy array and remove singleton dimensions
+    chirp_values = chirp.values.squeeze()
+
+    t = chirp.chirp_time.values
+
+    # convert the start and end time of the subsetted chirp to seconds, dealing with the cases when chirp.chirp_time is numpy array and when it is a timeselta64
+    if isinstance(t[0], float):
+        startTimeInSeconds = t[0] 
+        endTimeInSeconds = t[-1] 
+    elif isinstance(t[0], np.timedelta64):
+        startTimeInSeconds = t[0] / np.timedelta64(1, &#39;s&#39;)
+        endTimeInSeconds = t[-1] / np.timedelta64(1, &#39;s&#39;)
+
+    # calculate the sample rate 
+    samplerate = chirp.chirp_time.size / (endTimeInSeconds - startTimeInSeconds)
+    samplerate = samplerate.astype(int)
+
+    #
+    if play:
+        sd.play(chirp_values, samplerate=samplerate)
+
+    if save:
+        sf.write(f&#34;{wav_filename} .wav&#34;, chirp_values, samplerate=samplerate)</code></pre>
+</details>
+<div class="desc"><p>A function to sonify a chirp - play the signal as a sound.</p>
+<p>The function is added to xarray dataarrays as a bound method in two functions. </p>
+<p>It requires soundfile and sounddevice to be installed.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="xapres" href="index.html">xapres</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="xapres.utils.addProfileToDs" href="#xapres.utils.addProfileToDs">addProfileToDs</a></code></li>
+<li><code><a title="xapres.utils.add_methods_to_xarrays" href="#xapres.utils.add_methods_to_xarrays">add_methods_to_xarrays</a></code></li>
+<li><code><a title="xapres.utils.bin_profiles" href="#xapres.utils.bin_profiles">bin_profiles</a></code></li>
+<li><code><a title="xapres.utils.combine_profiles" href="#xapres.utils.combine_profiles">combine_profiles</a></code></li>
+<li><code><a title="xapres.utils.computeProfile" href="#xapres.utils.computeProfile">computeProfile</a></code></li>
+<li><code><a title="xapres.utils.computeStrainRates" href="#xapres.utils.computeStrainRates">computeStrainRates</a></code></li>
+<li><code><a title="xapres.utils.compute_coherence" href="#xapres.utils.compute_coherence">compute_coherence</a></code></li>
+<li><code><a title="xapres.utils.compute_displacement" href="#xapres.utils.compute_displacement">compute_displacement</a></code></li>
+<li><code><a title="xapres.utils.contains_dask_array" href="#xapres.utils.contains_dask_array">contains_dask_array</a></code></li>
+<li><code><a title="xapres.utils.dB" href="#xapres.utils.dB">dB</a></code></li>
+<li><code><a title="xapres.utils.default_constants" href="#xapres.utils.default_constants">default_constants</a></code></li>
+<li><code><a title="xapres.utils.displacement_timeseries" href="#xapres.utils.displacement_timeseries">displacement_timeseries</a></code></li>
+<li><code><a title="xapres.utils.phase2range" href="#xapres.utils.phase2range">phase2range</a></code></li>
+<li><code><a title="xapres.utils.sonify" href="#xapres.utils.sonify">sonify</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.5</a>.</p>
+</footer>
+</body>
+</html>

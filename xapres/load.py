@@ -1,3 +1,15 @@
+"""
+Loading ApRES data into xarrays
+
+The load module contains functions and classes used to load ApRES data into xarrays. 
+
+There are two main ways to do this: 
+1. from dat files (binary files produced by ApRES)
+2. from zarr files (multi-dimensional data structures, similar to netcdfs)
+
+"""
+
+
 import os
 import math
 import glob
@@ -60,36 +72,36 @@ class from_dats():
     """
     An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
     
-        Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+    Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+
+    Argument:
+        loglevel --- allows the user to select the level of logging messages are displayed. 
+        The default loglevel is warning, which means that no messages are displayed. 
+        If you want to see detailed log messages, use loglevel = 'debug'
     
-        Argument:
-            loglevel --- allows the user to select the level of logging messages are displayed. 
-            The default loglevel is warning, which means that no messages are displayed. 
-            If you want to see detailed log messages, use loglevel = 'debug'
-        
-        Methods:
-            load_single --- load a single chirp from a single burst from a single dat file
-            load_dat_file --- load a dat file as a DataFileObject
-            list_files --- recursively find  all the files in a directory or a google bucket
-            load_all --- load all the files found in a directory or google bucket into an xarray
+    Methods:
+        load_single --- load a single chirp from a single burst from a single dat file
+        load_dat_file --- load a dat file as a DataFileObject
+        list_files --- recursively find  all the files in a directory or a google bucket
+        load_all --- load all the files found in a directory or google bucket into an xarray
+
+    load_all is the most important method. Call it, for example, as follows:
+
+
+        import ApRESDefs
+        xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
+        xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
+                    remote_load = True,
+                    file_numbers_to_process = [0, 1], 
+                    bursts_to_process=[0, 1]
+                )
+
+    the resulting xarray will be saved in xa.data.
     
-        load_all is the most important method. Call it, for example, as follows:
-    
-    
-            import ApRESDefs
-            xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
-            xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
-                        remote_load = True,
-                        file_numbers_to_process = [0, 1], 
-                        bursts_to_process=[0, 1]
-                    )
-    
-        the resulting xarray will be saved in xa.data.
-        
-        Instance variables:
-            Filename           : Name of data file
-            BurstLocationList  : Python list of byte offset of each burst in file
-            NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+    Instance variables:
+        Filename           : Name of data file
+        BurstLocationList  : Python list of byte offset of each burst in file
+        NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
     
     """
     def __init__(self, loglevel='warning'):
@@ -145,7 +157,7 @@ class from_dats():
             dat_filenames = ['gs://' + x for x in dat_filenames_without_gs_prefix]
 
         else:
-            dat_filenames = glob.glob(directory + '/**/*' + search_suffix  +'.[dD][aA][tT]', recursive = True)
+            dat_filenames = glob.glob(self.directory + '/**/*' + search_suffix  +'.[dD][aA][tT]', recursive = True)
         
         self.dat_filenames = dat_filenames
         
