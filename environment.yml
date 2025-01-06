@@ -31,3 +31,4 @@ dependencies:
       - sphinx-proof
       - sphinx-hoverxref
       - sphinx-autodoc2
+      - jupyter-book
