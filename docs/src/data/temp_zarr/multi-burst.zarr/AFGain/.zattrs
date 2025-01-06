@@ -1,0 +1,7 @@
+{
+    "_ARRAY_DIMENSIONS": [
+        "attenuator_setting_pair"
+    ],
+    "long_name": "audio-frequency gain control setting",
+    "units": "decibels"
+}

@@ -2,30 +2,32 @@
 """
 Function to plot ApRES data
 
-ApRES_plot('fn',<filename>,'bl',<burstlist>,'cl',<chirplist>,'md',<maxdepth>,'po',<plot options>)
-    <plot options> = string containing all or none of 'c','a','r','t'
+Parameters
+----------
+fn : str
+    Filename to plot, including complete path from current folder. If no filename given, a file-browser window is displayed.
+bl : list, optional
+    List of bursts to plot, starting at burst 0. Default is -1, which means plot all bursts. Each burst is plotted in a different figure window.
+cl : list, optional
+    List of chirps within bursts to plot, starting at chirp 0. Default is -1, which means plot all chirps. Chirps from within each burst are either averaged (default) or, if plot option "c" is selected, overplotted.
+md : int or float, optional
+    Maximum depth to plot in meters. Default is 2000.
+po : str, optional
+    String containing all or none of 'c','a','r','t'. Default is 'a'.
     'c': plot individual chirps (if absent, plot mean of chirps)
-    'a': plot depth profiles, averaged unless "c" included as a plot option
-         If no other options, "a" is assumed by default
+    'a': plot depth profiles, averaged unless "c" included as a plot option. If no other options, "a" is assumed by default.
     'r': plot raw bursts as time series
     't': plot chirp time series, averaged unless "c" included as a plot option
-    
-    <filename>  filename to plot, including complete path from current folder.
-                If no filename given, a file-browser window is displayed.
-                
-    <burstlist> is either -1 (default) or a Python list of bursts to plot,
-                starting at burst 0. -1 means plot all bursts. Each burst is
-                plotted in a different figure window
-                
-    <chirplist> is either -1 (default) or a Python list of chirps within bursts
-                to plot, starting at chirp 0. -1 means plot all chirps. Chirps
-                from within each burst are either averaged (default) or, if
-                plot option "c" is selected, overplotted.
-    <maxdepth>  is maximum depth to plot in metres
+
+Returns
+-------
+None
 
 Created on Sun Oct 18 16:36:29 2020
 
-@author: Keith Nicholls
+Author
+------
+Keith Nicholls
 """
 
 #from .load import *

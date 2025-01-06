@@ -1,0 +1,2209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.5">
+<title>xapres.load API documentation</title>
+<meta name="description" content="Loading ApRES data into xarrays …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>xapres.load</code></h1>
+</header>
+<section id="section-intro">
+<h1 id="loading-apres-data-into-xarrays">Loading ApRES data into xarrays</h1>
+<p>The load module contains functions and classes used to load ApRES data into xarrays. </p>
+<p>There are two main ways to do this:
+1. from dat files (binary files produced by ApRES)
+2. from zarr files (multi-dimensional data structures, similar to netcdfs)</p>
+<h2 id="from-dat-files">From dat files</h2>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="xapres.load.generate_xarray"><code class="name flex">
+<span>def <span class="ident">generate_xarray</span></span>(<span>directory=None,<br>remote_load=False,<br>file_numbers_to_process=None,<br>file_names_to_process=None,<br>bursts_to_process='All',<br>attended=False,<br>polarmetric=False,<br>legacy_fft=False,<br>corrected_pad=False,<br>max_range=None,<br>computeProfiles=True,<br>addProfileToDs_kwargs={},<br>loglevel='warning')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def generate_xarray(directory=None, 
+                 remote_load=False, 
+                 file_numbers_to_process=None, 
+                 file_names_to_process=None, 
+                 bursts_to_process=&#34;All&#34;,
+                 attended=False, 
+                 polarmetric=False,
+                 legacy_fft = False,
+                 corrected_pad = False,
+                 max_range = None,
+                 computeProfiles = True,
+                 addProfileToDs_kwargs = {},
+                 loglevel = &#39;warning&#39;
+                 ):
+    &#34;&#34;&#34;Wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.&#34;&#34;&#34;
+
+    fd = from_dats(loglevel=loglevel)
+    
+    fd.load_all(directory=directory, 
+                 remote_load=remote_load, 
+                 file_numbers_to_process=file_numbers_to_process, 
+                 file_names_to_process=file_names_to_process, 
+                 bursts_to_process=bursts_to_process,
+                 attended=attended, 
+                 polarmetric=polarmetric,
+                 legacy_fft = legacy_fft,
+                 corrected_pad = corrected_pad,
+                 max_range = max_range,
+                 computeProfiles = computeProfiles,
+                 addProfileToDs_kwargs = addProfileToDs_kwargs,
+                )
+
+    return fd.data</code></pre>
+</details>
+<div class="desc"><p>Wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.</p></div>
+</dd>
+<dt id="xapres.load.load_zarr"><code class="name flex">
+<span>def <span class="ident">load_zarr</span></span>(<span>directory='gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_zarr(directory = &#34;gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101&#34;):
+    &#34;&#34;&#34;Load ApRES data stored in a zarr directory as an xarray and add functionality. &#34;&#34;&#34;
+    
+    return xr.open_dataset(directory,
+            engine = &#39;zarr&#39;, 
+            chunks = {}) </code></pre>
+</details>
+<div class="desc"><p>Load ApRES data stored in a zarr directory as an xarray and add functionality.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="xapres.load.BurstObject"><code class="flex name class">
+<span>class <span class="ident">BurstObject</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BurstObject:
+    &#34;&#34;&#34;
+    A Burst object, containing the raw data and header information for a single burst, and a method for
+    extracting a chirp from the burst and instantiating a ChirpObject.
+
+    A burst object can be instantiated with a call to DataFileObject().ExtractBurst()
+    e.g., Burst = fileDescriptor.ExtractBurst(3)
+
+    Methods:
+        ExtractChirp(ChirpList (Python list))
+            Output is an instance of a ChirpObject, in which all chirps in the ChirpList
+            have been averaged. 
+        PlotBurst()
+            Plots the full raw burst as a time series
+
+    Instance variables:
+        v         : Array containing burst data
+        Filename  : Name of data file
+        Header    : Burst header (Python dictionary), with additional entries:
+        BurstNo   : Burst number in data file
+    
+    Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+    &#34;&#34;&#34;
+    
+    def __init__(self):
+        self.v = 0
+        self.Filename = &#39;&#39;
+        self.Header = 0
+        self.BurstNo = 0
+        
+    def ExtractChirp(self, ChirpList):
+        Chirp = ChirpObject()
+        Chirp.t = np.array(range(self.Header[&#34;N_ADC_SAMPLES&#34;])) * self.Header[&#34;dt&#34;]
+        Chirp.Header = copy.deepcopy(self.Header)  # we dont want chirp-specific new entries in the chirp.header updating the burst.header
+        Chirp.ChirpList = ChirpList
+        
+        Chirp.Header[&#39;Attenuator1_thisChirp&#39;] = [self.Header[&#39;Attenuator1_allChirps&#39;][i] for i in ChirpList]
+        Chirp.Header[&#39;AFGain_thisChirp&#39;] = [self.Header[&#39;AFGain_allChirps&#39;][i] for i in ChirpList]
+
+        if any(i != Chirp.Header[&#39;Attenuator1_thisChirp&#39;][0] for i in Chirp.Header[&#39;Attenuator1_thisChirp&#39;])\
+            or any(i != Chirp.Header[&#39;AFGain_thisChirp&#39;][0] for i in Chirp.Header[&#39;AFGain_thisChirp&#39;]):
+            warnings.warn(&#39;This is stacking over chirps with different attenuator settings.&#39;)
+
+        if self.Header[&#34;Average&#34;] == 1:
+            Chirp.vdat = self.v          
+        elif self.Header[&#34;Average&#34;] == 2:
+            Chirp.vdat = self.v          
+        else:
+            Chirp.vdat = np.zeros(self.Header[&#34;N_ADC_SAMPLES&#34;])
+            no = 0
+            for ind in ChirpList:
+                if ind &lt; self.Header[&#34;NChirps&#34;]:
+                    no += 1
+                    chirpoffset = ind * self.Header[&#34;N_ADC_SAMPLES&#34;]
+                    Chirp.vdat = Chirp.vdat + self.v[chirpoffset:chirpoffset + self.Header[&#34;N_ADC_SAMPLES&#34;]]
+                else:
+                    raise ValueError(&#34;chirp index &gt; number of chirps.&#34;)
+            Chirp.vdat = Chirp.vdat/no
+
+        return Chirp
+        
+    def PlotBurst(self):
+        t = np.array(range(len(self.v))) * self.Header[&#34;dt&#34;]
+        plt.plot(t, self.v)
+        plt.axis([0,t[-1],-1.25,1.25])
+        plt.xlabel(&#34;Time (s)&#34;)
+        plt.ylabel(&#34;Amplitude (V)&#34;)
+        plt.grid()
+        return(0)</code></pre>
+</details>
+<div class="desc"><p>A Burst object, containing the raw data and header information for a single burst, and a method for
+extracting a chirp from the burst and instantiating a ChirpObject.</p>
+<p>A burst object can be instantiated with a call to DataFileObject().ExtractBurst()
+e.g., Burst = fileDescriptor.ExtractBurst(3)</p>
+<h2 id="methods">Methods</h2>
+<p>ExtractChirp(ChirpList (Python list))
+Output is an instance of a ChirpObject, in which all chirps in the ChirpList
+have been averaged.
+PlotBurst()
+Plots the full raw burst as a time series</p>
+<p>Instance variables:
+v
+: Array containing burst data
+Filename
+: Name of data file
+Header
+: Burst header (Python dictionary), with additional entries:
+BurstNo
+: Burst number in data file</p>
+<p>Created on Fri Oct 16 20:06:36 2020 by K. Nicholls</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xapres.load.BurstObject.ExtractChirp"><code class="name flex">
+<span>def <span class="ident">ExtractChirp</span></span>(<span>self, ChirpList)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ExtractChirp(self, ChirpList):
+    Chirp = ChirpObject()
+    Chirp.t = np.array(range(self.Header[&#34;N_ADC_SAMPLES&#34;])) * self.Header[&#34;dt&#34;]
+    Chirp.Header = copy.deepcopy(self.Header)  # we dont want chirp-specific new entries in the chirp.header updating the burst.header
+    Chirp.ChirpList = ChirpList
+    
+    Chirp.Header[&#39;Attenuator1_thisChirp&#39;] = [self.Header[&#39;Attenuator1_allChirps&#39;][i] for i in ChirpList]
+    Chirp.Header[&#39;AFGain_thisChirp&#39;] = [self.Header[&#39;AFGain_allChirps&#39;][i] for i in ChirpList]
+
+    if any(i != Chirp.Header[&#39;Attenuator1_thisChirp&#39;][0] for i in Chirp.Header[&#39;Attenuator1_thisChirp&#39;])\
+        or any(i != Chirp.Header[&#39;AFGain_thisChirp&#39;][0] for i in Chirp.Header[&#39;AFGain_thisChirp&#39;]):
+        warnings.warn(&#39;This is stacking over chirps with different attenuator settings.&#39;)
+
+    if self.Header[&#34;Average&#34;] == 1:
+        Chirp.vdat = self.v          
+    elif self.Header[&#34;Average&#34;] == 2:
+        Chirp.vdat = self.v          
+    else:
+        Chirp.vdat = np.zeros(self.Header[&#34;N_ADC_SAMPLES&#34;])
+        no = 0
+        for ind in ChirpList:
+            if ind &lt; self.Header[&#34;NChirps&#34;]:
+                no += 1
+                chirpoffset = ind * self.Header[&#34;N_ADC_SAMPLES&#34;]
+                Chirp.vdat = Chirp.vdat + self.v[chirpoffset:chirpoffset + self.Header[&#34;N_ADC_SAMPLES&#34;]]
+            else:
+                raise ValueError(&#34;chirp index &gt; number of chirps.&#34;)
+        Chirp.vdat = Chirp.vdat/no
+
+    return Chirp</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.load.BurstObject.PlotBurst"><code class="name flex">
+<span>def <span class="ident">PlotBurst</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def PlotBurst(self):
+    t = np.array(range(len(self.v))) * self.Header[&#34;dt&#34;]
+    plt.plot(t, self.v)
+    plt.axis([0,t[-1],-1.25,1.25])
+    plt.xlabel(&#34;Time (s)&#34;)
+    plt.ylabel(&#34;Amplitude (V)&#34;)
+    plt.grid()
+    return(0)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xapres.load.ChirpObject"><code class="flex name class">
+<span>class <span class="ident">ChirpObject</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ChirpObject:
+    &#34;&#34;&#34;
+    An object containing the raw data and header information for a single chirp 
+    and a method for computing profiles (and instantiating a ProfileObject) from the chirp data.
+
+    Can be instantiated with a call to the ExtractChirp method on a BurstBbject
+    e.g., Chirp = Burst.ExtractChirp([1,3])
+
+    Methods:
+        FormProfile(StartFreq, StopFreq, padfactor, ref)
+            StartFreq, StopFreq: start and end frequencies to use (eg 2e8 and 4e8)
+            padfactor:           zero padding for the fft (eg. 2)
+            ref:                 whether or not to apply Paul Brennan&#39;s reference
+                                 phase (1 or 0, for yes or no)
+            Returns and instance of a ProfileObject
+        PlotChirp()
+            Plots the chirp as function of time
+
+    Instance variables:
+        vdat:       Array containing chirp data
+        t:          Array containing time for chirp samples
+        ChirpList:  List of chirps averaged to make vdat
+        Filename:   Name of data file
+        BurstNo:    Number of burst within data file
+        Header:     Burst header, as created by ExtractBurst method on FileDataObject
+        
+        Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+        &#34;&#34;&#34;
+    def __init__(self):
+        self.vdat = 0
+        self.t = 0
+        self.ChirpList = 0
+        self.Filename = &#39;&#39;
+        self.BurstNo = 0
+        self.Header = 0
+        
+    def PlotChirp(self):
+        plt.plot(self.t, self.vdat)
+        plt.axis([0,self.t[-1],-1.25,1.25])
+        plt.xlabel(&#34;Time (s)&#34;)
+        plt.ylabel(&#34;Amplitude (V)&#34;)
+        plt.grid(&#34;on&#34;)
+        return(0)
+
+    def FormProfile(self, F0=200000000, F1=400000000, pad=2, ref=1, corrected_pad=False):
+        Profile = ProfileObject()
+        if self.Header[&#34;StartFreq&#34;] &gt; F0:
+            F0 = self.Header[&#34;StartFreq&#34;]
+        if self.Header[&#34;StopFreq&#34;] &lt; F1:
+            F1 = self.Header[&#34;StopFreq&#34;]
+        T0 = (F0-self.Header[&#34;StartFreq&#34;])/self.Header[&#34;K&#34;]
+        T1 = (F1-self.Header[&#34;StartFreq&#34;])/self.Header[&#34;K&#34;]
+        chirp = self.vdat[math.ceil(T0/self.Header[&#34;dt&#34;]):\
+                          math.floor(T1/self.Header[&#34;dt&#34;])]
+
+        Nt = len(chirp)
+        Nt = math.floor(Nt/2) * 2
+        winchirp = np.multiply(chirp[0:Nt],np.blackman(Nt))
+        Nfft = math.floor(Nt*pad)
+
+        padchirp = np.zeros(Nfft)
+        
+        if corrected_pad:
+            padchirp[0:math.floor(Nt/2)] = winchirp[math.floor(Nt/2):]
+            padchirp[-math.floor(Nt/2):] = winchirp[0:math.floor(Nt/2)]
+        else:
+            padchirp[0:math.floor(Nt/2)-1] = winchirp[math.floor(Nt/2):-1]
+            padchirp[-math.floor(Nt/2):-1] = winchirp[0:math.floor(Nt/2)-1]
+
+
+    
+        Profile.Profile = np.fft.fft(padchirp)/Nfft * math.sqrt(2*pad) 
+        Profile.bin2m = self.Header[&#34;c0&#34;]/(2.*(T1-T0)*pad*math.sqrt(self.Header[&#34;ER_ICE&#34;])*self.Header[&#34;K&#34;])
+        Profile.Range = np.asarray([i for i in range(Nfft)]) * Profile.bin2m       
+        Profile.Profile = Profile.Profile[0:math.floor(Nfft/2)-1]
+        Profile.Range = Profile.Range[0:math.floor(Nfft/2)-1]
+        if ref == 1:
+            m = np.asarray([i for i in range(len(Profile.Profile))])/pad
+            phiref = 2*math.pi*self.Header[&#34;CentreFreq&#34;]*m/self.Header[&#34;B&#34;] -\
+             m * m * 2*math.pi * self.Header[&#34;K&#34;]/2/self.Header[&#34;B&#34;]**2
+            Profile.Profile = Profile.Profile * np.exp(phiref*(-1j))
+        
+        Profile.BurstNo = self.BurstNo
+        Profile.Header = self.Header
+        Profile.Filename = self.Filename
+        Profile.ChirpList = self.ChirpList
+        Profile.pad = pad
+        Profile.rad2m = self.Header[&#34;CentreFreq&#34;]*math.sqrt(self.Header[&#34;c0&#34;])/ \
+            (4.*math.pi*self.Header[&#34;ER_ICE&#34;])
+        
+        return Profile</code></pre>
+</details>
+<div class="desc"><p>An object containing the raw data and header information for a single chirp
+and a method for computing profiles (and instantiating a ProfileObject) from the chirp data.</p>
+<p>Can be instantiated with a call to the ExtractChirp method on a BurstBbject
+e.g., Chirp = Burst.ExtractChirp([1,3])</p>
+<h2 id="methods">Methods</h2>
+<p>FormProfile(StartFreq, StopFreq, padfactor, ref)
+StartFreq, StopFreq: start and end frequencies to use (eg 2e8 and 4e8)
+padfactor:
+zero padding for the fft (eg. 2)
+ref:
+whether or not to apply Paul Brennan's reference
+phase (1 or 0, for yes or no)
+Returns and instance of a ProfileObject
+PlotChirp()
+Plots the chirp as function of time</p>
+<p>Instance variables:
+vdat:
+Array containing chirp data
+t:
+Array containing time for chirp samples
+ChirpList:
+List of chirps averaged to make vdat
+Filename:
+Name of data file
+BurstNo:
+Number of burst within data file
+Header:
+Burst header, as created by ExtractBurst method on FileDataObject</p>
+<pre><code>Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+</code></pre></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xapres.load.ChirpObject.FormProfile"><code class="name flex">
+<span>def <span class="ident">FormProfile</span></span>(<span>self, F0=200000000, F1=400000000, pad=2, ref=1, corrected_pad=False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def FormProfile(self, F0=200000000, F1=400000000, pad=2, ref=1, corrected_pad=False):
+    Profile = ProfileObject()
+    if self.Header[&#34;StartFreq&#34;] &gt; F0:
+        F0 = self.Header[&#34;StartFreq&#34;]
+    if self.Header[&#34;StopFreq&#34;] &lt; F1:
+        F1 = self.Header[&#34;StopFreq&#34;]
+    T0 = (F0-self.Header[&#34;StartFreq&#34;])/self.Header[&#34;K&#34;]
+    T1 = (F1-self.Header[&#34;StartFreq&#34;])/self.Header[&#34;K&#34;]
+    chirp = self.vdat[math.ceil(T0/self.Header[&#34;dt&#34;]):\
+                      math.floor(T1/self.Header[&#34;dt&#34;])]
+
+    Nt = len(chirp)
+    Nt = math.floor(Nt/2) * 2
+    winchirp = np.multiply(chirp[0:Nt],np.blackman(Nt))
+    Nfft = math.floor(Nt*pad)
+
+    padchirp = np.zeros(Nfft)
+    
+    if corrected_pad:
+        padchirp[0:math.floor(Nt/2)] = winchirp[math.floor(Nt/2):]
+        padchirp[-math.floor(Nt/2):] = winchirp[0:math.floor(Nt/2)]
+    else:
+        padchirp[0:math.floor(Nt/2)-1] = winchirp[math.floor(Nt/2):-1]
+        padchirp[-math.floor(Nt/2):-1] = winchirp[0:math.floor(Nt/2)-1]
+
+
+
+    Profile.Profile = np.fft.fft(padchirp)/Nfft * math.sqrt(2*pad) 
+    Profile.bin2m = self.Header[&#34;c0&#34;]/(2.*(T1-T0)*pad*math.sqrt(self.Header[&#34;ER_ICE&#34;])*self.Header[&#34;K&#34;])
+    Profile.Range = np.asarray([i for i in range(Nfft)]) * Profile.bin2m       
+    Profile.Profile = Profile.Profile[0:math.floor(Nfft/2)-1]
+    Profile.Range = Profile.Range[0:math.floor(Nfft/2)-1]
+    if ref == 1:
+        m = np.asarray([i for i in range(len(Profile.Profile))])/pad
+        phiref = 2*math.pi*self.Header[&#34;CentreFreq&#34;]*m/self.Header[&#34;B&#34;] -\
+         m * m * 2*math.pi * self.Header[&#34;K&#34;]/2/self.Header[&#34;B&#34;]**2
+        Profile.Profile = Profile.Profile * np.exp(phiref*(-1j))
+    
+    Profile.BurstNo = self.BurstNo
+    Profile.Header = self.Header
+    Profile.Filename = self.Filename
+    Profile.ChirpList = self.ChirpList
+    Profile.pad = pad
+    Profile.rad2m = self.Header[&#34;CentreFreq&#34;]*math.sqrt(self.Header[&#34;c0&#34;])/ \
+        (4.*math.pi*self.Header[&#34;ER_ICE&#34;])
+    
+    return Profile</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="xapres.load.ChirpObject.PlotChirp"><code class="name flex">
+<span>def <span class="ident">PlotChirp</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def PlotChirp(self):
+    plt.plot(self.t, self.vdat)
+    plt.axis([0,self.t[-1],-1.25,1.25])
+    plt.xlabel(&#34;Time (s)&#34;)
+    plt.ylabel(&#34;Amplitude (V)&#34;)
+    plt.grid(&#34;on&#34;)
+    return(0)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xapres.load.DataFileObject"><code class="flex name class">
+<span>class <span class="ident">DataFileObject</span></span>
+<span>(</span><span>Filename, remote_load=False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DataFileObject:
+    &#34;&#34;&#34;
+    An object containing information about an ApRES dat file and a method to extract bursts from it, instantiating a BurstObject.
+
+    Can be instantiated with one required string, giving the name of the data file
+    eg fileDescriptor = DataFileObject(&#39;DATAFILENAME.DAT&#39;). 
+    
+    You can also specify whether the file is stored locally or 
+    remotely (on Google Cloud Storage) with the optional argument remote_load=True.
+
+    Methods:
+        ExtractBurst(BurstNumber (integer))
+            Output is an instance of a BurstObject
+        e.g., Burst = fileDescriptor.ExtractBurst(3)
+
+    Instance variables:
+        Filename           : Name of data file
+        BurstLocationList  : Python list of byte offset of each burst in file
+        NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+    
+    Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+    &#34;&#34;&#34;
+
+    def __init__(self, Filename, remote_load=False):
+        self.BurstLocationList = []
+        self.Filename = Filename
+        self.remote_load = remote_load
+        
+
+        if self.remote_load:
+            fs = gcsfs.GCSFileSystem()
+            datafile = fs.open(self.Filename, mode = &#39;rb&#39;)
+        else: 
+            datafile = open(self.Filename, &#34;rb&#34;)
+            
+
+        inbuff = datafile.read()
+        datafile.close()     
+        
+        a = &#34;*** Burst Header ***&#34;
+        b = a.encode()
+        locn = inbuff.find(b)
+        while locn != -1:
+            self.BurstLocationList.append(locn)
+            locn = inbuff.find(b, locn + len(b))
+       
+        self.NoBurstsInFile = len(self.BurstLocationList)
+
+    def ExtractBurst(self, BurstNo):
+        Burst = BurstObject()
+        Burst.Filename = self.Filename
+        Burst.BurstNo = BurstNo
+        Burst.Header = {&#34;BurstNo&#34;:BurstNo}
+        
+        if self.remote_load:
+            fs = gcsfs.GCSFileSystem()
+            datafile = fs.open(self.Filename, mode = &#39;rb&#39;)
+        else: 
+            datafile = open(self.Filename, &#34;rb&#34;)
+ 
+        
+        datafile.seek(self.BurstLocationList[BurstNo])
+        inbuff = datafile.read(2000)
+        locn = 0
+        locn1 = inbuff.find(b&#39;\x0D\x0A&#39;, locn, locn + 80)
+        inline = inbuff[locn:locn1].decode()
+        while inline.count(&#34;End Header&#34;) == 0:
+            tmp = inline.split(&#34;=&#34;)
+            if len(tmp) == 2:
+                if tmp[0].lower() == &#34;rxant&#34; or \
+                   tmp[0].lower() == &#34;txant&#34; or \
+                   tmp[0].lower() == &#34;afgain&#34;:
+                   Burst.Header[tmp[0]] = \
+                        [int(x) for x in tmp[1].split(&#39;,&#39;) if x]
+                        
+                elif tmp[0].lower() == &#34;triples&#34; or \
+                     tmp[0].lower() == &#34;attenuator1&#34; or \
+                     tmp[0].lower() == &#34;batterycheck&#34;:
+                     Burst.Header[tmp[0]] = \
+                        [float(x) for x in tmp[1].split(&#39;,&#39;) if x]
+                                      
+                elif tmp[0].lower() == &#34;latitude&#34; or \
+                     tmp[0].lower() == &#34;longitude&#34; or \
+                     tmp[0].lower() == &#34;temp1&#34; or \
+                     tmp[0].lower() == &#34;temp2&#34; or \
+                     tmp[0].lower() == &#34;batteryvoltage&#34; or \
+                     tmp[0].lower() == &#34;tstepup&#34; or \
+                     tmp[0].lower() == &#34;tstepdn&#34; or \
+                     tmp[0].lower() == &#34;fsc&#34; or \
+                     tmp[0].lower() == &#34;sw_issue&#34; or \
+                     tmp[0].lower() == &#34;er_ice&#34; or \
+                     tmp[0].lower() == &#34;position_depth_conversion&#34; or \
+                     tmp[0].lower() == &#34;maxdepthtograph&#34;:
+                    Burst.Header[tmp[0]] = float(tmp[1])
+                    
+                elif tmp[0].lower() == &#34;rmb_issue&#34; or \
+                     tmp[0].lower() == &#34;vab_issue&#34; or \
+                     tmp[0].lower() == &#34;reg00&#34; or \
+                     tmp[0].lower() == &#34;reg01&#34; or \
+                     tmp[0].lower() == &#34;reg02&#34; or \
+                     tmp[0].lower() == &#34;reg03&#34; or \
+                     tmp[0].lower() == &#34;reg0b&#34; or \
+                     tmp[0].lower() == &#34;reg0c&#34; or \
+                     tmp[0].lower() == &#34;reg0d&#34; or \
+                     tmp[0].lower() == &#34;reg0e&#34;:
+                    Burst.Header[tmp[0]] = tmp[1]
+                elif tmp[0].lower() == &#34;time stamp&#34;:
+                    Burst.Header[tmp[0]] = tmp[1]
+                else:
+                    Burst.Header[tmp[0]] = int(tmp[1])
+                    
+            locn = locn1 + 2
+            locn1 = inbuff.find(b&#39;\x0D\x0A&#39;, locn,locn + 80)
+            inline = inbuff[locn:locn1].decode()
+
+        # Re-open the file for binary read to get burst data
+        
+        if self.remote_load:
+            fs = gcsfs.GCSFileSystem()
+            datafile = fs.open(self.Filename, mode = &#39;rb&#39;)
+        else: 
+            datafile = open(self.Filename, &#34;rb&#34;)      
+        
+        datafile.seek(self.BurstLocationList[BurstNo] + locn1 + 2)
+        NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;] * Burst.Header[&#34;NSubBursts&#34;]
+        if Burst.Header[&#34;Average&#34;] == 1:
+            NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;]
+            inbuff = datafile.read(NsamplesInBurst * 4)
+            Burst.v = np.frombuffer(inbuff, dtype=np.float32)/2**16*2.5-1.25
+        elif Burst.Header[&#34;Average&#34;] == 2:
+            NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;]
+            inbuff = datafile.read(NsamplesInBurst * 4)
+            Burst.v = np.frombuffer(inbuff, dtype=np.uint32)
+        else:
+            NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;] * Burst.Header[&#34;NSubBursts&#34;] *  Burst.Header[&#34;nAttenuators&#34;]  # because each subburst contains a certain number of chirps given by Burst.Header[&#34;nAttenuators&#34;]
+            inbuff = datafile.read(NsamplesInBurst * 2)
+            Burst.v = (np.frombuffer(inbuff, dtype=np.uint16))/2**16*2.5-1.25
+        datafile.close()
+        
+        if &#34;SamplingFreqMode&#34; in Burst.Header:
+            if Burst.Header[&#34;SamplingFreqMode&#34;] == 0:
+                Burst.Header[&#34;dt&#34;] = 1/40000
+            else:
+                Burst.Header[&#34;dt&#34;] = 1/80000
+        else:
+            Burst.Header[&#34;dt&#34;] = 1/40000
+            
+        Burst.Header[&#34;NChirps&#34;] = Burst.Header[&#34;NSubBursts&#34;] * Burst.Header[&#34;nAttenuators&#34;] *\
+            Burst.Header[&#34;TxAnt&#34;].count(1) * Burst.Header[&#34;RxAnt&#34;].count(1)
+        
+        if &#34;FreqStepUp&#34; in Burst.Header:
+            Burst.Header[&#34;K&#34;] = Burst.Header[&#34;FreqStepUp&#34;] / Burst.Header[&#34;TStepUp&#34;]
+        else:
+            Burst.Header[&#34;K&#34;] = 2e8
+            Burst.Header[&#34;StartFreq&#34;] = 2e8
+            Burst.Header[&#34;StopFreq&#34;] = 4e8
+            
+        Burst.Header[&#34;c0&#34;] = 3e8
+        if  not (&#34;ER_ICE&#34; in Burst.Header):
+            Burst.Header[&#34;ER_ICE&#34;] = 3.18
+        Burst.Header[&#34;CentreFreq&#34;] = (Burst.Header[&#34;StartFreq&#34;] + Burst.Header[&#34;StopFreq&#34;])/2
+        Burst.Header[&#34;B&#34;] = (Burst.Header[&#34;StopFreq&#34;] - Burst.Header[&#34;StartFreq&#34;])
+        
+        # deal out attenuator settings to the chirps
+        setting_counter = 0
+        Burst.Header[&#39;Attenuator1_allChirps&#39;] = []
+        Burst.Header[&#39;AFGain_allChirps&#39;] =[]
+        for chirp in range(Burst.Header[&#39;NChirps&#39;]):
+            Burst.Header[&#39;Attenuator1_allChirps&#39;].append(Burst.Header[&#39;Attenuator1&#39;][setting_counter])
+            Burst.Header[&#39;AFGain_allChirps&#39;].append(Burst.Header[&#39;AFGain&#39;][setting_counter])
+            
+            # keep track of which setting to use
+            setting_counter += 1
+            if setting_counter &gt;= Burst.Header[&#39;nAttenuators&#39;]: # if the counter reaches nAttenuators, reset it to zero 
+                setting_counter = 0
+
+        return Burst</code></pre>
+</details>
+<div class="desc"><p>An object containing information about an ApRES dat file and a method to extract bursts from it, instantiating a BurstObject.</p>
+<p>Can be instantiated with one required string, giving the name of the data file
+eg fileDescriptor = DataFileObject('DATAFILENAME.DAT'). </p>
+<p>You can also specify whether the file is stored locally or
+remotely (on Google Cloud Storage) with the optional argument remote_load=True.</p>
+<h2 id="methods">Methods</h2>
+<p>ExtractBurst(BurstNumber (integer))
+Output is an instance of a BurstObject
+e.g., Burst = fileDescriptor.ExtractBurst(3)</p>
+<p>Instance variables:
+Filename
+: Name of data file
+BurstLocationList
+: Python list of byte offset of each burst in file
+NoBurstsInFile
+: Number of bursts in the file (len(BurstLocationList))</p>
+<p>Created on Fri Oct 16 20:06:36 2020 by K. Nicholls</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xapres.load.DataFileObject.ExtractBurst"><code class="name flex">
+<span>def <span class="ident">ExtractBurst</span></span>(<span>self, BurstNo)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ExtractBurst(self, BurstNo):
+    Burst = BurstObject()
+    Burst.Filename = self.Filename
+    Burst.BurstNo = BurstNo
+    Burst.Header = {&#34;BurstNo&#34;:BurstNo}
+    
+    if self.remote_load:
+        fs = gcsfs.GCSFileSystem()
+        datafile = fs.open(self.Filename, mode = &#39;rb&#39;)
+    else: 
+        datafile = open(self.Filename, &#34;rb&#34;)
+
+    
+    datafile.seek(self.BurstLocationList[BurstNo])
+    inbuff = datafile.read(2000)
+    locn = 0
+    locn1 = inbuff.find(b&#39;\x0D\x0A&#39;, locn, locn + 80)
+    inline = inbuff[locn:locn1].decode()
+    while inline.count(&#34;End Header&#34;) == 0:
+        tmp = inline.split(&#34;=&#34;)
+        if len(tmp) == 2:
+            if tmp[0].lower() == &#34;rxant&#34; or \
+               tmp[0].lower() == &#34;txant&#34; or \
+               tmp[0].lower() == &#34;afgain&#34;:
+               Burst.Header[tmp[0]] = \
+                    [int(x) for x in tmp[1].split(&#39;,&#39;) if x]
+                    
+            elif tmp[0].lower() == &#34;triples&#34; or \
+                 tmp[0].lower() == &#34;attenuator1&#34; or \
+                 tmp[0].lower() == &#34;batterycheck&#34;:
+                 Burst.Header[tmp[0]] = \
+                    [float(x) for x in tmp[1].split(&#39;,&#39;) if x]
+                                  
+            elif tmp[0].lower() == &#34;latitude&#34; or \
+                 tmp[0].lower() == &#34;longitude&#34; or \
+                 tmp[0].lower() == &#34;temp1&#34; or \
+                 tmp[0].lower() == &#34;temp2&#34; or \
+                 tmp[0].lower() == &#34;batteryvoltage&#34; or \
+                 tmp[0].lower() == &#34;tstepup&#34; or \
+                 tmp[0].lower() == &#34;tstepdn&#34; or \
+                 tmp[0].lower() == &#34;fsc&#34; or \
+                 tmp[0].lower() == &#34;sw_issue&#34; or \
+                 tmp[0].lower() == &#34;er_ice&#34; or \
+                 tmp[0].lower() == &#34;position_depth_conversion&#34; or \
+                 tmp[0].lower() == &#34;maxdepthtograph&#34;:
+                Burst.Header[tmp[0]] = float(tmp[1])
+                
+            elif tmp[0].lower() == &#34;rmb_issue&#34; or \
+                 tmp[0].lower() == &#34;vab_issue&#34; or \
+                 tmp[0].lower() == &#34;reg00&#34; or \
+                 tmp[0].lower() == &#34;reg01&#34; or \
+                 tmp[0].lower() == &#34;reg02&#34; or \
+                 tmp[0].lower() == &#34;reg03&#34; or \
+                 tmp[0].lower() == &#34;reg0b&#34; or \
+                 tmp[0].lower() == &#34;reg0c&#34; or \
+                 tmp[0].lower() == &#34;reg0d&#34; or \
+                 tmp[0].lower() == &#34;reg0e&#34;:
+                Burst.Header[tmp[0]] = tmp[1]
+            elif tmp[0].lower() == &#34;time stamp&#34;:
+                Burst.Header[tmp[0]] = tmp[1]
+            else:
+                Burst.Header[tmp[0]] = int(tmp[1])
+                
+        locn = locn1 + 2
+        locn1 = inbuff.find(b&#39;\x0D\x0A&#39;, locn,locn + 80)
+        inline = inbuff[locn:locn1].decode()
+
+    # Re-open the file for binary read to get burst data
+    
+    if self.remote_load:
+        fs = gcsfs.GCSFileSystem()
+        datafile = fs.open(self.Filename, mode = &#39;rb&#39;)
+    else: 
+        datafile = open(self.Filename, &#34;rb&#34;)      
+    
+    datafile.seek(self.BurstLocationList[BurstNo] + locn1 + 2)
+    NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;] * Burst.Header[&#34;NSubBursts&#34;]
+    if Burst.Header[&#34;Average&#34;] == 1:
+        NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;]
+        inbuff = datafile.read(NsamplesInBurst * 4)
+        Burst.v = np.frombuffer(inbuff, dtype=np.float32)/2**16*2.5-1.25
+    elif Burst.Header[&#34;Average&#34;] == 2:
+        NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;]
+        inbuff = datafile.read(NsamplesInBurst * 4)
+        Burst.v = np.frombuffer(inbuff, dtype=np.uint32)
+    else:
+        NsamplesInBurst = Burst.Header[&#34;N_ADC_SAMPLES&#34;] * Burst.Header[&#34;NSubBursts&#34;] *  Burst.Header[&#34;nAttenuators&#34;]  # because each subburst contains a certain number of chirps given by Burst.Header[&#34;nAttenuators&#34;]
+        inbuff = datafile.read(NsamplesInBurst * 2)
+        Burst.v = (np.frombuffer(inbuff, dtype=np.uint16))/2**16*2.5-1.25
+    datafile.close()
+    
+    if &#34;SamplingFreqMode&#34; in Burst.Header:
+        if Burst.Header[&#34;SamplingFreqMode&#34;] == 0:
+            Burst.Header[&#34;dt&#34;] = 1/40000
+        else:
+            Burst.Header[&#34;dt&#34;] = 1/80000
+    else:
+        Burst.Header[&#34;dt&#34;] = 1/40000
+        
+    Burst.Header[&#34;NChirps&#34;] = Burst.Header[&#34;NSubBursts&#34;] * Burst.Header[&#34;nAttenuators&#34;] *\
+        Burst.Header[&#34;TxAnt&#34;].count(1) * Burst.Header[&#34;RxAnt&#34;].count(1)
+    
+    if &#34;FreqStepUp&#34; in Burst.Header:
+        Burst.Header[&#34;K&#34;] = Burst.Header[&#34;FreqStepUp&#34;] / Burst.Header[&#34;TStepUp&#34;]
+    else:
+        Burst.Header[&#34;K&#34;] = 2e8
+        Burst.Header[&#34;StartFreq&#34;] = 2e8
+        Burst.Header[&#34;StopFreq&#34;] = 4e8
+        
+    Burst.Header[&#34;c0&#34;] = 3e8
+    if  not (&#34;ER_ICE&#34; in Burst.Header):
+        Burst.Header[&#34;ER_ICE&#34;] = 3.18
+    Burst.Header[&#34;CentreFreq&#34;] = (Burst.Header[&#34;StartFreq&#34;] + Burst.Header[&#34;StopFreq&#34;])/2
+    Burst.Header[&#34;B&#34;] = (Burst.Header[&#34;StopFreq&#34;] - Burst.Header[&#34;StartFreq&#34;])
+    
+    # deal out attenuator settings to the chirps
+    setting_counter = 0
+    Burst.Header[&#39;Attenuator1_allChirps&#39;] = []
+    Burst.Header[&#39;AFGain_allChirps&#39;] =[]
+    for chirp in range(Burst.Header[&#39;NChirps&#39;]):
+        Burst.Header[&#39;Attenuator1_allChirps&#39;].append(Burst.Header[&#39;Attenuator1&#39;][setting_counter])
+        Burst.Header[&#39;AFGain_allChirps&#39;].append(Burst.Header[&#39;AFGain&#39;][setting_counter])
+        
+        # keep track of which setting to use
+        setting_counter += 1
+        if setting_counter &gt;= Burst.Header[&#39;nAttenuators&#39;]: # if the counter reaches nAttenuators, reset it to zero 
+            setting_counter = 0
+
+    return Burst</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xapres.load.ProfileObject"><code class="flex name class">
+<span>class <span class="ident">ProfileObject</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ProfileObject:
+    &#34;&#34;&#34;
+    An object containing the profile data and header information for a single profile.
+    Also includes a function for plotting the profile (which is not used in the rest of the module).
+
+    Can be instantiated with a call to the FormProfile method on a ChirpObject
+    e.g., Profile = Chirp.FormProfile(StartFreq, StopFreq, padfactor, ref)
+
+    Methods:
+        PlotProfile(MaxDepth (double))
+            MaxDepth:  Maximum depth (in metres) to which to plot profile
+            
+    Instance variables:
+        Range:     Array with depth in metres each profile depth bin
+        Profile:   Array containing profile (complex double)
+        F0:        Start frequency used to form profile
+        F1:        End frequency used to form profile
+        pad:       Pad factor used when zeropadding
+        ChirpList: List of chirps averaged to form profile
+        Filename:  Name of original data file 
+        BurstNo:   Number of burst in data file
+        Header:    Burst header, as produced using ExtractBurst method on DataFileObject 
+        rad2m:     radians to metres of range conversion factor
+        bin2m:     bin to metres of range conversion factor
+
+        Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+    &#34;&#34;&#34;
+    
+    def __init__(self):
+        self.Range = 0
+        self.Profile = 0
+        self.F0 = 2e8
+        self.F1 = 4e8
+        self.pad = 2
+        self.ChirpList = 0
+        self.Filename = &#39;&#39;
+        self.BurstNo = 0
+        self.Header = 0
+        self.rad2m = 0
+        self.bin2m = 0
+
+    def PlotProfile(self, dmax):
+        plt.plot(self.Range, 20*np.log10(np.abs(self.Profile)))
+        plt.xlim(0, dmax)
+        plt.xlabel(&#34;Range (m)&#34;)
+        plt.ylabel(&#34;Amplitude (dB)&#34;)
+        plt.grid(&#34;on&#34;)
+
+        return </code></pre>
+</details>
+<div class="desc"><p>An object containing the profile data and header information for a single profile.
+Also includes a function for plotting the profile (which is not used in the rest of the module).</p>
+<p>Can be instantiated with a call to the FormProfile method on a ChirpObject
+e.g., Profile = Chirp.FormProfile(StartFreq, StopFreq, padfactor, ref)</p>
+<h2 id="methods">Methods</h2>
+<p>PlotProfile(MaxDepth (double))
+MaxDepth:
+Maximum depth (in metres) to which to plot profile</p>
+<p>Instance variables:
+Range:
+Array with depth in metres each profile depth bin
+Profile:
+Array containing profile (complex double)
+F0:
+Start frequency used to form profile
+F1:
+End frequency used to form profile
+pad:
+Pad factor used when zeropadding
+ChirpList: List of chirps averaged to form profile
+Filename:
+Name of original data file
+BurstNo:
+Number of burst in data file
+Header:
+Burst header, as produced using ExtractBurst method on DataFileObject
+rad2m:
+radians to metres of range conversion factor
+bin2m:
+bin to metres of range conversion factor</p>
+<pre><code>Created on Fri Oct 16 20:06:36 2020 by K. Nicholls
+</code></pre></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xapres.load.ProfileObject.PlotProfile"><code class="name flex">
+<span>def <span class="ident">PlotProfile</span></span>(<span>self, dmax)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def PlotProfile(self, dmax):
+    plt.plot(self.Range, 20*np.log10(np.abs(self.Profile)))
+    plt.xlim(0, dmax)
+    plt.xlabel(&#34;Range (m)&#34;)
+    plt.ylabel(&#34;Amplitude (dB)&#34;)
+    plt.grid(&#34;on&#34;)
+
+    return </code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xapres.load.from_dats"><code class="flex name class">
+<span>class <span class="ident">from_dats</span></span>
+<span>(</span><span>loglevel='warning')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class from_dats():
+    &#34;&#34;&#34;
+    An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
+    
+        Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+    
+        Argument:
+            loglevel --- allows the user to select the level of logging messages are displayed. 
+            The default loglevel is warning, which means that no messages are displayed. 
+            If you want to see detailed log messages, use loglevel = &#39;debug&#39;
+        
+        Methods:
+            load_single --- load a single chirp from a single burst from a single dat file
+            load_dat_file --- load a dat file as a DataFileObject
+            list_files --- recursively find  all the files in a directory or a google bucket
+            load_all --- load all the files found in a directory or google bucket into an xarray
+    
+        load_all is the most important method. Call it, for example, as follows:
+    
+    
+            import ApRESDefs
+            xa = ApRESDefs.xapres(loglevel=&#39;debug&#39;, max_range=1400)
+            xa.load_all(directory=&#39;gs://ldeo-glaciology/GL_apres_2022&#39;, 
+                        remote_load = True,
+                        file_numbers_to_process = [0, 1], 
+                        bursts_to_process=[0, 1]
+                    )
+    
+        the resulting xarray will be saved in xa.data.
+        
+        Instance variables:
+            Filename           : Name of data file
+            BurstLocationList  : Python list of byte offset of each burst in file
+            NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+    
+    &#34;&#34;&#34;
+    def __init__(self, loglevel=&#39;warning&#39;):
+        self._setup_logging(loglevel)
+        
+        
+    def load_single(self, 
+                    dat_filename, 
+                    burst_number=0, 
+                    chirp_num=0
+                    ):
+        &#34;&#34;&#34;Load a single chirp, from a single burst, from a single data file.&#34;&#34;&#34;
+        self.is_this_a_remote_load(dat_filename)
+
+        self.files_to_be_processed = dat_filename
+        self.logger.debug(f&#34;Load dat file {dat_filename}&#34;)
+        self.single_dat = self.load_dat_file(dat_filename)
+        self.logger.debug(f&#34;Extract burst number {burst_number}&#34;)
+        self.single_burst = self.single_dat.ExtractBurst(burst_number)
+        self.logger.debug(f&#34;Extract chirp number {chirp_num}&#34;)
+        self.single_chirp = self.single_burst.ExtractChirp([chirp_num]) 
+        self.logger.debug(f&#34;Form profile for chirp number {chirp_num}&#34;)
+        self.single_profile = self.single_chirp.FormProfile()
+        self.logger.debug(f&#34;Finish call to load_single.&#34;)
+    
+    def load_dat_file(self, dat_filename):
+        &#34;&#34;&#34;Return a DataFileObject, given a filename.&#34;&#34;&#34;
+        return DataFileObject(dat_filename, self.remote_load)
+      
+    def list_files(self, 
+                   directory=None, 
+                   search_suffix=&#34;&#34;
+                   ):    
+        &#34;&#34;&#34;Recursively list all the .DAT files in a given location dir. 
+        
+        Arguments:
+        directory -- the directory that will be looked in recursivly to find .DAT files.
+        search_suffix -- a string that can be used to search for files with a specific suffix.
+        &#34;&#34;&#34;
+
+        self.logger.debug(f&#34;Find all the dat files in the directory {directory}&#34;)
+
+        if directory is None:
+            self.directory = os.getcwd()
+        else:
+            self.directory = directory
+
+        self.is_this_a_remote_load()
+
+        if self.remote_load:   
+            fs = gcsfs.GCSFileSystem()
+            dat_filenames_without_gs_prefix = fs.glob(directory + &#39;/**/*&#39; + search_suffix + &#39;.[dD][aA][tT]&#39;, recursive = True)
+            dat_filenames = [&#39;gs://&#39; + x for x in dat_filenames_without_gs_prefix]
+
+        else:
+            dat_filenames = glob.glob(directory + &#39;/**/*&#39; + search_suffix  +&#39;.[dD][aA][tT]&#39;, recursive = True)
+        
+        self.dat_filenames = dat_filenames
+        
+        self.logger.debug(f&#34;Finish call to list_files. Found {len(dat_filenames)} files&#34;)
+
+        
+        return dat_filenames
+          
+    def load_all(self,
+                 directory=None, 
+                 remote_load=None,
+                 file_numbers_to_process=None, 
+                 file_names_to_process=None, 
+                 bursts_to_process=&#34;All&#34;,
+                 attended=False, 
+                 polarmetric=False,
+                 legacy_fft = False,
+                 corrected_pad = False,
+                 max_range = None,
+                 computeProfiles = True,
+                 addProfileToDs_kwargs = {}
+                 ):
+        
+        &#34;&#34;&#34;
+        Method to recursively ApRES .dat files and put them in an xarray dataset. It also computes profiles from the chirp data 
+        and includes them in the output. 
+        
+        This method has two modes. One for unattended ApRES data and one for attended data. 
+        
+        For unattended data (i.e. attended=False, the default), it puts all the data from all 
+        the .DAT files found recursively in &#39;directory&#39;, into one xarray. The most important 
+        dimension of this xarray is &#39;time&#39;, which is the time of each burst. 
+
+        In attended mode, the method locates the dat files corresponding to each waypoint. 
+        It does this based on a user-supplied list of directories &#39;directory&#39;. The method groups the 
+        data by waypoint (and optionally antenna orientation).
+
+        Parameters
+        ----------
+        directory : str or list, optional
+            Directory or list of directories containing .DAT files. 
+            If attended is False, this should be a single directory which will be search recusrivley for dat fies.  
+            If attended is True, this should be a list of directories, one for each waypoint. Default is None.
+        file_numbers_to_process : list, optional
+            List of file numbers to process. If None, all files will be processed. Default is None.
+        file_names_to_process : list, optional
+            List of file names to process. If None, all files will be processed. Default is None. 
+            Note that you can set either file_numbers_to_process or file_names_to_process, but not both. 
+        bursts_to_process : str or list, optional
+            Bursts to process from within each dat file. Default is &#34;All&#34;.
+        attended : bool, optional
+            If True, load data in attended mode. Default is False.
+        polarmetric : bool, optional
+            If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
+            It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
+            Default is False.
+        legacy_fft : bool, optional
+            If True, use legacy FFT processing. Default is True.
+        corrected_pad : bool, optional
+            If True, use the corrected padding procedure in the legacy fft processing.
+            The original erroneously replaced a two data points in each chirp with zeros. Default is False.
+        max_range : float, optional
+            A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
+        computeProfiles : bool, optional
+            If True, compute profiles from the chirp data. Default is True.
+        addProfileToDs_kwargs : dict, optional
+            Additional keyword arguments for addProfileToDs method. 
+            The following can be set:
+                pad_factor = 2
+                drop_noisy_chirps = False,
+                clip_threshold = 1.2,
+                min_chirps = 20,
+                demean = False,
+                detrend = False,
+                stack = False,
+                crop_chirp_start = None,
+                crop_chirp_end = None,
+                max_range = None
+
+        Returns
+        -------
+        xarray.Dataset
+            The loaded data as an xarray dataset.
+
+        Raises
+        ------
+        ValueError
+            If attended mode is True and directory_list is None.
+            If both file_numbers_to_process and file_names_to_process are supplied.
+        &#34;&#34;&#34;   
+
+        self.file_numbers_to_process = file_numbers_to_process
+        self.file_names_to_process = file_names_to_process
+        self.attended = attended
+        self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
+        self.polarmetric = polarmetric
+        self.legacy_fft = legacy_fft
+        self.corrected_pad = corrected_pad
+        self.max_range = max_range
+        self.computeProfiles = computeProfiles
+        #self.bursts_to_process = bursts_to_process
+        
+        if directory is None:
+            self.directory = os.getcwd()
+        else:
+            self.directory = directory
+
+        self.is_this_a_remote_load()
+        
+        self.logger.debug(f&#34;Start call to load_all with remote_load = {self.remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}&#34;)
+      
+        
+        
+        if attended is True and isinstance(directory, str):
+            directory_list = [directory]
+        elif attended is True and isinstance(directory, list):
+            directory_list = directory
+
+        if attended is False:
+            self.list_files(directory)    # adds self.dat_filenames
+
+            self.subset_files()   # adds self.dat_filenames_to_process
+        
+            # Loop through the dat files, putting individual xarrays in a list.
+            self.logger.debug(&#34;Attended is False, so starting loop over dat files&#34;)
+            list_of_multiBurstxarrays = []   
+            for dat_filename in tqdm(self.dat_filenames_to_process):
+                self.logger.debug(f&#34;Load dat file {dat_filename}&#34;)
+                dat = self.load_dat_file(dat_filename)
+                
+                multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
+            
+                list_of_multiBurstxarrays.append(multiBurstxarray)
+                self.logger.debug(f&#34;Finished processing file {dat_filename}&#34;)
+            
+            self.logger.debug(f&#34;Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data&#34;)
+            self.data = xr.concat(list_of_multiBurstxarrays, dim=&#39;time&#39;) 
+        
+            
+
+        elif attended is True:
+            
+            if directory_list is None:
+                self.logger.debug(&#34;Throwing a ValueError because directory_list is None and attended is True: when loaded data taken in attended mode, you must supply a list of directory names.&#34;)
+                raise ValueError(&#34;When loading data taken in attended mode, you must supply a list, directory_list, with the names of directories containing dat files from each waypoint.&#34;)
+            
+            # loop over the waypoints, as defined by the directories in the user-supplied list, directory_names
+            self.logger.debug(&#34;Attended is True, so starting loop over directories (each corresponding to a waypoint)&#34;)
+            list_of_singlewaypoint_xarrays = []   
+            
+            for waypoint_number, directory in enumerate(directory_list, start=1):
+                self.logger.debug(f&#34;Looking in directory {directory} for dat files from waypoint {waypoint_number}&#34;)
+                singlewaypoint_xarray = self._all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
+                list_of_singlewaypoint_xarrays.append(singlewaypoint_xarray)
+                self.logger.debug(f&#34;Finished processing files f-in directory {directory} waypoint {waypoint_number}&#34;)
+
+            self.logger.debug(f&#34;Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data&#34;)
+            self.data = xr.concat(list_of_singlewaypoint_xarrays, dim=&#39;waypoint&#39;)
+        
+        self._add_attrs()
+
+        self.correct_temperature()
+
+        if self.legacy_fft is False and self.computeProfiles is True:
+            self.logger.debug(f&#34;Call addProfileToDs to add the profiles to the xarray&#34;)
+            self.data = self.data.addProfileToDs(**addProfileToDs_kwargs)
+
+        self.logger.debug(f&#34;Finish call to load_all. Call xapres.data to see the xarray this produced.&#34;)
+
+        return self.data
+
+    def subset_files(self):
+        &#34;&#34;&#34;Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied. This only gets used for unattended data.&#34;&#34;&#34;
+        if self.file_numbers_to_process is not None and self.file_names_to_process is not None:
+            self.logger.debug(&#34;Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all&#34;)
+            raise ValueError(&#34;file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.&#34;) 
+        
+        elif self.file_numbers_to_process is not None:
+            if self.file_numbers_to_process == &#34;All&#34;:
+                self.logger.debug(&#34;Selecting all dats file because file_numbers_to_process == \&#34;all\&#34;&#34;)
+                self.dat_filenames_to_process = self.dat_filenames
+            else:
+                self.logger.debug(f&#34;Subset files to {self.file_numbers_to_process}&#34;)
+                self.dat_filenames_to_process = [self.dat_filenames[i] for i in self.file_numbers_to_process]
+        
+        elif self.file_names_to_process is not None:
+            if self.file_names_to_process == &#34;All&#34;:
+                self.logger.debug(&#34;Selecting all dats file because file_names_to_process == \&#34;all\&#34;&#34;)
+                self.dat_filenames_to_process = self.dat_filenames
+            else:                 
+                self.logger.debug(&#34;Subset files to list of files supplied in file_names_to_process&#34;)
+                self.dat_filenames_to_process = self.file_names_to_process
+                            
+        elif self.file_numbers_to_process is None and self.file_names_to_process is None:      # default is all the dat files    
+            self.logger.debug(&#34;Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied&#34;)
+            self.dat_filenames_to_process = self.dat_filenames          
+        
+    def _all_bursts_in_dat_to_xarray(self, 
+                                     dat, 
+                                     bursts_selected,
+                                     ):
+        &#34;&#34;&#34;Take data from all the bursts in one .DAT file and put it in an xarray, concatenated by time. 
+        Only gets used for unattended data because attended data should only have one burst per dat file.
+        
+        Arguments:
+        dat -- a DataFileObject  
+        bursts_selected -- a list of the burst numbers to process, or &#34;All&#34; to process all the bursts in the dat file.
+        &#34;&#34;&#34;
+        self.logger.debug(&#34;Attended is False. Generating xarray for unattended data&#34;)   
+        self.logger.debug(f&#34;This dat file has {dat.NoBurstsInFile} bursts.&#34;)
+        self.logger.debug(f&#34;bursts_to_process = {bursts_selected} at the start of _all_bursts_in_dat_to_xarray.&#34;)
+
+        # Choose which bursts to process. The default is all of the burst in each dat file).
+        if bursts_selected == &#34;All&#34;:
+            bursts_to_process = range(dat.NoBurstsInFile)
+            self.logger.debug(&#34;bursts_to_process set to \&#34;All\&#34;&#34;)
+        else:
+            bursts_to_process = bursts_selected
+        
+        if any(np.array(bursts_to_process) &gt; (dat.NoBurstsInFile-1)):
+            self.logger.debug(f&#34;The burst numbers requested in bursts_to_process ({bursts_to_process}) is greater than the number of bursts in\
+                the dat file ({dat.NoBurstsInFile}), so we will just process all the bursts.&#34;)
+            bursts_to_process = range(dat.NoBurstsInFile)
+
+        self.logger.debug(f&#34;After the initial parse in _all_bursts_in_dat_to_xarray, bursts_to_process = {list(bursts_to_process)}.&#34;)
+        self.logger.debug(f&#34;Start loop over burst numbers {list(bursts_to_process)} in dat file {dat.Filename}&#34;)     
+        
+        list_of_singleBurst_xarrays = []     
+        # Loop over the selected bursts, extracting each and putting it in an xarray with _burst_to_xarray_unattended, and appending it to the list list_of_singleBurst_xarrays
+        for burst_number in bursts_to_process:#tqdm(bursts_to_process):
+            self.logger.debug(f&#34;Extract burst number {burst_number}&#34;)   
+            burst = dat.ExtractBurst(burst_number)
+            singleBurst_xarray = self._burst_to_xarray_unattended(burst)
+            self.current_burst = burst
+            list_of_singleBurst_xarrays.append(singleBurst_xarray)
+
+        self.logger.debug(f&#34;Concatenating all the single-burst xarrays from dat file {dat.Filename}&#34;)
+        
+        # If the data was collected in unattended mode concat along the time dimension.
+        #
+        # If the data was collected in attended mode concat along the waypoint dimension.
+        # match self.attended:
+        #    case False:
+        #        return xr.concat(list_of_singleBurst_xarrays, dim=&#39;time&#39;) 
+        #    case True:
+        #        return xr.concat(list_of_singleBurst_xarrays, dim=&#39;waypoint&#39;)
+        self.burst_load_counter = 0
+        return xr.concat(list_of_singleBurst_xarrays, dim=&#39;time&#39;) 
+
+    def _all_bursts_at_waypoint_to_xarray(self, 
+                                          directory,
+                                          waypoint_number):   
+        &#34;&#34;&#34;This is the attended equivalent to _all_bursts_in_dat_to_xarray&#34;&#34;&#34;
+    
+        # initialize an empty array to contain the individual xarrays
+        list_of_singleorientation_attended_xarrays = []
+        
+        if self.polarmetric is True:
+            orientations = [&#39;HH&#39;, &#39;HV&#39;, &#39;VH&#39;, &#39;VV&#39;]
+        else:
+            orientations = [&#34;&#34;]
+
+        # loop over the orientations
+        for orientation in orientations:
+            self.logger.debug(f&#34;Looking for files with orientation {orientation} in directory {directory}&#34;)
+            files = self.list_files(directory=directory, search_suffix=orientation)
+
+            self.logger.debug(f&#34;Found {len(files)} files with orientation {orientation}&#34;)
+            if len(files) != 1:
+                raise Exception(f&#39;there should by one dat file for each orientation in each directory. We found {len(files)} files.&#39;)
+            dat = self.load_dat_file(files[0])
+            burst = dat.ExtractBurst(0)
+            singleorientation_attended_xarray = self._burst_to_xarray_attended(burst, waypoint_number)
+            self.current_burst = burst
+
+            # append the new xarray to a list
+            list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
+        
+        # concatenate the xarrays in the list along the orientation dimension
+        return xr.concat(list_of_singleorientation_attended_xarrays, dim=&#39;orientation&#39;)
+            
+    def _burst_to_xarray_unattended(self, 
+                                    burst: xr.Dataset):
+        &#34;&#34;&#34;Return an xarray containing all data from one burst with appropriate coordinates&#34;&#34;&#34;
+
+        self.logger.debug(f&#34;Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays&#34;)
+        chirps, profiles = self._burst_to_3d_arrays(burst)
+        chirp_time, profile_range = self._coords_from_burst(burst)
+        time = self._timestamp_from_burst(burst)
+        self.logger.debug(f&#34;Get orientation from filename&#34;)
+        orientation = self._get_orientation(burst.Filename)
+
+        chirps = chirps[None,:,:,:]
+        
+        if self.legacy_fft and self.computeProfiles:
+            profiles = profiles[None,:,:,:]
+            self.logger.debug(f&#34;Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage&#34;)
+
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = ([&#34;time&#34;,&#34;chirp_time&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], chirps),
+                    profile         = ([&#34;time&#34;, &#34;profile_range&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], profiles),
+                    latitude        = ([&#34;time&#34;], [burst.Header[&#39;Latitude&#39;]]),
+                    longitude       = ([&#34;time&#34;], [burst.Header[&#39;Longitude&#39;]]),  
+                    battery_voltage = ([&#34;time&#34;], [burst.Header[&#39;BatteryVoltage&#39;]]), 
+                    temperature_1   = ([&#34;time&#34;], [burst.Header[&#39;Temp1&#39;]]),
+                    temperature_2   = ([&#34;time&#34;], [burst.Header[&#39;Temp2&#39;]])
+                ),
+                coords=dict(
+                    time                  = [time],
+                    chirp_time            = chirp_time,
+                    profile_range         = profile_range, 
+                    chirp_num             = np.arange(burst.Header[&#39;NSubBursts&#39;]),
+                    filename              = ([&#34;time&#34;], [burst.Filename]),
+                    burst_number          = ([&#34;time&#34;], [burst.BurstNo]),
+                    AFGain                = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;AFGain&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    attenuator            = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;Attenuator1&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    orientation           = ([&#34;time&#34;], [orientation])
+                ),
+            )
+
+        else:
+            self.logger.debug(f&#34;Not using the legacy fft method, so we dont return the profiles at this stage, only chirps and all the other variables&#34;)
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = ([&#34;time&#34;,&#34;chirp_time&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], chirps),
+                    latitude        = ([&#34;time&#34;], [burst.Header[&#39;Latitude&#39;]]),
+                    longitude       = ([&#34;time&#34;], [burst.Header[&#39;Longitude&#39;]]),  
+                    battery_voltage = ([&#34;time&#34;], [burst.Header[&#39;BatteryVoltage&#39;]]), 
+                    temperature_1   = ([&#34;time&#34;], [burst.Header[&#39;Temp1&#39;]]),
+                    temperature_2   = ([&#34;time&#34;], [burst.Header[&#39;Temp2&#39;]])
+                ),
+                coords=dict(    
+                    time                  = [time],
+                    chirp_time            = chirp_time,
+                    chirp_num             = np.arange(burst.Header[&#39;NSubBursts&#39;]),
+                    filename              = ([&#34;time&#34;], [burst.Filename]),
+                    burst_number          = ([&#34;time&#34;], [burst.BurstNo]),
+                    AFGain                = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;AFGain&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    attenuator            = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;Attenuator1&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    orientation           = ([&#34;time&#34;], [orientation])
+                ),
+            )
+
+        return xarray_out
+    
+    def _burst_to_xarray_attended(self, 
+                                  burst, 
+                                  waypoint_number):
+        &#34;&#34;&#34;Return an xarray containing all data from one burst with appropriate coordinates - for attended data&#34;&#34;&#34;
+
+        #self.logger.debug(f&#34;Put all chirps and profiles from burst number {burst.BurstNo} in 3D arrays&#34;)
+        
+        #xa = ApRESDefs.xapres()
+        #files = xa.list_files(directory=&#39;../../data&#39;)
+        #dat = xa.load_dat_file(files[0])
+        #burst = dat.ExtractBurst(0)
+        #waypoint = 1
+        chirps_temp, profiles_temp = self._burst_to_3d_arrays(burst)
+        chirp_time, profile_range = self._coords_from_burst(burst)
+        time_temp = self._timestamp_from_burst(burst)
+        self.logger.debug(f&#34;Get orientation from filename&#34;)
+        orientation = self._get_orientation(burst.Filename)
+        
+        chirps = chirps_temp[None,None,:,:,:]
+        #time = time_temp[None,None,:]
+        #time = np.expand_dims(time_temp, axis=0)
+        
+        if self.legacy_fft:
+            profiles = profiles_temp[None,None,:,:,:]
+            self.logger.debug(f&#34;Using the legacy fft method, so we will return the profiles along with the rest of the data at this stage&#34;)
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = ([&#34;orientation&#34;, &#34;waypoint&#34;, &#34;chirp_time&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], chirps),
+                    profile         = ([&#34;orientation&#34;, &#34;waypoint&#34;, &#34;profile_range&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], profiles),
+                    latitude        = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Latitude&#39;], ndmin = 2)),
+                    longitude       = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Latitude&#39;], ndmin = 2)),
+                    battery_voltage = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;BatteryVoltage&#39;], ndmin = 2)),
+                    temperature_1   = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Temp1&#39;], ndmin = 2)),
+                    temperature_2   = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Temp2&#39;], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    profile_range         = profile_range, 
+                    chirp_num             = np.arange(burst.Header[&#39;NSubBursts&#39;]),
+                    filename              = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;AFGain&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    attenuator            = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;Attenuator1&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
+        else:
+            self.logger.debug(f&#34;Not using the legacy fft method, so we dont return the profiles at this stage, only chirps and all the other variables&#34;)
+            xarray_out = xr.Dataset(
+                data_vars=dict(
+                    chirp           = ([&#34;orientation&#34;, &#34;waypoint&#34;, &#34;chirp_time&#34;, &#34;chirp_num&#34;, &#34;attenuator_setting_pair&#34;], chirps),
+                    latitude        = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Latitude&#39;], ndmin = 2)),
+                    longitude       = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Latitude&#39;], ndmin = 2)),
+                    battery_voltage = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;BatteryVoltage&#39;], ndmin = 2)),
+                    temperature_1   = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Temp1&#39;], ndmin = 2)),
+                    temperature_2   = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Header[&#39;Temp2&#39;], ndmin = 2))
+                ),
+                coords=dict(
+                    time                  = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(time_temp, ndmin = 2)),
+                    chirp_time            = chirp_time,
+                    chirp_num             = np.arange(burst.Header[&#39;NSubBursts&#39;]),
+                    filename              = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.Filename, ndmin = 2)), 
+                    burst_number          = ([&#34;orientation&#34;, &#34;waypoint&#34;], np.array(burst.BurstNo, ndmin = 2)),   
+                    AFGain                = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;AFGain&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    attenuator            = ([&#34;attenuator_setting_pair&#34;], burst.Header[&#39;Attenuator1&#39;][0:burst.Header[&#39;nAttenuators&#39;]]),
+                    orientation           = [orientation],
+                    waypoint              = [waypoint_number]
+                ),
+            )
+        return xarray_out
+
+    def _burst_to_3d_arrays(self, burst):
+        &#34;&#34;&#34;Put all chirps and their corresponding profiles in 3D numpy arrays.
+        
+        First extract every chirp in a burst and compute a profile from each one. 
+        
+        Then put the results in two 3D numpy arrays. The 3D array for the chirp data (chirp_3d) has the following dimension lengths:
+            - [1] burst.Header[&#39;N_ADC_SAMPLES&#39;] (=40001, by default) --&gt; number of samples in each chirp  
+            - [2] burst.Header[&#39;NSubBursts&#39;] --&gt; the number of chirps per attenuator settingp pair 
+            - [3] burst.Header[&#39;nAttenuators&#39;] --&gt; the number of attenuator settings. 
+            
+        The 3D array for the profile data (profile_3d) has the same lengths in the dimensions [2] and [3], but a different
+        length of dimension [1], equal to the length of the profile obtained from the fft processing.
+        
+        Keyword arguments:
+        burst -- a `BurstObject` produced by DataFileObject().ExtractBurst()
+        
+        Returns: 
+        chirp_3d -- 3D numpy array containing all the chirps in the supplied burst
+        cropped_profile_3d -- 3D numpy array containing all the profiles from all the chirps in this burst        
+        &#34;&#34;&#34;
+        
+        #self.logger.debug(f&#34;Set max range from _burst_to_3d_arrays&#34;)
+        #if self.legacy_fft:      
+        #    self._set_max_range(burst)
+        
+        # pre-allocate 3D numpy arrays
+        chirp_3d = np.zeros((burst.Header[&#39;N_ADC_SAMPLES&#39;],burst.Header[&#39;NSubBursts&#39;],burst.Header[&#39;nAttenuators&#39;]))
+        test_profile = burst.ExtractChirp([0]).FormProfile()
+        profile_3d = np.zeros((len(test_profile.Profile),burst.Header[&#39;NSubBursts&#39;],burst.Header[&#39;nAttenuators&#39;]), dtype=complex)
+    
+        # initialize counters for second and third dimensions of our 3D arrays respectively 
+        chirp_counter = 0
+        setting_counter = 0
+        
+        # loop over all chirps in this burst
+        for i in np.arange(burst.Header[&#39;NChirps&#39;]):
+            chirp_new = burst.ExtractChirp([i]) 
+            chirp_3d[:,chirp_counter,setting_counter] = chirp_new.vdat
+
+            if self.legacy_fft:
+                self.logger.debug(f&#34;using legacy fft method to compute profiles&#34;)
+                profile_new = chirp_new.FormProfile(corrected_pad=self.corrected_pad)
+                profile_3d[:,chirp_counter,setting_counter] = profile_new.Profile  
+            else:
+                self.logger.debug(f&#34;Not using legacy fft method, so returning some None&#39;s&#34;)
+                profile_new = None
+                profile_3d = None
+            
+            # keep track of which pair of settings we are using
+            setting_counter += 1
+            if setting_counter &gt;= burst.Header[&#39;nAttenuators&#39;]: # if the counter reaches nAttenuators, reset it to zero 
+                setting_counter = 0
+                chirp_counter += 1
+
+        if self.legacy_fft:
+            self.logger.debug(f&#34;using legacy fft method to compute profiles, so crop based on max_depth (if it is set)&#34;)
+            if self.max_range is not None:
+                 
+                n = np.argmin(profile_new.Range&lt;=self.max_range)
+                cropped_profile_3d = profile_3d[:n,:,:]  
+            else: 
+                cropped_profile_3d = profile_3d  
+        else: 
+            self.logger.debug(f&#34;Not using legacy fft method, so returning cropped_profile as None&#34;)
+            cropped_profile_3d = None
+
+        return chirp_3d, cropped_profile_3d
+
+    def _coords_from_burst(self, burst):
+        &#34;&#34;&#34;Return the time vector and depth vector from the first chirp in a burst. They should be the same for the whole burst.&#34;&#34;&#34;
+        
+        self.logger.debug(f&#34;Set max range from _coords_from_burst&#34;)
+        
+        chirp = burst.ExtractChirp([0])
+
+        if self.legacy_fft:
+            #self._set_max_range(burst)
+            profile = chirp.FormProfile()
+            if self.max_range is not None:
+                
+                n = np.argmin(profile.Range&lt;=self.max_range)
+                cropped_range = profile.Range[:n]
+            else:
+                cropped_range = profile.Range
+        else:
+            cropped_range = None
+
+        return  chirp.t, cropped_range
+
+    def _timestamp_from_burst(self, burst):
+        &#34;&#34;&#34;Return the time stamp of a burst&#34;&#34;&#34;  
+        return pd.to_datetime(burst.Header[&#34;Time stamp&#34;])  
+
+    def _get_orientation(self, filename):
+
+        orientation = filename[-6:-4]
+        #add funciton to make sure orientation is capitalized
+
+        #if no orientation at end of filename, mark as unknown
+        if orientation not in [&#39;HH&#39;,&#39;HV&#39;,&#39;VH&#39;,&#39;VV&#39;]:
+            orientation = &#39;unknown&#39;
+
+        return orientation
+    
+    def _set_max_range(self, burst):
+        
+        # if not supplied with a max_range, use what is defined in the header
+        if self.max_range is None:
+            self.max_range = burst.Header[&#39;maxDepthToGraph&#39;]
+        else: 
+            self.max_range = self.max_range 
+        self.logger.debug(f&#34;Max_range has been set to {self.max_range}&#34;)
+ 
+    def _add_attrs(self):
+        &#34;&#34;&#34;Add attributes to the xarray self.data&#34;&#34;&#34;
+        self.logger.debug(&#34;Adding attributes to the xapres.data&#34;)
+        self.data.time.attrs[&#39;long_name&#39;] = &#39;time of burst&#39;
+        self.data.chirp_time.attrs[&#39;long_name&#39;] = &#39;time of samples during chirps&#39;
+        self.data.chirp_time.attrs[&#39;name&#39;] = &#39;time of samples during chirps&#39;
+        self.data.chirp_time.attrs[&#39;units&#39;] = &#39;seconds&#39;
+
+        self.data.chirp_num.attrs[&#39;long_name&#39;] = &#39;chirp number&#39;
+        self.data.chirp_num.attrs[&#39;description&#39;] = &#39;the number of each chirp within each burst&#39;
+
+        self.data.AFGain.attrs[&#39;long_name&#39;] = &#39;audio-frequency gain control setting&#39;
+        self.data.AFGain.attrs[&#39;units&#39;] = &#39;decibels&#39;
+
+        self.data.attenuator.attrs[&#39;long_name&#39;] = &#39;radio-frequency attenuator setting&#39;
+        self.data.attenuator.attrs[&#39;units&#39;] = &#39;decibels&#39;
+
+        self.data.chirp.attrs[&#39;long_name&#39;] = &#39;de-ramped chirp&#39;
+        self.data.chirp.attrs[&#39;units&#39;] = &#39;volts&#39;
+        self.data.chirp.attrs[&#39;description&#39;] = &#39;voltage from the analog-to-digital converter after the received signal has been mixed with the transmitted signal and the result has been filtered to leave only the low frequency compponent corresponding to the differences in the frequencies of the Tx and Rx signals&#39;
+
+        self.data.latitude.attrs[&#39;units&#39;] = &#39;degrees&#39;
+        self.data.latitude.attrs[&#39;long_name&#39;] = &#39;latitude of burst&#39;
+        
+        self.data.longitude.attrs[&#39;units&#39;] = &#39;degrees&#39;
+        self.data.longitude.attrs[&#39;long_name&#39;] = &#39;longitude of burst&#39;
+        
+        self.data.battery_voltage.attrs[&#39;units&#39;] = &#39;volts&#39;
+        self.data.battery_voltage.attrs[&#39;long_name&#39;] = &#39;battery voltage&#39;
+        
+        self.data.temperature_1.attrs[&#39;units&#39;] = &#39;celsius&#39;
+        self.data.temperature_1.attrs[&#39;long_name&#39;] = &#39;temperature measured inside the ApRES unit in one location&#39;
+        self.data.temperature_2.attrs[&#39;units&#39;] = &#39;celsius&#39;
+        self.data.temperature_2.attrs[&#39;long_name&#39;] = &#39;temperature measured inside the ApRES unit in a second location&#39;
+                
+        self.data.filename.attrs[&#39;description&#39;] = &#39;the name of the file that contains each burst&#39;
+        self.data.burst_number.attrs[&#39;description&#39;] = &#39;the number of each burst within each file&#39;
+        
+        self.data.attrs[&#39;constants&#39;] = {&#39;c&#39;: self.current_burst.Header[&#39;c0&#39;],
+                                         &#39;K&#39;: self.current_burst.Header[&#39;K&#39;],
+                                         &#39;f_1&#39;: self.current_burst.Header[&#39;StartFreq&#39;],
+                                         &#39;f_2&#39;: self.current_burst.Header[&#39;StopFreq&#39;],
+                                         &#39;dt&#39;: self.current_burst.Header[&#39;dt&#39;],
+                                         &#39;ep&#39;: self.current_burst.Header[&#39;ER_ICE&#39;],
+                                         &#39;B&#39;: self.current_burst.Header[&#39;B&#39;],
+                                         &#39;f_c&#39;: self.current_burst.Header[&#39;CentreFreq&#39;]}
+            
+        self.data.orientation.attrs[&#39;description&#39;] = &#39;HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022&#39;
+        
+        self.data.attrs[&#34;processing&#34;] = f&#34;Created on {datetime.datetime.now() }&#34;
+
+        if self.attended:
+            self.data.waypoint.attrs[&#39;description&#39;] = &#39;the number of the waypoint where the data was collected&#39;
+       
+    def correct_temperature(self, threshold=300, correction = -512):
+        &#34;&#34;&#34;Correct temperature values that are above a certain threshold. This appears to result from the temperature data being in the wrong format.&#34;&#34;&#34;
+        self.logger.debug(f&#34;Correct temperature values above {threshold} by adding {correction}&#34;)
+        T1 = self.data[&#39;temperature_1&#39;]
+        T2 = self.data[&#39;temperature_2&#39;]
+
+        self.data[&#39;temperature_1&#39;] = xr.where(T1&gt;threshold, T1+correction, T1)
+        self.data[&#39;temperature_2&#39;] = xr.where(T2&gt;threshold, T2+correction, T2) 
+
+    def _setup_logging(self, loglevel):
+        numeric_level = getattr(logging, loglevel.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError(f&#34;Invalid log level: {loglevel}&#34;)
+
+
+        self.logger = logging.getLogger(&#34;default_logger&#34;)
+        # Clear old logging handlers to avoid a build up of multiple similar handlers with repeat calls
+        self.logger.handlers.clear()
+        
+        # Set stream logging level to loglevel
+        self.logger.setLevel(level=numeric_level)
+        
+
+        logStreamFormatter = logging.Formatter(
+            fmt=f&#34;%(levelname)-8s %(asctime)s \t %(filename)s @function %(funcName)s line %(lineno)s - %(message)s&#34;, 
+            datefmt=&#34;%H:%M:%S&#34;
+        )
+        consoleHandler = logging.StreamHandler(stream=sys.stdout)
+        consoleHandler.setFormatter(logStreamFormatter)
+        consoleHandler.setLevel(level=numeric_level)
+               
+        
+        self.logger.addHandler(consoleHandler)
+        
+        self.logger.debug(f&#34;Stream logging level set to {loglevel.upper()}&#34;)
+        self.logger.debug(&#39;Add console handler to logger&#39;)
+     
+           
+        logFileFormatter = logging.Formatter(
+            fmt=f&#34;%(levelname)s %(asctime)s (%(relativeCreated)d) \t %(pathname)s F%(funcName)s L%(lineno)s - %(message)s&#34;,
+            datefmt=&#34;%Y-%m-%d %H:%M:%S&#34;,
+        )
+        fileHandler = logging.FileHandler(filename=&#39;generating_xarrays_from_dats.log&#39;)
+        fileHandler.setFormatter(logFileFormatter)
+        fileHandler.setLevel(level=numeric_level)
+
+        self.logger.addHandler(fileHandler)
+        
+        self.logger.debug(f&#34;File logging level set to {loglevel.upper()}&#34;)
+        
+
+    def is_this_a_remote_load(self, filename = None):
+        &#34;&#34;&#34;Detect if we are trying to load from Google Cloud Storage based on the filename being supplied&#34;&#34;&#34;
+        
+        name_to_check_for_gs = filename if filename is not None else self.directory
+
+        self.remote_load = &#34;gs://&#34; in name_to_check_for_gs
+        self.logger.debug(f&#34;remote_load set to {self.remote_load}&#34;)
+
+    def _try_logging(self):
+        &#34;&#34;&#34;Simple test of the diffrent logging levels. Not for use by users&#34;&#34;&#34;
+        self.logger.debug(&#34;debugging something&#34;)
+        self.logger.info(&#34;some message&#34;)
+        self.logger.error(&#34;something went wrong&#34;)</code></pre>
+</details>
+<div class="desc"><p>An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. </p>
+<pre><code>Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+
+Argument:
+    loglevel --- allows the user to select the level of logging messages are displayed. 
+    The default loglevel is warning, which means that no messages are displayed. 
+    If you want to see detailed log messages, use loglevel = 'debug'
+
+Methods:
+    load_single --- load a single chirp from a single burst from a single dat file
+    load_dat_file --- load a dat file as a DataFileObject
+    list_files --- recursively find  all the files in a directory or a google bucket
+    load_all --- load all the files found in a directory or google bucket into an xarray
+
+load_all is the most important method. Call it, for example, as follows:
+
+
+    import ApRESDefs
+    xa = ApRESDefs.xapres(loglevel='debug', max_range=1400)
+    xa.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
+                remote_load = True,
+                file_numbers_to_process = [0, 1], 
+                bursts_to_process=[0, 1]
+            )
+
+the resulting xarray will be saved in xa.data.
+
+Instance variables:
+    Filename           : Name of data file
+    BurstLocationList  : Python list of byte offset of each burst in file
+    NoBurstsInFile     : Number of bursts in the file (len(BurstLocationList))
+</code></pre></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xapres.load.from_dats.correct_temperature"><code class="name flex">
+<span>def <span class="ident">correct_temperature</span></span>(<span>self, threshold=300, correction=-512)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def correct_temperature(self, threshold=300, correction = -512):
+    &#34;&#34;&#34;Correct temperature values that are above a certain threshold. This appears to result from the temperature data being in the wrong format.&#34;&#34;&#34;
+    self.logger.debug(f&#34;Correct temperature values above {threshold} by adding {correction}&#34;)
+    T1 = self.data[&#39;temperature_1&#39;]
+    T2 = self.data[&#39;temperature_2&#39;]
+
+    self.data[&#39;temperature_1&#39;] = xr.where(T1&gt;threshold, T1+correction, T1)
+    self.data[&#39;temperature_2&#39;] = xr.where(T2&gt;threshold, T2+correction, T2) </code></pre>
+</details>
+<div class="desc"><p>Correct temperature values that are above a certain threshold. This appears to result from the temperature data being in the wrong format.</p></div>
+</dd>
+<dt id="xapres.load.from_dats.is_this_a_remote_load"><code class="name flex">
+<span>def <span class="ident">is_this_a_remote_load</span></span>(<span>self, filename=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def is_this_a_remote_load(self, filename = None):
+    &#34;&#34;&#34;Detect if we are trying to load from Google Cloud Storage based on the filename being supplied&#34;&#34;&#34;
+    
+    name_to_check_for_gs = filename if filename is not None else self.directory
+
+    self.remote_load = &#34;gs://&#34; in name_to_check_for_gs
+    self.logger.debug(f&#34;remote_load set to {self.remote_load}&#34;)</code></pre>
+</details>
+<div class="desc"><p>Detect if we are trying to load from Google Cloud Storage based on the filename being supplied</p></div>
+</dd>
+<dt id="xapres.load.from_dats.list_files"><code class="name flex">
+<span>def <span class="ident">list_files</span></span>(<span>self, directory=None, search_suffix='')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_files(self, 
+               directory=None, 
+               search_suffix=&#34;&#34;
+               ):    
+    &#34;&#34;&#34;Recursively list all the .DAT files in a given location dir. 
+    
+    Arguments:
+    directory -- the directory that will be looked in recursivly to find .DAT files.
+    search_suffix -- a string that can be used to search for files with a specific suffix.
+    &#34;&#34;&#34;
+
+    self.logger.debug(f&#34;Find all the dat files in the directory {directory}&#34;)
+
+    if directory is None:
+        self.directory = os.getcwd()
+    else:
+        self.directory = directory
+
+    self.is_this_a_remote_load()
+
+    if self.remote_load:   
+        fs = gcsfs.GCSFileSystem()
+        dat_filenames_without_gs_prefix = fs.glob(directory + &#39;/**/*&#39; + search_suffix + &#39;.[dD][aA][tT]&#39;, recursive = True)
+        dat_filenames = [&#39;gs://&#39; + x for x in dat_filenames_without_gs_prefix]
+
+    else:
+        dat_filenames = glob.glob(directory + &#39;/**/*&#39; + search_suffix  +&#39;.[dD][aA][tT]&#39;, recursive = True)
+    
+    self.dat_filenames = dat_filenames
+    
+    self.logger.debug(f&#34;Finish call to list_files. Found {len(dat_filenames)} files&#34;)
+
+    
+    return dat_filenames</code></pre>
+</details>
+<div class="desc"><p>Recursively list all the .DAT files in a given location dir. </p>
+<p>Arguments:
+directory &ndash; the directory that will be looked in recursivly to find .DAT files.
+search_suffix &ndash; a string that can be used to search for files with a specific suffix.</p></div>
+</dd>
+<dt id="xapres.load.from_dats.load_all"><code class="name flex">
+<span>def <span class="ident">load_all</span></span>(<span>self,<br>directory=None,<br>remote_load=None,<br>file_numbers_to_process=None,<br>file_names_to_process=None,<br>bursts_to_process='All',<br>attended=False,<br>polarmetric=False,<br>legacy_fft=False,<br>corrected_pad=False,<br>max_range=None,<br>computeProfiles=True,<br>addProfileToDs_kwargs={})</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_all(self,
+             directory=None, 
+             remote_load=None,
+             file_numbers_to_process=None, 
+             file_names_to_process=None, 
+             bursts_to_process=&#34;All&#34;,
+             attended=False, 
+             polarmetric=False,
+             legacy_fft = False,
+             corrected_pad = False,
+             max_range = None,
+             computeProfiles = True,
+             addProfileToDs_kwargs = {}
+             ):
+    
+    &#34;&#34;&#34;
+    Method to recursively ApRES .dat files and put them in an xarray dataset. It also computes profiles from the chirp data 
+    and includes them in the output. 
+    
+    This method has two modes. One for unattended ApRES data and one for attended data. 
+    
+    For unattended data (i.e. attended=False, the default), it puts all the data from all 
+    the .DAT files found recursively in &#39;directory&#39;, into one xarray. The most important 
+    dimension of this xarray is &#39;time&#39;, which is the time of each burst. 
+
+    In attended mode, the method locates the dat files corresponding to each waypoint. 
+    It does this based on a user-supplied list of directories &#39;directory&#39;. The method groups the 
+    data by waypoint (and optionally antenna orientation).
+
+    Parameters
+    ----------
+    directory : str or list, optional
+        Directory or list of directories containing .DAT files. 
+        If attended is False, this should be a single directory which will be search recusrivley for dat fies.  
+        If attended is True, this should be a list of directories, one for each waypoint. Default is None.
+    file_numbers_to_process : list, optional
+        List of file numbers to process. If None, all files will be processed. Default is None.
+    file_names_to_process : list, optional
+        List of file names to process. If None, all files will be processed. Default is None. 
+        Note that you can set either file_numbers_to_process or file_names_to_process, but not both. 
+    bursts_to_process : str or list, optional
+        Bursts to process from within each dat file. Default is &#34;All&#34;.
+    attended : bool, optional
+        If True, load data in attended mode. Default is False.
+    polarmetric : bool, optional
+        If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
+        It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
+        Default is False.
+    legacy_fft : bool, optional
+        If True, use legacy FFT processing. Default is True.
+    corrected_pad : bool, optional
+        If True, use the corrected padding procedure in the legacy fft processing.
+        The original erroneously replaced a two data points in each chirp with zeros. Default is False.
+    max_range : float, optional
+        A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
+    computeProfiles : bool, optional
+        If True, compute profiles from the chirp data. Default is True.
+    addProfileToDs_kwargs : dict, optional
+        Additional keyword arguments for addProfileToDs method. 
+        The following can be set:
+            pad_factor = 2
+            drop_noisy_chirps = False,
+            clip_threshold = 1.2,
+            min_chirps = 20,
+            demean = False,
+            detrend = False,
+            stack = False,
+            crop_chirp_start = None,
+            crop_chirp_end = None,
+            max_range = None
+
+    Returns
+    -------
+    xarray.Dataset
+        The loaded data as an xarray dataset.
+
+    Raises
+    ------
+    ValueError
+        If attended mode is True and directory_list is None.
+        If both file_numbers_to_process and file_names_to_process are supplied.
+    &#34;&#34;&#34;   
+
+    self.file_numbers_to_process = file_numbers_to_process
+    self.file_names_to_process = file_names_to_process
+    self.attended = attended
+    self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
+    self.polarmetric = polarmetric
+    self.legacy_fft = legacy_fft
+    self.corrected_pad = corrected_pad
+    self.max_range = max_range
+    self.computeProfiles = computeProfiles
+    #self.bursts_to_process = bursts_to_process
+    
+    if directory is None:
+        self.directory = os.getcwd()
+    else:
+        self.directory = directory
+
+    self.is_this_a_remote_load()
+    
+    self.logger.debug(f&#34;Start call to load_all with remote_load = {self.remote_load}, directory = {directory}, file_numbers_to_process = {file_numbers_to_process}, file_names_to_process = {file_names_to_process}, bursts_to_process = {bursts_to_process}, attended = {attended}&#34;)
+  
+    
+    
+    if attended is True and isinstance(directory, str):
+        directory_list = [directory]
+    elif attended is True and isinstance(directory, list):
+        directory_list = directory
+
+    if attended is False:
+        self.list_files(directory)    # adds self.dat_filenames
+
+        self.subset_files()   # adds self.dat_filenames_to_process
+    
+        # Loop through the dat files, putting individual xarrays in a list.
+        self.logger.debug(&#34;Attended is False, so starting loop over dat files&#34;)
+        list_of_multiBurstxarrays = []   
+        for dat_filename in tqdm(self.dat_filenames_to_process):
+            self.logger.debug(f&#34;Load dat file {dat_filename}&#34;)
+            dat = self.load_dat_file(dat_filename)
+            
+            multiBurstxarray = self._all_bursts_in_dat_to_xarray(dat, bursts_to_process)
+        
+            list_of_multiBurstxarrays.append(multiBurstxarray)
+            self.logger.debug(f&#34;Finished processing file {dat_filename}&#34;)
+        
+        self.logger.debug(f&#34;Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data&#34;)
+        self.data = xr.concat(list_of_multiBurstxarrays, dim=&#39;time&#39;) 
+    
+        
+
+    elif attended is True:
+        
+        if directory_list is None:
+            self.logger.debug(&#34;Throwing a ValueError because directory_list is None and attended is True: when loaded data taken in attended mode, you must supply a list of directory names.&#34;)
+            raise ValueError(&#34;When loading data taken in attended mode, you must supply a list, directory_list, with the names of directories containing dat files from each waypoint.&#34;)
+        
+        # loop over the waypoints, as defined by the directories in the user-supplied list, directory_names
+        self.logger.debug(&#34;Attended is True, so starting loop over directories (each corresponding to a waypoint)&#34;)
+        list_of_singlewaypoint_xarrays = []   
+        
+        for waypoint_number, directory in enumerate(directory_list, start=1):
+            self.logger.debug(f&#34;Looking in directory {directory} for dat files from waypoint {waypoint_number}&#34;)
+            singlewaypoint_xarray = self._all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
+            list_of_singlewaypoint_xarrays.append(singlewaypoint_xarray)
+            self.logger.debug(f&#34;Finished processing files f-in directory {directory} waypoint {waypoint_number}&#34;)
+
+        self.logger.debug(f&#34;Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data&#34;)
+        self.data = xr.concat(list_of_singlewaypoint_xarrays, dim=&#39;waypoint&#39;)
+    
+    self._add_attrs()
+
+    self.correct_temperature()
+
+    if self.legacy_fft is False and self.computeProfiles is True:
+        self.logger.debug(f&#34;Call addProfileToDs to add the profiles to the xarray&#34;)
+        self.data = self.data.addProfileToDs(**addProfileToDs_kwargs)
+
+    self.logger.debug(f&#34;Finish call to load_all. Call xapres.data to see the xarray this produced.&#34;)
+
+    return self.data</code></pre>
+</details>
+<div class="desc"><p>Method to recursively ApRES .dat files and put them in an xarray dataset. It also computes profiles from the chirp data
+and includes them in the output. </p>
+<p>This method has two modes. One for unattended ApRES data and one for attended data. </p>
+<p>For unattended data (i.e. attended=False, the default), it puts all the data from all
+the .DAT files found recursively in 'directory', into one xarray. The most important
+dimension of this xarray is 'time', which is the time of each burst. </p>
+<p>In attended mode, the method locates the dat files corresponding to each waypoint.
+It does this based on a user-supplied list of directories 'directory'. The method groups the
+data by waypoint (and optionally antenna orientation).</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>directory</code></strong> :&ensp;<code>str</code> or <code>list</code>, optional</dt>
+<dd>Directory or list of directories containing .DAT files.
+If attended is False, this should be a single directory which will be search recusrivley for dat fies.<br>
+If attended is True, this should be a list of directories, one for each waypoint. Default is None.</dd>
+<dt><strong><code>file_numbers_to_process</code></strong> :&ensp;<code>list</code>, optional</dt>
+<dd>List of file numbers to process. If None, all files will be processed. Default is None.</dd>
+<dt><strong><code>file_names_to_process</code></strong> :&ensp;<code>list</code>, optional</dt>
+<dd>List of file names to process. If None, all files will be processed. Default is None.
+Note that you can set either file_numbers_to_process or file_names_to_process, but not both.</dd>
+<dt><strong><code>bursts_to_process</code></strong> :&ensp;<code>str</code> or <code>list</code>, optional</dt>
+<dd>Bursts to process from within each dat file. Default is "All".</dd>
+<dt><strong><code>attended</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, load data in attended mode. Default is False.</dd>
+<dt><strong><code>polarmetric</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV.
+It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
+Default is False.</dd>
+<dt><strong><code>legacy_fft</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, use legacy FFT processing. Default is True.</dd>
+<dt><strong><code>corrected_pad</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, use the corrected padding procedure in the legacy fft processing.
+The original erroneously replaced a two data points in each chirp with zeros. Default is False.</dd>
+<dt><strong><code>max_range</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.</dd>
+<dt><strong><code>computeProfiles</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>If True, compute profiles from the chirp data. Default is True.</dd>
+<dt><strong><code>addProfileToDs_kwargs</code></strong> :&ensp;<code>dict</code>, optional</dt>
+<dd>Additional keyword arguments for addProfileToDs method.
+The following can be set:
+pad_factor = 2
+drop_noisy_chirps = False,
+clip_threshold = 1.2,
+min_chirps = 20,
+demean = False,
+detrend = False,
+stack = False,
+crop_chirp_start = None,
+crop_chirp_end = None,
+max_range = None</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>xarray.Dataset</code></dt>
+<dd>The loaded data as an xarray dataset.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>If attended mode is True and directory_list is None.
+If both file_numbers_to_process and file_names_to_process are supplied.</dd>
+</dl></div>
+</dd>
+<dt id="xapres.load.from_dats.load_dat_file"><code class="name flex">
+<span>def <span class="ident">load_dat_file</span></span>(<span>self, dat_filename)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_dat_file(self, dat_filename):
+    &#34;&#34;&#34;Return a DataFileObject, given a filename.&#34;&#34;&#34;
+    return DataFileObject(dat_filename, self.remote_load)</code></pre>
+</details>
+<div class="desc"><p>Return a DataFileObject, given a filename.</p></div>
+</dd>
+<dt id="xapres.load.from_dats.load_single"><code class="name flex">
+<span>def <span class="ident">load_single</span></span>(<span>self, dat_filename, burst_number=0, chirp_num=0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_single(self, 
+                dat_filename, 
+                burst_number=0, 
+                chirp_num=0
+                ):
+    &#34;&#34;&#34;Load a single chirp, from a single burst, from a single data file.&#34;&#34;&#34;
+    self.is_this_a_remote_load(dat_filename)
+
+    self.files_to_be_processed = dat_filename
+    self.logger.debug(f&#34;Load dat file {dat_filename}&#34;)
+    self.single_dat = self.load_dat_file(dat_filename)
+    self.logger.debug(f&#34;Extract burst number {burst_number}&#34;)
+    self.single_burst = self.single_dat.ExtractBurst(burst_number)
+    self.logger.debug(f&#34;Extract chirp number {chirp_num}&#34;)
+    self.single_chirp = self.single_burst.ExtractChirp([chirp_num]) 
+    self.logger.debug(f&#34;Form profile for chirp number {chirp_num}&#34;)
+    self.single_profile = self.single_chirp.FormProfile()
+    self.logger.debug(f&#34;Finish call to load_single.&#34;)</code></pre>
+</details>
+<div class="desc"><p>Load a single chirp, from a single burst, from a single data file.</p></div>
+</dd>
+<dt id="xapres.load.from_dats.subset_files"><code class="name flex">
+<span>def <span class="ident">subset_files</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def subset_files(self):
+    &#34;&#34;&#34;Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied. This only gets used for unattended data.&#34;&#34;&#34;
+    if self.file_numbers_to_process is not None and self.file_names_to_process is not None:
+        self.logger.debug(&#34;Throwing a ValueError because file_numbers_to_process and file_names_to_process cannot both be supplied to load_all&#34;)
+        raise ValueError(&#34;file_numbers_to_process and file_names_to_process cannot both be supplied to load_all. You need to supply just one (or neither) of these.&#34;) 
+    
+    elif self.file_numbers_to_process is not None:
+        if self.file_numbers_to_process == &#34;All&#34;:
+            self.logger.debug(&#34;Selecting all dats file because file_numbers_to_process == \&#34;all\&#34;&#34;)
+            self.dat_filenames_to_process = self.dat_filenames
+        else:
+            self.logger.debug(f&#34;Subset files to {self.file_numbers_to_process}&#34;)
+            self.dat_filenames_to_process = [self.dat_filenames[i] for i in self.file_numbers_to_process]
+    
+    elif self.file_names_to_process is not None:
+        if self.file_names_to_process == &#34;All&#34;:
+            self.logger.debug(&#34;Selecting all dats file because file_names_to_process == \&#34;all\&#34;&#34;)
+            self.dat_filenames_to_process = self.dat_filenames
+        else:                 
+            self.logger.debug(&#34;Subset files to list of files supplied in file_names_to_process&#34;)
+            self.dat_filenames_to_process = self.file_names_to_process
+                        
+    elif self.file_numbers_to_process is None and self.file_names_to_process is None:      # default is all the dat files    
+        self.logger.debug(&#34;Selecting all dats file because neither file_numbers_to_process nor file_names_to_process were supplied&#34;)
+        self.dat_filenames_to_process = self.dat_filenames          </code></pre>
+</details>
+<div class="desc"><p>Subset files based on either file_numbers_to_process or file_names_to_process. Throws an error if both are supplied. This only gets used for unattended data.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#loading-apres-data-into-xarrays">Loading ApRES data into xarrays</a><ul>
+<li><a href="#from-dat-files">From dat files</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="xapres" href="index.html">xapres</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="xapres.load.generate_xarray" href="#xapres.load.generate_xarray">generate_xarray</a></code></li>
+<li><code><a title="xapres.load.load_zarr" href="#xapres.load.load_zarr">load_zarr</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="xapres.load.BurstObject" href="#xapres.load.BurstObject">BurstObject</a></code></h4>
+<ul class="">
+<li><code><a title="xapres.load.BurstObject.ExtractChirp" href="#xapres.load.BurstObject.ExtractChirp">ExtractChirp</a></code></li>
+<li><code><a title="xapres.load.BurstObject.PlotBurst" href="#xapres.load.BurstObject.PlotBurst">PlotBurst</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xapres.load.ChirpObject" href="#xapres.load.ChirpObject">ChirpObject</a></code></h4>
+<ul class="">
+<li><code><a title="xapres.load.ChirpObject.FormProfile" href="#xapres.load.ChirpObject.FormProfile">FormProfile</a></code></li>
+<li><code><a title="xapres.load.ChirpObject.PlotChirp" href="#xapres.load.ChirpObject.PlotChirp">PlotChirp</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xapres.load.DataFileObject" href="#xapres.load.DataFileObject">DataFileObject</a></code></h4>
+<ul class="">
+<li><code><a title="xapres.load.DataFileObject.ExtractBurst" href="#xapres.load.DataFileObject.ExtractBurst">ExtractBurst</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xapres.load.ProfileObject" href="#xapres.load.ProfileObject">ProfileObject</a></code></h4>
+<ul class="">
+<li><code><a title="xapres.load.ProfileObject.PlotProfile" href="#xapres.load.ProfileObject.PlotProfile">PlotProfile</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xapres.load.from_dats" href="#xapres.load.from_dats">from_dats</a></code></h4>
+<ul class="">
+<li><code><a title="xapres.load.from_dats.correct_temperature" href="#xapres.load.from_dats.correct_temperature">correct_temperature</a></code></li>
+<li><code><a title="xapres.load.from_dats.is_this_a_remote_load" href="#xapres.load.from_dats.is_this_a_remote_load">is_this_a_remote_load</a></code></li>
+<li><code><a title="xapres.load.from_dats.list_files" href="#xapres.load.from_dats.list_files">list_files</a></code></li>
+<li><code><a title="xapres.load.from_dats.load_all" href="#xapres.load.from_dats.load_all">load_all</a></code></li>
+<li><code><a title="xapres.load.from_dats.load_dat_file" href="#xapres.load.from_dats.load_dat_file">load_dat_file</a></code></li>
+<li><code><a title="xapres.load.from_dats.load_single" href="#xapres.load.from_dats.load_single">load_single</a></code></li>
+<li><code><a title="xapres.load.from_dats.subset_files" href="#xapres.load.from_dats.subset_files">subset_files</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.5</a>.</p>
+</footer>
+</body>
+</html>

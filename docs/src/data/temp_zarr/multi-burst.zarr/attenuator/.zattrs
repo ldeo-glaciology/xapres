@@ -1,0 +1,7 @@
+{
+    "_ARRAY_DIMENSIONS": [
+        "attenuator_setting_pair"
+    ],
+    "long_name": "radio-frequency attenuator setting",
+    "units": "decibels"
+}
