@@ -5,7 +5,7 @@ sphinx-inline-tabs
 sphinx-examples
 sphinx-proof
 sphinx-hoverxref
-autodoc2
+sphinx-autodoc2
 Xarray
 zarr
 Fsspec
