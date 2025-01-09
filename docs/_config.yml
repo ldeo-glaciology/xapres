@@ -10,17 +10,14 @@ only_build_toc_files: true
 
 # Force re-execution of notebooks on each build.
 # See https://jupyterbook.org/content/execute.html
-#execute:
-#  execute_notebooks: force
+execute:
+  execute_notebooks: 'force'
 
 # Define the name of the latex output file for PDF builds
 latex:
   latex_documents:
     targetname: book.tex
 
-# Add a bibtex file so that we can create citations
-bibtex_bibfiles:
-  - references.bib
 
 # Information about where the book exists on the web
 repository:
@@ -103,3 +100,11 @@ parse:
   myst_enable_extensions:
     - "fieldlist"
     - "deflist"
+
+# Add a bibtex file so that we can create citations
+bibtex_bibfiles:
+  - references.bib
+
+sphinx:
+  config:
+    bibtex_reference_style: author_year

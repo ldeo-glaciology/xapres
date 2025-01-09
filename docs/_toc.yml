@@ -17,4 +17,5 @@ chapters:
   - file: src/plotting    # some ideas for interesting plots 
   - file: src/sonify
 - file: src/api
+- file: bibliography.md
 
