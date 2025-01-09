@@ -13,10 +13,8 @@ chapters:
   - file: src/zarr        # covering loading from zarr and saving to zarr, including chunking (AGU NB)
   - file: src/profiles  # including custom fft
   - file: src/displacement   # including a time series of strain rate?
-
-
-#  - file: src/stacking        # from the textbook notebook
-#  - file: src/plotting    # some ideas for interesting plots 
-#  - file: src/sonify
+  - file: src/stacking        # from the textbook notebook
+  - file: src/plotting    # some ideas for interesting plots 
+  - file: src/sonify
 - file: src/api
 

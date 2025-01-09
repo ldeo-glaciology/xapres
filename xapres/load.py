@@ -284,7 +284,7 @@ class from_dats():
             # Loop through the dat files, putting individual xarrays in a list.
             self.logger.debug("Attended is False, so starting loop over dat files")
             list_of_multiBurstxarrays = []   
-            for dat_filename in tqdm(self.dat_filenames_to_process):
+            for dat_filename in tqdm(self.dat_filenames_to_process, disable=True):
                 self.logger.debug(f"Load dat file {dat_filename}")
                 dat = self.load_dat_file(dat_filename)
                 

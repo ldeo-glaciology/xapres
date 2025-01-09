@@ -22,3 +22,8 @@ sphinx-examples
 sphinx-proof
 sphinx-hoverxref
 sphinx-autodoc2
+getgist
+jupyter_bokeh
+hvplot
+pooch
+
