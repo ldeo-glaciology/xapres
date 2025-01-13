@@ -1,0 +1,6 @@
+[submodule "bas-apres"]
+	path = bas-apres
+	url = git@github.com:jkingslake/bas-apres.git
+[submodule "submodules_dir"]
+	path = submodules_dir
+	url = git@github.com:jkingslake/bas-apres.git
