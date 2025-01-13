@@ -86,15 +86,21 @@ class from_dats():
             dat_filename,
             bursts_to_process="All",
             corrected_pad = False,
+            attended=False,
+            polarmetric=False,
             max_range = None,
             computeProfiles = True,
             addProfileToDs_kwargs = {}):
         
         self.corrected_pad = corrected_pad
         self.max_range = max_range
-        self.attended = False
+        self.attended = attended
+        self.polarmetric = polarmetric
 
-        self.data = self.all_bursts_in_dat_to_xarray(dat_filename, bursts_to_process) 
+        if attended is True:
+            self.data = self.all_bursts_at_waypoint_to_xarray(dat_filename, 1)
+        else:    
+            self.data = self.all_bursts_in_dat_to_xarray(dat_filename, bursts_to_process) 
         
         self.correct_temperature()
 
@@ -274,8 +280,16 @@ class from_dats():
             ]   
             
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
-            self.data = xr.concat(list_of_singlewaypoint_xarrays, dim='waypoint')
-        
+            
+            lengths_of_ant_dims = [len(x.attenuator_setting_pair) for x in list_of_singlewaypoint_xarrays]
+            min_length = min(lengths_of_ant_dims)   
+            cropped_datasets = [x.isel(attenuator_setting_pair=(min_length-1)) for x in list_of_singlewaypoint_xarrays]
+
+            try: 
+                self.data = xr.concat(cropped_datasets, dim='waypoint')
+            except ValueError as e:
+                return list_of_singlewaypoint_xarrays
+            
         self.correct_temperature()
 
         self.add_attrs()
@@ -338,7 +352,7 @@ class from_dats():
         self.subset_bursts_to_process()
 
         filename = os.path.basename(self.f.path)
-        
+        folder_name = os.path.basename(os.path.dirname(self.f.path))
         bursts = [self.f.bursts[burst_number] for burst_number in self.bursts_to_process]  
 
         list_of_singleBurst_xarrays = [
@@ -356,6 +370,7 @@ class from_dats():
                             chirp_time            = self.chirptime_from_burst(burst),
                             chirp_num             = np.arange(burst.header['NSubBursts']),
                             filename              = (["time"], [filename]),
+                            folder_name           = (["time"], [folder_name]),                          
                             burst_number          = (["time"], [burstNo]),
                             AFGain                = (["attenuator_setting_pair"], burst.header['AFGain'][0:int(burst.header['nAttenuators'])]),
                             attenuator            = (["attenuator_setting_pair"], burst.header['Attenuator1'][0:int(burst.header['nAttenuators'])]),                   
@@ -398,7 +413,8 @@ class from_dats():
         
             burst = self.f.bursts[0]
             filename = os.path.basename(self.f.path)
-            
+            folder_name = os.path.basename(os.path.dirname(self.f.path))
+
             singleorientation_attended_xarray = xr.Dataset(
                 data_vars=dict(
                     chirp           = (["orientation", "waypoint", "chirp_num", "chirp_time", "attenuator_setting_pair"], self.burst_data(burst)/2**16*2.5-1.25),
@@ -413,6 +429,7 @@ class from_dats():
                     chirp_time            = self.chirptime_from_burst(burst),
                     chirp_num             = np.arange(burst.header['NSubBursts']),
                     filename              = (["orientation", "waypoint"], np.array(filename, ndmin = 2)), 
+                    folder_name           = (["orientation", "waypoint"], np.array(folder_name, ndmin = 2)),
                     AFGain                = (["attenuator_setting_pair"], burst.header['AFGain'][0:burst.header['nAttenuators']]),
                     attenuator            = (["attenuator_setting_pair"], burst.header['Attenuator1'][0:burst.header['nAttenuators']]),                   
                     orientation           = [orientation],
