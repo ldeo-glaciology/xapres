@@ -7,6 +7,7 @@ dependencies:
   # Examples (remove and add as needed)
   - jupyter
   - jupyterlab
+  - jupyter-book
   - xarray
   - numpy
   - scipy
@@ -25,3 +26,9 @@ dependencies:
       - ipympl
       - sounddevice
       - soundfile
+      - sphinx-inline-tabs
+      - sphinx-examples
+      - sphinx-proof
+      - sphinx-hoverxref
+      - sphinx-autodoc2
+      - jupyter-book
