@@ -1,8 +1,5 @@
 {
     "chunks": [
-        1,
-        5,
-        20001,
         1
     ],
     "compressor": {
@@ -12,15 +9,12 @@
         "id": "blosc",
         "shuffle": 1
     },
-    "dtype": "<f8",
-    "fill_value": "NaN",
+    "dtype": "<U20",
+    "fill_value": null,
     "filters": null,
     "order": "C",
     "shape": [
-        1,
-        20,
-        40001,
-        2
+        1
     ],
     "zarr_format": 2
 }

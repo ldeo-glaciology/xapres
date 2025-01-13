@@ -2,7 +2,7 @@
     "_ARRAY_DIMENSIONS": [
         "time"
     ],
-    "coordinates": "burst_number filename orientation",
+    "coordinates": "burst_number filename folder_name orientation",
     "long_name": "longitude of burst",
     "units": "degrees"
 }

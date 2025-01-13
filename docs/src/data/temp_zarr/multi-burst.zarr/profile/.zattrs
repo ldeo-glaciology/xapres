@@ -6,17 +6,17 @@
         "profile_range"
     ],
     "constants": {
-        "B": 200000000,
+        "B": 200000000.0,
         "K": 200000000.0,
         "T": 1,
         "c": 300000000.0,
         "dt": 2.5e-05,
         "ep": 3.18,
-        "f_1": 200000000,
-        "f_2": 400000000,
+        "f_1": 200000000.0,
+        "f_2": 400000000.0,
         "f_c": 300000000.0
     },
-    "coordinates": "AFGain attenuator burst_number filename orientation",
+    "coordinates": "AFGain attenuator burst_number filename folder_name orientation",
     "description": "complex profile computed from the fourier transform of the de-ramped chirp",
     "long_name": "profile",
     "units": "-"

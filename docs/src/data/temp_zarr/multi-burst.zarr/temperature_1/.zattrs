@@ -2,5 +2,7 @@
     "_ARRAY_DIMENSIONS": [
         "time"
     ],
-    "coordinates": "burst_number filename orientation"
+    "coordinates": "burst_number filename folder_name orientation",
+    "long_name": "temperature measured inside the ApRES unit in one location",
+    "units": "celsius"
 }
