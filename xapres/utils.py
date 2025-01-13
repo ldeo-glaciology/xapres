@@ -67,7 +67,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
-
+    if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
+        raise TypeError("profile1_unaligned and profile2_unaligned must be xarray DataArrays")
+    
     profiles = combine_profiles(profile1_unaligned, profile2_unaligned)
 
     profiles_binned = bin_profiles(profiles, bin_size)
@@ -130,18 +132,23 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
 def combine_profiles(profile1_unaligned, profile2_unaligned):
     """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
     
-# in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
-    if 'time' not in profile1_unaligned.dims:
-        profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
-    if 'time' not in profile2_unaligned.dims:
-        profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
-
-
-    if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
+    if 'waypoint' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
+        # rename time as profile_time
+        profile1_unaligned = profile1_unaligned.rename({'time':'profile_time'})
+        profile2_unaligned = profile2_unaligned.rename({'time':'profile_time'})
         profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number')
-    else:
 
+    else:
+        # in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. The following accounts for this scenario.
+        if 'time' not in profile1_unaligned.dims:
+            profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
+        if 'time' not in profile2_unaligned.dims:
+            profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
+
+        #if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
+            
+        #else:
         
         # record the time interval between measurements
         t1 = profile1_unaligned.time.data
@@ -162,7 +169,6 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
     profiles = profiles.assign_coords(shot_number=("shot_number", 1+profiles.shot_number.data))
     profiles.shot_number.attrs['long_name'] = 'shot number'
     profiles.shot_number.attrs['description'] = 'number of the shot used in each measurement'
-
 
     return profiles
 
