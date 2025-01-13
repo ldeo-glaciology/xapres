@@ -1,3 +1,7 @@
+"""
+For loading ApRES data from .dat files or zarr directories into an xarray dataset.
+"""
+
 import os
 import glob
 import sys
@@ -9,13 +13,12 @@ import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 import datetime
-#from apres import ApRESFile
 
-sys.path.append("/Users/jkingslake/Documents/science/ApRES/bas-apres")
+sys.path.append("../../bas-apres")
 import apres as ap
 
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
-    """Load ApRES data stored in a zarr directory as an xarray and add functionality. """
+    """Load ApRES data stored in a zarr directory. """
     
     return xr.open_dataset(directory,
             engine = 'zarr', 
@@ -33,7 +36,10 @@ def generate_xarray(directory=None,
                  addProfileToDs_kwargs = {},
                  loglevel = 'warning'
                  ):
-    """Wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object."""
+    """ Load data from multiple .dat files into an xarray dataset.
+
+    This is simple wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.
+    """
 
     fd = from_dats(loglevel=loglevel)
     
@@ -42,6 +48,7 @@ def generate_xarray(directory=None,
                  file_names_to_process=file_names_to_process, 
                  bursts_to_process=bursts_to_process,
                  attended=attended, 
+                 disable_progress_bar = True, 
                  polarmetric=polarmetric,
                  corrected_pad = corrected_pad,
                  max_range = max_range,
@@ -149,7 +156,7 @@ class from_dats():
                  file_numbers_to_process=None, 
                  file_names_to_process=None, 
                  bursts_to_process="All",
-                 remote_load = False,
+                 disable_progress_bar = True, 
                  attended=False, 
                  polarmetric=False,
                  corrected_pad = False,
@@ -264,7 +271,7 @@ class from_dats():
                         
             list_of_multiBurstxarrays = [
                 self.all_bursts_in_dat_to_xarray(dat_filename, bursts_to_process) 
-                for dat_filename in tqdm(self.dat_filenames_to_process)
+                for dat_filename in tqdm(self.dat_filenames_to_process, disable=disable_progress_bar)
             ]
 
             self.logger.debug(f"Attended is False, so concatenating all the multi-burst xarrays along the time dimension, to create xapres.data")

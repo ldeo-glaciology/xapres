@@ -1,17 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jan 06, 2023 by George Lu
-
-Utility functions that are called by multiple different classes
-
+Functions for performing common operations on ApRES data.
 """
 import numpy as np
 import xarray as xr
 import datetime
 import dask.array as da
-
-
-
 
 def displacement_timeseries(self: xr.DataArray, 
                             offset: int=1,  
