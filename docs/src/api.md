@@ -1,3 +1,4 @@
+(page:api-reference)=
 # API reference
 
 `xapres` is separated into two modules: 

@@ -5,6 +5,9 @@ dependencies:
   - pytest
   - gcsfs
   - numpy
+  - jupyter
+  - jupyterlab
+  - jupyter-book
   - xarray
   - pandas
   - tqdm
@@ -15,4 +18,10 @@ dependencies:
       - ipympl
       - sounddevice
       - soundfile
+      - sphinx-inline-tabs
+      - sphinx-examples
+      - sphinx-proof
+      - sphinx-hoverxref
+      - sphinx-autodoc2
+      - jupyter-book
       - bas-apres
