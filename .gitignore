@@ -89,3 +89,5 @@ secrets/*
 
 # Mypy cache
 .mypy_cache/
+docs/src/data/temp_zarr/multi-burst.zarr/.zattrs
+docs/src/data/temp_zarr/multi-burst.zarr/.zmetadata
