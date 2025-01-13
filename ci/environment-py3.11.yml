@@ -13,6 +13,7 @@ dependencies:
   - pip
   - zarr
   - dask
+  - scipy
   - pip:
     - ipympl
     - sounddevice
