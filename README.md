@@ -1,8 +1,31 @@
+<!-- SPHINX-START-proj-desc -->
 # xapres
 
-A package for processing data from the Autonomous phase-sensitive Radio-Echo Sounder (ApRES) using xarray. The core ApRES processing code is adapted from code written by Keith Nicholls, British Antarctic Survey, UK. This package uses Keith's code to process the raw ApRES data from ApRES surveys. It then restructures the data into a convenient format using xarray. This simplifies the challenge of dealing with multiple attenuator and gain settings, makes stacking a straight-forward xarray operation, and allows us to store the large datasets in efficient zarr format in cloud storage.
+A package for loading and processing data collected using the Autonomous phase-sensitive Radio-Echo Sounder (ApRES). 
 
-The structure of the resulting xarray depends on if the ApRES data were collected in attended or unattended mode.
+ApRES is an ice-penetrating radar used for measuring ice-shelf basal melt rates, englacial deformation, and other englacial changes like water content. ApRES was developed by University College London and The British Antarctic Survey. 
+
+xapres package uses [xarray](https://xarray.pydata.org/en/stable/), a package that simplifies indexing, grouping, aggregating, and plotting multi-dimensional data (like ApRES data). Using xarray in xapres simplifies the challenge of dealing with multiple measurements taken using different attenuator and gain settings, using different antenna orientations, or in different locations. xapres also simplifies many common processing steps, for example averaging chirps (i.e. stacking) stacking or resampling in time. Finally, using xarray as the basis for storage and processing of ApRES data helps when dealing with very large AprES datasets because it facilitates convenient storage in zarr stores and cloud computing. 
+
+A key goal is to allow the loading, processing and plotting of full ApRES datasets, collected in either unattended or attended mode, with only a few lines of code. 
+
+For example, loading raw ApRES data (stored in .dat files), performing an fft to get depth profiles and plotting can be achieved in one line of code as follows:
+
+
+<!-- SPHINX-END-proj-desc -->
+
+```
+xapres.load.generate_xarray(directory='../data/thwaites/')\
+    .profile.mean(dim='chirp_num')\
+    .isel(attenuator_setting_pair=0)\
+    .dB()\
+    .plot.line(hue="time", xlim = (0, 2500));
+```
+
+
+![Example plot](docs/src/images/plot_for_intro.png) 
+
+
 
 ## Installation
 
