@@ -6,8 +6,8 @@ title: xapres
 author: J. Kingslake
 logo: src/images/logo.png
 
-#only_build_toc_files: true
-only_build_toc_files: false
+only_build_toc_files: true
+#only_build_toc_files: false
 
 
 # Force re-execution of notebooks on each build.
@@ -55,6 +55,7 @@ html:
 
 sphinx:
   config:
+    bibtex_reference_style: author_year
     intersphinx_mapping:
       ebp:
         - "https://executablebooks.org/en/latest/"
@@ -107,6 +108,6 @@ parse:
 bibtex_bibfiles:
   - references.bib
 
-sphinx:
-  config:
-    bibtex_reference_style: author_year
+#sphinx:
+#  config:
+#    bibtex_reference_style: author_year
