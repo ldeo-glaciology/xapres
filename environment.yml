@@ -14,6 +14,7 @@ dependencies:
   - pip
   - zarr
   - dask
+  - hvplot
   - pip:
       - ipympl
       - sounddevice
