@@ -26,3 +26,4 @@ dependencies:
       - sphinx-autodoc2
       - jupyter-book
       - bas-apres
+      - pytest 

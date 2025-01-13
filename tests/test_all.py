@@ -1,5 +1,4 @@
 import pytest
-import xapres
 import xarray as xr
 from xapres import load, utils
 import numpy as np
@@ -10,14 +9,12 @@ def test_bound_methods_are_added_correctly():
     assert xr.DataArray.dB
     assert xr.DataArray.sonify
     assert xr.DataArray.displacement_timeseries
-    
 
 # Test the loading of a single dat file from the google bucket
 def test_dat_file_loading():
     directory='gs://ldeo-glaciology/GL_apres_2022/A101'
     fs = load.from_dats()
-    fs.load_all(directory, 
-                remote_load = True,
+    fs.load_all(directory,
                 file_numbers_to_process=[0],
                 bursts_to_process=[0])
     assert np.isclose(fs.data.chirp.mean().values, 0.02611298) 
@@ -270,7 +267,6 @@ def test_sonify_method():
     # test the case when chirp_time is in timedelta format
     from_zarr = load.load_zarr() 
     from_zarr.isel(chirp_num=0, time = 100, attenuator_setting_pair = 0 ).chirp.sonify()
-
 
 def test_fft_with_no_constants_supplied():
     directory='data/sample/single_dat_file/'
