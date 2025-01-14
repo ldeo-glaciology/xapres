@@ -399,9 +399,6 @@ def computeProfile(self: xr.DataArray,
     
     sampling_frequency = 1/dt 
 
-    if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
-        chirps['chirp_time'] = chirps.chirp_time.values.astype('float64')/1e9
-
     # if crop_chirp_start is not None:
     chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
 

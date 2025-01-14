@@ -12,13 +12,14 @@ def test_bound_methods_are_added_correctly():
 
 # Test the loading of a single dat file from the google bucket
 def test_dat_file_loading():
-    directory='gs://ldeo-glaciology/apres/thwaites/continuous/ApRES_LTG/SD1'
+    print('new version')
+    directory='gs://ldeo-glaciology/apres/thwaites/continuous/ApRES_Lake1/SD2/DIR2023-01-16-0336'
     fs = load.from_dats()
-    fs.load_all(directory=directory,
-            file_numbers_to_process=[0, 1])
-    fs.load_all(directory=directory,
-            file_numbers_to_process=[0],
-            bursts_to_process=[1])
+    fs.list_files(directory)
+    fs.load_all(directory)
+    fs.load_all(directory,
+            file_numbers_to_process=[0])
+    load.generate_xarray(directory=directory)
     
     
 # test the displacement calculation
@@ -94,18 +95,80 @@ def test_polarmetric_load_directory_list():
     assert len(fs.data.waypoint) == 2
     assert all(fs.data.isel(waypoint=0).filename.values == fs.data.isel(waypoint=1).filename.values)
 
+def test_load_single():
+    fs = load.from_dats()
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT')
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT',
+        bursts_to_process=[0])
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT',
+        bursts_to_process=[0, 2])
+    fs.load(dat_filename = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT',
+            attended = True) 
+    fs.load(dat_filename = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT',
+        bursts_to_process=[0, 2], attended = True)
 
-def test_attended_load_directory_str():
+def test_attended_load_all_directory_str():
     fd = load.from_dats()
     fd.load_all(attended=True, directory='data/sample/attended/')
     
-def test_attended_load_directory_list():
+def test_attended_load_all_directory_list():
     fd = load.from_dats()
     fd.load_all(attended=True, directory=['data/sample/attended/'])
   
+def test_unattended_load_all_options():
+    fd = load.from_dats()
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', disable_progress_bar=True) 
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', disable_progress_bar=False) 
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', max_range = 1500) 
+
+def test_load_single_dat_file_with_multiple_bursts():
+    dat_file = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT'
+    fd = load.from_dats()
+    ds = fd.load(dat_file, computeProfiles=False)
+    ds = fd.load(dat_file, computeProfiles=True)
+
+def test_load_single_dat_file_with_single_bursts():
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    fd = load.from_dats()
+    ds = fd.load(dat_file, computeProfiles=False)
+    ds = fd.load(dat_file, computeProfiles=True)
+    ds = fd.load(dat_file, computeProfiles=False, attended = True)
+    ds = fd.load(dat_file, computeProfiles=True, attended = True)
+    ds = fd.load(dat_file, computeProfiles=True, attended = True, max_range = 100)
+    ds = fd.load(dat_file, computeProfiles=True, addProfileToDs_kwargs = {'crop_chirp_start': 0,'crop_chirp_end': 0.3, 'demean': False, 'scale_for_window': False, 'drop_noisy_chirps': True, 'clip_threshold': 0.8})
+
+def test_chirp_time_dtype():
+    fd = load.from_dats()
+    directory='data/sample/single_dat_file/'
+    ds = fd.load_all(directory)
+    assert ds.chirp_time.dtype == 'float64'
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    ds = fd.load(dat_file)
+    assert ds.chirp_time.dtype == 'float64'
+
+def test_not_supplying_a_directory():
+    cwd = os.getcwd()
+    os.chdir('data/sample/single_dat_file/')
+    fd = load.from_dats(loglevel='DEBUG')
+    fd.list_files()
+    fd.load_all()
+    os.chdir(cwd)
+
+def test_when_no_files_are_found():
+    fd = load.from_dats()
+    fd.list_files('data/sample/empty')
+    fd.load_all('data/sample/empty')
+
+def test_selecting_bursts_to_process():
+    directory='data/sample/multi-burst-dat-file'
+    fs = load.from_dats()
+    fs.load_all(directory, bursts_to_process='All')
+    fs.load_all(directory, bursts_to_process=1)
+    fs.load_all(directory, bursts_to_process=[1,2])
+    fs.load_all(directory, bursts_to_process=[1,3, 20000])
 
 #  Test `generate_xarray` and `load_zarr` wrappers
-def test_wrappers():
+def test_wrappers_on_local():
     
     from_DAT_unattended = load.generate_xarray(directory='data/sample/single_dat_file/', 
                 file_numbers_to_process = [0], 
@@ -113,7 +176,6 @@ def test_wrappers():
                 )
 
     from_zarr = load.load_zarr()
-
 
 def test_fft_calculations():
     # initialize
@@ -146,8 +208,6 @@ def test_fft_calculations():
     load_newfft_full.chirp.computeProfile(stack=True)
     load_newfft_full.chunk({'time': 1, 'profile_range': 1}).chirp.computeProfile()
 
-
-    
     assert npc(afterLoad_newfft_ds.profile.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da_differentConstants.values, load_newfft_full.profile.values)
@@ -212,40 +272,6 @@ def test_comparison_with_matlab_code():
    
     # compare all the profiles to the atlab-loaded ones.
     assert np.allclose(m_profiles, temp_new_constants)
-
-
-def test_load_single_dat_file_with_multiple_bursts():
-    dat_file = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT'
-    fd = load.from_dats()
-    ds = fd.load(dat_file, computeProfiles=False)
-    ds = fd.load(dat_file, computeProfiles=True)
-
-def test_load_single_dat_file_with_single_bursts():
-    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
-    fd = load.from_dats()
-    ds = fd.load(dat_file, computeProfiles=False)
-    ds = fd.load(dat_file, computeProfiles=True)
-
-def test_not_supplying_a_directory():
-    cwd = os.getcwd()
-    os.chdir('data/sample/single_dat_file/')
-    fd = load.from_dats(loglevel='DEBUG')
-    fd.list_files()
-    fd.load_all()
-    os.chdir(cwd)
-
-def test_when_no_files_are_found():
-    fd = load.from_dats()
-    fd.list_files('data/sample/empty')
-    fd.load_all('data/sample/empty')
-
-def test_selecting_bursts_to_process():
-    directory='data/sample/multi-burst-dat-file'
-    fs = load.from_dats()
-    fs.load_all(directory, bursts_to_process='All')
-    fs.load_all(directory, bursts_to_process=1)
-    fs.load_all(directory, bursts_to_process=[1,2])
-    fs.load_all(directory, bursts_to_process=[1,3, 20000])
 
 def test_invalid_log_level():
     with pytest.raises(ValueError):

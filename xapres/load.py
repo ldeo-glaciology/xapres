@@ -30,7 +30,6 @@ def generate_xarray(directory=None,
                  bursts_to_process="All",
                  attended=False, 
                  polarmetric=False,
-                 corrected_pad = False,
                  max_range = None,
                  computeProfiles = True,
                  addProfileToDs_kwargs = {},
@@ -50,7 +49,6 @@ def generate_xarray(directory=None,
                  attended=attended, 
                  disable_progress_bar = True, 
                  polarmetric=polarmetric,
-                 corrected_pad = corrected_pad,
                  max_range = max_range,
                  computeProfiles = computeProfiles,
                  addProfileToDs_kwargs = addProfileToDs_kwargs,
@@ -92,24 +90,24 @@ class from_dats():
     def load(self,
             dat_filename,
             bursts_to_process="All",
-            corrected_pad = False,
             attended=False,
             polarmetric=False,
             max_range = None,
             computeProfiles = True,
             addProfileToDs_kwargs = {}):
         
-        self.corrected_pad = corrected_pad
         self.max_range = max_range
         self.attended = attended
         self.polarmetric = polarmetric
 
         if attended is True:
-            self.data = self.all_bursts_at_waypoint_to_xarray(dat_filename, 1)
+            self.data = self.all_bursts_at_waypoint_to_xarray(dat_filename=dat_filename)
         else:    
             self.data = self.all_bursts_in_dat_to_xarray(dat_filename, bursts_to_process) 
         
         self.correct_temperature()
+
+        self.correct_chirp_dtype()
 
         self.add_attrs()
 
@@ -159,15 +157,14 @@ class from_dats():
                  disable_progress_bar = True, 
                  attended=False, 
                  polarmetric=False,
-                 corrected_pad = False,
                  max_range = None,
                  computeProfiles = True,
                  addProfileToDs_kwargs = {}
                  ):
         
         """
-        Method to recursively load ApRES .dat files and put them in an xarray dataset. It also computes profiles from the chirp data 
-        and includes them in the output. 
+        Method to recursively load ApRES .dat files and put them in an xarray dataset. It also 
+        computes profiles from the chirp data and includes them in the output. 
         
         This method has two modes. One for unattended ApRES data and one for attended data. 
         
@@ -198,10 +195,7 @@ class from_dats():
             If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
             It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
             Default is False.
-        corrected_pad : bool, optional
-            If True, use the corrected padding procedure in the legacy fft processing.
-            The original erroneously replaced a two data points in each chirp with zeros. Default is False.
-        max_range : float, optional
+         max_range : float, optional
             A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
         computeProfiles : bool, optional
             If True, compute profiles from the chirp data. Default is True.
@@ -236,7 +230,6 @@ class from_dats():
         self.attended = attended
         self.burst_load_counter = 0   # this will increment each time a burst is loaded by _burst_to_xarray
         self.polarmetric = polarmetric
-        self.corrected_pad = corrected_pad
         self.max_range = max_range
         self.computeProfiles = computeProfiles
         #self.bursts_to_process = bursts_to_process
@@ -282,7 +275,7 @@ class from_dats():
             # loop over the waypoints, as defined by the directories in the user-supplied list, directory_names
             self.logger.debug("Attended is True, so starting loop over directories (each corresponding to a waypoint)")
             list_of_singlewaypoint_xarrays = [
-                self.all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
+                self.all_bursts_at_waypoint_to_xarray(directory=directory, waypoint_number=waypoint_number)
                 for waypoint_number, directory in enumerate(directory_list, start=1)
             ]   
             
@@ -298,6 +291,8 @@ class from_dats():
                 return list_of_singlewaypoint_xarrays
             
         self.correct_temperature()
+
+        self.correct_chirp_dtype()
 
         self.add_attrs()
 
@@ -392,8 +387,9 @@ class from_dats():
         return xr.concat(list_of_singleBurst_xarrays, dim='time') 
 
     def all_bursts_at_waypoint_to_xarray(self, 
-                                          directory,
-                                          waypoint_number):   
+                                          directory=None,
+                                          waypoint_number=1,
+                                          dat_filename=None):   
         """This is the attended equivalent to _all_bursts_in_dat_to_xarray"""
         
         if self.polarmetric is True:
@@ -405,10 +401,14 @@ class from_dats():
 
         for orientation in orientations:
             self.logger.debug(f"Looking for files with orientation {orientation} in directory {directory}")
-            files = self.list_files(directory=directory, search_suffix=orientation)
+            
+            if dat_filename is not None:   # this is the caes when this function is supplied with a dat_filename instead of a directory (e.g., when called by from_dats.load())
+                files = [dat_filename]
+            else:
+                files = self.list_files(directory=directory, search_suffix=orientation)
 
             if len(files) != 1:
-                raise Exception(f'there should by one dat file for each orientation in each directory. We found {len(files)} files.')
+                raise Exception(f'There should by one dat file for each orientation in each directory when loading in attended mode. We found {len(files)} files.')
             
             with ap.ApRESFile(files[0]) as self.f: 
                 self.f.read()
@@ -416,7 +416,7 @@ class from_dats():
             self.header_cleaning()
             
             if len(self.f.bursts) != 1:
-                raise Exception(f'there should only be one burst in each dat file. We found {len(self.f.bursts)} bursts in this dat file: {files}.')
+                raise Exception(f'There should only be one burst in each dat file when loading in attended mode. We found {len(self.f.bursts)} bursts in this dat file: {files}.')
         
             burst = self.f.bursts[0]
             filename = os.path.basename(self.f.path)
@@ -615,6 +615,11 @@ class from_dats():
 
         self.data['temperature_1'] = xr.where(T1>threshold, T1+correction, T1, keep_attrs=True)
         self.data['temperature_2'] = xr.where(T2>threshold, T2+correction, T2, keep_attrs=True) 
+
+    def correct_chirp_dtype(self):
+        """ Convert the chirp data type to float64 if it is not already. This is necessary for plotting."""
+        if not np.issubdtype(self.data.chirp.chirp_time.dtype, 'float64'):
+            self.data.chirp['chirp_time'] = self.data.chirp.chirp_time.values.astype('float64')/1e9
 
     def _setup_logging(self, loglevel):
         numeric_level = getattr(logging, loglevel.upper(), None)
