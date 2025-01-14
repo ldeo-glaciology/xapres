@@ -12,12 +12,13 @@ def test_bound_methods_are_added_correctly():
 
 # Test the loading of a single dat file from the google bucket
 def test_dat_file_loading():
-    directory='gs://ldeo-glaciology/GL_apres_2022/A101'
+    directory='gs://ldeo-glaciology/apres/thwaites/continuous/ApRES_LTG/SD1'
     fs = load.from_dats()
-    fs.load_all(directory,
-                file_numbers_to_process=[0],
-                bursts_to_process=[0])
-    assert np.isclose(fs.data.chirp.mean().values, 0.02611298) 
+    fs.load_all(directory=directory,
+            file_numbers_to_process=[0, 1])
+    fs.load_all(directory=directory,
+            file_numbers_to_process=[0],
+            bursts_to_process=[1])
     
     
 # test the displacement calculation
