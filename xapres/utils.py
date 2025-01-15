@@ -1,17 +1,10 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Jan 06, 2023 by George Lu
-
-Utility functions that are called by multiple different classes
-
+Functions for performing common operations on ApRES data.
 """
 import numpy as np
 import xarray as xr
 import datetime
 import dask.array as da
-
-
-
 
 def displacement_timeseries(self: xr.DataArray, 
                             offset: int=1,  
@@ -67,7 +60,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
-
+    if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
+        raise TypeError("profile1_unaligned and profile2_unaligned must be xarray DataArrays")
+    
     profiles = combine_profiles(profile1_unaligned, profile2_unaligned)
 
     profiles_binned = bin_profiles(profiles, bin_size)
@@ -130,18 +125,23 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
 def combine_profiles(profile1_unaligned, profile2_unaligned):
     """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
     
-# in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. THe following accounts for this scenario
-    if 'time' not in profile1_unaligned.dims:
-        profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
-    if 'time' not in profile2_unaligned.dims:
-        profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
-
-
-    if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
+    if 'waypoint' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
+        # rename time as profile_time
+        profile1_unaligned = profile1_unaligned.rename({'time':'profile_time'})
+        profile2_unaligned = profile2_unaligned.rename({'time':'profile_time'})
         profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number')
-    else:
 
+    else:
+        # in the case when we selected the time step with .isel(time=N), where N is an integer, we dont have time as a dimension. The following accounts for this scenario.
+        if 'time' not in profile1_unaligned.dims:
+            profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
+        if 'time' not in profile2_unaligned.dims:
+            profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
+
+        #if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
+            
+        #else:
         
         # record the time interval between measurements
         t1 = profile1_unaligned.time.data
@@ -163,7 +163,6 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
     profiles.shot_number.attrs['long_name'] = 'shot number'
     profiles.shot_number.attrs['description'] = 'number of the shot used in each measurement'
 
-
     return profiles
 
 def bin_profiles(profiles, bin_size):
@@ -182,7 +181,6 @@ def compute_coherence(b1_binned, b2_binned):
     # compute the coherence
     top = (b1_binned * np.conj(b2_binned)).sum(dim="sample_in_bin")
     bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim="sample_in_bin") * (np.abs(b2_binned)**2).sum(dim="sample_in_bin"))
-    coherence = (top/bottom).rename("coherence")
 
     return (top/bottom).rename("coherence")
 
@@ -206,17 +204,19 @@ def phase2range(phi,
         ### Original Matlab File Notes ###
         Craig Stewart
         2014/6/10
-        """
+        
 
         if not all([K,ci]) or rc is None:
             # First order method
             # Brennan et al. (2014) eq 15
+            print('not precise')
             r = lambdac*phi/(4.*np.pi)
         else:
-            # Precise
+            print('Precise')
             # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
             r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
-        return r
+        """
+        return lambdac*phi/(4.*np.pi)
 
 def computeStrainRates(self, lower_limit_on_fit = 800):
     """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
@@ -295,6 +295,7 @@ def sonify(self,
     elif isinstance(t[0], np.timedelta64):
         startTimeInSeconds = t[0] / np.timedelta64(1, 's')
         endTimeInSeconds = t[-1] / np.timedelta64(1, 's')
+        print(startTimeInSeconds, endTimeInSeconds)
 
     # calculate the sample rate 
     samplerate = chirp.chirp_time.size / (endTimeInSeconds - startTimeInSeconds)
@@ -320,7 +321,6 @@ def addProfileToDs(self: xr.Dataset, **kwargs):
         out = self.drop_dims('profile_range')
     else: 
         out = self
-
         
     return xr.merge([out, profile], combine_attrs='override')
 
@@ -399,9 +399,6 @@ def computeProfile(self: xr.DataArray,
     
     sampling_frequency = 1/dt 
 
-    if not np.issubdtype(chirps.chirp_time.dtype, 'float64'):
-        chirps['chirp_time'] = chirps.chirp_time.values.astype('float64')/1e9
-
     # if crop_chirp_start is not None:
     chirps = chirps.sel(chirp_time = slice(crop_chirp_start, crop_chirp_end))
 
@@ -435,7 +432,7 @@ def computeProfile(self: xr.DataArray,
     s_wpr = s_wp.roll(chirp_time=int(Nt*pad_factor/2))  
 
     if contains_dask_array(s_wpr):
-        s_wpr = s_wpr.chunk({'chirp_time':-1})
+        s_wpr = s_wpr.chunk({'chirp_time':-1}).load()
 
     # fft
     S_wpr = xr.apply_ufunc(np.fft.fft, 

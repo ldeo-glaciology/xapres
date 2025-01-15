@@ -19,22 +19,6 @@
   - ```{autodoc2-docstring} xapres.load.from_dats
     :summary:
     ```
-* - {py:obj}`DataFileObject <xapres.load.DataFileObject>`
-  - ```{autodoc2-docstring} xapres.load.DataFileObject
-    :summary:
-    ```
-* - {py:obj}`BurstObject <xapres.load.BurstObject>`
-  - ```{autodoc2-docstring} xapres.load.BurstObject
-    :summary:
-    ```
-* - {py:obj}`ChirpObject <xapres.load.ChirpObject>`
-  - ```{autodoc2-docstring} xapres.load.ChirpObject
-    :summary:
-    ```
-* - {py:obj}`ProfileObject <xapres.load.ProfileObject>`
-  - ```{autodoc2-docstring} xapres.load.ProfileObject
-    :summary:
-    ```
 ````
 
 ### Functions
@@ -62,7 +46,7 @@
 ```
 ````
 
-````{py:function} generate_xarray(directory=None, remote_load=False, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', attended=False, polarmetric=False, legacy_fft=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={}, loglevel='warning')
+````{py:function} generate_xarray(directory=None, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', attended=False, polarmetric=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={}, loglevel='warning')
 :canonical: xapres.load.generate_xarray
 
 ```{autodoc2-docstring} xapres.load.generate_xarray
@@ -81,18 +65,10 @@
 ```{autodoc2-docstring} xapres.load.from_dats.__init__
 ```
 
-````{py:method} load_single(dat_filename, burst_number=0, chirp_num=0)
-:canonical: xapres.load.from_dats.load_single
+````{py:method} load(dat_filename, bursts_to_process='All', corrected_pad=False, attended=False, polarmetric=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={})
+:canonical: xapres.load.from_dats.load
 
-```{autodoc2-docstring} xapres.load.from_dats.load_single
-```
-
-````
-
-````{py:method} load_dat_file(dat_filename)
-:canonical: xapres.load.from_dats.load_dat_file
-
-```{autodoc2-docstring} xapres.load.from_dats.load_dat_file
+```{autodoc2-docstring} xapres.load.from_dats.load
 ```
 
 ````
@@ -105,7 +81,7 @@
 
 ````
 
-````{py:method} load_all(directory=None, remote_load=None, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', attended=False, polarmetric=False, legacy_fft=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={})
+````{py:method} load_all(directory=None, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', disable_progress_bar=True, attended=False, polarmetric=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={})
 :canonical: xapres.load.from_dats.load_all
 
 ```{autodoc2-docstring} xapres.load.from_dats.load_all
@@ -121,50 +97,34 @@
 
 ````
 
-````{py:method} _all_bursts_in_dat_to_xarray(dat, bursts_selected)
-:canonical: xapres.load.from_dats._all_bursts_in_dat_to_xarray
+````{py:method} all_bursts_in_dat_to_xarray(dat_filename, bursts_selected)
+:canonical: xapres.load.from_dats.all_bursts_in_dat_to_xarray
 
-```{autodoc2-docstring} xapres.load.from_dats._all_bursts_in_dat_to_xarray
+```{autodoc2-docstring} xapres.load.from_dats.all_bursts_in_dat_to_xarray
 ```
 
 ````
 
-````{py:method} _all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
-:canonical: xapres.load.from_dats._all_bursts_at_waypoint_to_xarray
+````{py:method} all_bursts_at_waypoint_to_xarray(directory, waypoint_number)
+:canonical: xapres.load.from_dats.all_bursts_at_waypoint_to_xarray
 
-```{autodoc2-docstring} xapres.load.from_dats._all_bursts_at_waypoint_to_xarray
+```{autodoc2-docstring} xapres.load.from_dats.all_bursts_at_waypoint_to_xarray
 ```
 
 ````
 
-````{py:method} _burst_to_xarray_unattended(burst: xarray.Dataset)
-:canonical: xapres.load.from_dats._burst_to_xarray_unattended
+````{py:method} header_cleaning()
+:canonical: xapres.load.from_dats.header_cleaning
 
-```{autodoc2-docstring} xapres.load.from_dats._burst_to_xarray_unattended
+```{autodoc2-docstring} xapres.load.from_dats.header_cleaning
 ```
 
 ````
 
-````{py:method} _burst_to_xarray_attended(burst, waypoint_number)
-:canonical: xapres.load.from_dats._burst_to_xarray_attended
+````{py:method} subset_bursts_to_process()
+:canonical: xapres.load.from_dats.subset_bursts_to_process
 
-```{autodoc2-docstring} xapres.load.from_dats._burst_to_xarray_attended
-```
-
-````
-
-````{py:method} _burst_to_3d_arrays(burst)
-:canonical: xapres.load.from_dats._burst_to_3d_arrays
-
-```{autodoc2-docstring} xapres.load.from_dats._burst_to_3d_arrays
-```
-
-````
-
-````{py:method} _coords_from_burst(burst)
-:canonical: xapres.load.from_dats._coords_from_burst
-
-```{autodoc2-docstring} xapres.load.from_dats._coords_from_burst
+```{autodoc2-docstring} xapres.load.from_dats.subset_bursts_to_process
 ```
 
 ````
@@ -177,6 +137,14 @@
 
 ````
 
+````{py:method} chirptime_from_burst(burst)
+:canonical: xapres.load.from_dats.chirptime_from_burst
+
+```{autodoc2-docstring} xapres.load.from_dats.chirptime_from_burst
+```
+
+````
+
 ````{py:method} _get_orientation(filename)
 :canonical: xapres.load.from_dats._get_orientation
 
@@ -185,18 +153,18 @@
 
 ````
 
-````{py:method} _set_max_range(burst)
-:canonical: xapres.load.from_dats._set_max_range
+````{py:method} burst_data(burst)
+:canonical: xapres.load.from_dats.burst_data
 
-```{autodoc2-docstring} xapres.load.from_dats._set_max_range
+```{autodoc2-docstring} xapres.load.from_dats.burst_data
 ```
 
 ````
 
-````{py:method} _add_attrs()
-:canonical: xapres.load.from_dats._add_attrs
+````{py:method} add_attrs()
+:canonical: xapres.load.from_dats.add_attrs
 
-```{autodoc2-docstring} xapres.load.from_dats._add_attrs
+```{autodoc2-docstring} xapres.load.from_dats.add_attrs
 ```
 
 ````
@@ -221,118 +189,6 @@
 :canonical: xapres.load.from_dats.is_this_a_remote_load
 
 ```{autodoc2-docstring} xapres.load.from_dats.is_this_a_remote_load
-```
-
-````
-
-````{py:method} _try_logging()
-:canonical: xapres.load.from_dats._try_logging
-
-```{autodoc2-docstring} xapres.load.from_dats._try_logging
-```
-
-````
-
-`````
-
-`````{py:class} DataFileObject(Filename, remote_load=False)
-:canonical: xapres.load.DataFileObject
-
-```{autodoc2-docstring} xapres.load.DataFileObject
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} xapres.load.DataFileObject.__init__
-```
-
-````{py:method} ExtractBurst(BurstNo)
-:canonical: xapres.load.DataFileObject.ExtractBurst
-
-```{autodoc2-docstring} xapres.load.DataFileObject.ExtractBurst
-```
-
-````
-
-`````
-
-`````{py:class} BurstObject()
-:canonical: xapres.load.BurstObject
-
-```{autodoc2-docstring} xapres.load.BurstObject
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} xapres.load.BurstObject.__init__
-```
-
-````{py:method} ExtractChirp(ChirpList)
-:canonical: xapres.load.BurstObject.ExtractChirp
-
-```{autodoc2-docstring} xapres.load.BurstObject.ExtractChirp
-```
-
-````
-
-````{py:method} PlotBurst()
-:canonical: xapres.load.BurstObject.PlotBurst
-
-```{autodoc2-docstring} xapres.load.BurstObject.PlotBurst
-```
-
-````
-
-`````
-
-`````{py:class} ChirpObject()
-:canonical: xapres.load.ChirpObject
-
-```{autodoc2-docstring} xapres.load.ChirpObject
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} xapres.load.ChirpObject.__init__
-```
-
-````{py:method} PlotChirp()
-:canonical: xapres.load.ChirpObject.PlotChirp
-
-```{autodoc2-docstring} xapres.load.ChirpObject.PlotChirp
-```
-
-````
-
-````{py:method} FormProfile(F0=200000000, F1=400000000, pad=2, ref=1, corrected_pad=False)
-:canonical: xapres.load.ChirpObject.FormProfile
-
-```{autodoc2-docstring} xapres.load.ChirpObject.FormProfile
-```
-
-````
-
-`````
-
-`````{py:class} ProfileObject()
-:canonical: xapres.load.ProfileObject
-
-```{autodoc2-docstring} xapres.load.ProfileObject
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} xapres.load.ProfileObject.__init__
-```
-
-````{py:method} PlotProfile(dmax)
-:canonical: xapres.load.ProfileObject.PlotProfile
-
-```{autodoc2-docstring} xapres.load.ProfileObject.PlotProfile
 ```
 
 ````

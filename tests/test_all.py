@@ -1,33 +1,32 @@
 import pytest
-import xapres
 import xarray as xr
 from xapres import load, utils
 import numpy as np
 from numpy import allclose as npc
-
+import os
 
 def test_bound_methods_are_added_correctly():
     assert xr.DataArray.dB
     assert xr.DataArray.sonify
     assert xr.DataArray.displacement_timeseries
-    
 
 # Test the loading of a single dat file from the google bucket
 def test_dat_file_loading():
-    directory='gs://ldeo-glaciology/GL_apres_2022/A101'
+    print('new version')
+    directory='gs://ldeo-glaciology/apres/thwaites/continuous/ApRES_Lake1/SD2/DIR2023-01-16-0336'
     fs = load.from_dats()
-    fs.load_all(directory, 
-                remote_load = True,
-                file_numbers_to_process=[0],
-                bursts_to_process=[0])
-    assert np.isclose(fs.data.chirp.mean().values, 0.02611298) 
+    fs.list_files(directory)
+    fs.load_all(directory)
+    fs.load_all(directory,
+            file_numbers_to_process=[0])
+    load.generate_xarray(directory=directory)
     
     
 # test the displacement calculation
 def test_displacement_calculation():
     fd = load.from_dats()
 
-    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', legacy_fft=False) # load the data from a local directory
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/') # load the data from a local directory
     p1 = from_local.isel(time=2, attenuator_setting_pair=0).profile # select a profile 
     p2 = from_local.isel(time=5, attenuator_setting_pair=0).profile # select a different profile 
 
@@ -37,8 +36,6 @@ def test_displacement_calculation():
     profiles = from_local.isel(attenuator_setting_pair=0).profile  # select all the profiles on a specfic date
     results = profiles.displacement_timeseries(bin_size = 30, offset = 3) # compute a time series of displacement from these data. Use non-default values for offset and bin_size. 
     assert results
-
-
 
 def test_file_search_methods():
     fs = load.from_dats()   
@@ -67,19 +64,28 @@ def test_file_search_methods():
 def test_file_selection_methods():
     directory='data/sample/polarmetric'
     fs1 = load.from_dats()
-    fs1.load_all(directory, legacy_fft=False, file_numbers_to_process=[0,1])
+    fs1.load_all(directory, file_numbers_to_process=[0,1])
 
     fs2 = load.from_dats()
-    fs2.load_all(directory, legacy_fft=False, file_names_to_process = fs1.dat_filenames_to_process)
+    fs2.load_all(directory, file_names_to_process = fs1.dat_filenames_to_process)
 
     assert fs1.data.equals(fs2.data)
+
+    fs3 = load.from_dats()
+    fs3.load_all(directory, file_numbers_to_process="All")
+    fs4 = load.from_dats()
+    fs4.load_all(directory, file_names_to_process="All")
+
+    with pytest.raises(ValueError):
+        fs4 = load.from_dats()
+        fs4.load_all(directory, file_numbers_to_process="All", file_names_to_process = fs1.dat_filenames_to_process) 
 
 ## test polarmetric local loading by loading the same waypoint twice as if it is two different ones and chaeking 
 # that you get the same thing twice.
 
 # tests the attended option and the polarmetric option from locally stored dat files (as opposed to cloud stored dat files)
 
-def test_polarmetric_load():
+def test_polarmetric_load_directory_list():
     
     fs = load.from_dats()
     fs.load_all(attended=True, 
@@ -89,10 +95,80 @@ def test_polarmetric_load():
     assert len(fs.data.waypoint) == 2
     assert all(fs.data.isel(waypoint=0).filename.values == fs.data.isel(waypoint=1).filename.values)
 
+def test_load_single():
+    fs = load.from_dats()
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT')
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT',
+        bursts_to_process=[0])
+    fs.load(dat_filename = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT',
+        bursts_to_process=[0, 2])
+    fs.load(dat_filename = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT',
+            attended = True) 
+    fs.load(dat_filename = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT',
+        bursts_to_process=[0, 2], attended = True)
 
+def test_attended_load_all_directory_str():
+    fd = load.from_dats()
+    fd.load_all(attended=True, directory='data/sample/attended/')
+    
+def test_attended_load_all_directory_list():
+    fd = load.from_dats()
+    fd.load_all(attended=True, directory=['data/sample/attended/'])
+  
+def test_unattended_load_all_options():
+    fd = load.from_dats()
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', disable_progress_bar=True) 
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', disable_progress_bar=False) 
+    from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/', max_range = 1500) 
+
+def test_load_single_dat_file_with_multiple_bursts():
+    dat_file = 'data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT'
+    fd = load.from_dats()
+    ds = fd.load(dat_file, computeProfiles=False)
+    ds = fd.load(dat_file, computeProfiles=True)
+
+def test_load_single_dat_file_with_single_bursts():
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    fd = load.from_dats()
+    ds = fd.load(dat_file, computeProfiles=False)
+    ds = fd.load(dat_file, computeProfiles=True)
+    ds = fd.load(dat_file, computeProfiles=False, attended = True)
+    ds = fd.load(dat_file, computeProfiles=True, attended = True)
+    ds = fd.load(dat_file, computeProfiles=True, attended = True, max_range = 100)
+    ds = fd.load(dat_file, computeProfiles=True, addProfileToDs_kwargs = {'crop_chirp_start': 0,'crop_chirp_end': 0.3, 'demean': False, 'scale_for_window': False, 'drop_noisy_chirps': True, 'clip_threshold': 0.8})
+
+def test_chirp_time_dtype():
+    fd = load.from_dats()
+    directory='data/sample/single_dat_file/'
+    ds = fd.load_all(directory)
+    assert ds.chirp_time.dtype == 'float64'
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    ds = fd.load(dat_file)
+    assert ds.chirp_time.dtype == 'float64'
+
+def test_not_supplying_a_directory():
+    cwd = os.getcwd()
+    os.chdir('data/sample/single_dat_file/')
+    fd = load.from_dats(loglevel='DEBUG')
+    fd.list_files()
+    fd.load_all()
+    os.chdir(cwd)
+
+def test_when_no_files_are_found():
+    fd = load.from_dats()
+    fd.list_files('data/sample/empty')
+    fd.load_all('data/sample/empty')
+
+def test_selecting_bursts_to_process():
+    directory='data/sample/multi-burst-dat-file'
+    fs = load.from_dats()
+    fs.load_all(directory, bursts_to_process='All')
+    fs.load_all(directory, bursts_to_process=1)
+    fs.load_all(directory, bursts_to_process=[1,2])
+    fs.load_all(directory, bursts_to_process=[1,3, 20000])
 
 #  Test `generate_xarray` and `load_zarr` wrappers
-def test_wrappers():
+def test_wrappers_on_local():
     
     from_DAT_unattended = load.generate_xarray(directory='data/sample/single_dat_file/', 
                 file_numbers_to_process = [0], 
@@ -101,28 +177,20 @@ def test_wrappers():
 
     from_zarr = load.load_zarr()
 
-
 def test_fft_calculations():
     # initialize
     fd = load.from_dats()
     directory='data/sample/single_dat_file/'
 
-    # load the data from dat files
-    ## load data from a local directory, compute the fft with the legacy method and dont correct the padding error
-    load_oldfft_uncorrectedPad = fd.load_all(directory, legacy_fft=True, corrected_pad=False).profile
-    ## load data from a local directory, compute the fft with the legacy method, but this time correct the padding error
-    load_oldfft_correctedPad = fd.load_all(directory, legacy_fft=True, corrected_pad=True).profile
-
-   ## define some options for the new fft to use the older defaults, i.e. before we corrected things to agree eactly with fmcw_load (https://github.com/ldeo-glaciology/xapres/pull/62)
+    ## define some options for the new fft to use the older defaults, i.e. before we corrected things to agree exactly with fmcw_load (https://github.com/ldeo-glaciology/xapres/pull/62)
     ops = {'demean': False, 'scale_for_window': False}
     
     ## load from a local directory, compute the fft with the new method
-    load_newfft_full = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs=ops)
-    load_newfft = load_newfft_full.profile
+    load_newfft_full = fd.load_all(directory, addProfileToDs_kwargs=ops)
     ## load from a local directory, compute the fft with the new method while  setting the crop-limits on the chirp to be their default values (this shouldnt effect the answer from the line above)
-    load_newfft_defaultLimits = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 1} | ops).profile
+    load_newfft_defaultLimits = fd.load_all(directory, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 1} | ops).profile
     ## load from a local directory, compute the fft with the new method while  setting the crop-limits on the chirp to some other values (this will effect the answer)
-    load_newfft_nonDefaultLimits = fd.load_all(directory, legacy_fft=False, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 0.5} | ops).profile
+    load_newfft_nonDefaultLimits = fd.load_all(directory, addProfileToDs_kwargs={'crop_chirp_start': 0,'crop_chirp_end': 0.5} | ops).profile
 
     # Compute the ffts on pre-loaded data
     ## use the method .addProfileToDs() to compute the fft on a pre-loaded dataset
@@ -134,10 +202,12 @@ def test_fft_calculations():
     constants = {'c': 1e8}
     afterLoad_newfft_da_differentConstants = load_newfft_full.chirp.computeProfile(constants=constants, **ops)
 
-    assert not npc(load_oldfft_uncorrectedPad.values, load_oldfft_correctedPad.values)
-    d = load_newfft.dims  #needed to transpose the dataarrays that use legacy_fft=True to be the same as those which use legacy_fft=False
-    assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft.values)
-    assert npc(load_oldfft_correctedPad.transpose(*d).values, load_newfft_defaultLimits.values)
+     ## choose some other options
+    load_newfft_full.chirp.computeProfile(drop_noisy_chirps=True)
+    load_newfft_full.chirp.computeProfile(detrend=True)
+    load_newfft_full.chirp.computeProfile(stack=True)
+    load_newfft_full.chunk({'time': 1, 'profile_range': 1}).chirp.computeProfile()
+
     assert npc(afterLoad_newfft_ds.profile.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da.values, load_newfft_full.profile.values)
     assert npc(afterLoad_newfft_da_differentConstants.values, load_newfft_full.profile.values)
@@ -191,7 +261,7 @@ def test_comparison_with_matlab_code():
     constants['f_1'] = 200e6         # starting frequency [Hz]
     constants['f_2'] = 400e6         # ending frequency [Hz]
     constants['B'] = vdat[0][0]['B'][0][0]         # bandwidth [Hz]
-    constants['K'] = vdat[0][0]['K'][0][0]/2/np.pi            # rate of chnge of frequency [Hz/s]
+    constants['K'] = vdat[0][0]['K'][0][0]/2/np.pi            # rate of change of frequency [Hz/s]
     constants['c'] = 300000000.0     # speed of light in a vacuum [m/s]
     constants['ep'] = 3.18           # permittivity of ice
     constants['f_c'] = vdat[0][0]['fc'][0][0]# center frequency [Hz]
@@ -203,15 +273,37 @@ def test_comparison_with_matlab_code():
     # compare all the profiles to the atlab-loaded ones.
     assert np.allclose(m_profiles, temp_new_constants)
 
-'''
-def test_usingxapresNB():
+def test_invalid_log_level():
+    with pytest.raises(ValueError):
+        load.from_dats(loglevel='INVALID')
 
-    import nbformat
-    from nbconvert.preprocessors import ExecutePreprocessor 
+def test_dB_method():
+    directory='data/sample/single_dat_file/'
+    fs = load.from_dats()
+    ds = fs.load_all(directory)
+    ds.profile.dB()
 
-    notebook_filename ='notebooks/guides/UsingXApRES.ipynb'
-    with open(notebook_filename) as f:
-        nb = nbformat.read(f, as_version=4)
-    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
-    ep.preprocess(nb)
-'''
+def test_sonify_method():
+    directory='data/sample/single_dat_file/'
+    fs = load.from_dats()
+    ds = fs.load_all(directory)
+    ds.chirp.isel(chirp_num=0).sonify(save=True)
+    with pytest.raises(BaseException):
+        ds.chirp.sonify() # rasies an error because we are asking for more than one chirp to be sonified
+    
+    # test the case when chirp_time is in timedelta format
+    from_zarr = load.load_zarr() 
+    from_zarr.isel(chirp_num=0, time = 100, attenuator_setting_pair = 0 ).chirp.sonify()
+
+def test_fft_with_no_constants_supplied():
+    directory='data/sample/single_dat_file/'
+    fs = load.from_dats()
+    ds = fs.load_all(directory)
+    p1 = ds._replace(attrs={}).addProfileToDs().profile
+    p2 = ds.addProfileToDs().profile
+    assert p1.equals(p2)
+
+def test_attended_fft():
+    fd = load.from_dats()
+    fd.load_all(attended=True, directory='data/sample/attended/').addProfileToDs()
+    fd.load_all(attended=True, directory='data/sample/attended/').chirp.computeProfile()

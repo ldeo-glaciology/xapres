@@ -3,5 +3,6 @@
         "time"
     ],
     "calendar": "proleptic_gregorian",
+    "long_name": "time of burst",
     "units": "days since 2022-05-22 19:40:20"
 }

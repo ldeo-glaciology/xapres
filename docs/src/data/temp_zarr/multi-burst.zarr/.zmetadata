@@ -2,16 +2,16 @@
     "metadata": {
         ".zattrs": {
             "constants": {
-                "B": 200000000,
+                "B": 200000000.0,
                 "K": 200000000.0,
                 "c": 300000000.0,
                 "dt": 2.5e-05,
                 "ep": 3.18,
-                "f_1": 200000000,
-                "f_2": 400000000,
+                "f_1": 200000000.0,
+                "f_2": 400000000.0,
                 "f_c": 300000000.0
             },
-            "processing": "Created on 2025-01-06 15:38:37.073367"
+            "processing": "Created on 2025-01-14 15:12:34.500688"
         },
         ".zgroup": {
             "zarr_format": 2
@@ -94,7 +94,7 @@
             "_ARRAY_DIMENSIONS": [
                 "time"
             ],
-            "coordinates": "burst_number filename orientation",
+            "coordinates": "burst_number filename folder_name orientation",
             "long_name": "battery voltage",
             "units": "volts"
         },
@@ -127,8 +127,8 @@
         "chirp/.zarray": {
             "chunks": [
                 1,
-                10001,
-                10,
+                5,
+                20001,
                 1
             ],
             "compressor": {
@@ -144,8 +144,8 @@
             "order": "C",
             "shape": [
                 1,
-                40001,
                 20,
+                40001,
                 2
             ],
             "zarr_format": 2
@@ -153,11 +153,11 @@
         "chirp/.zattrs": {
             "_ARRAY_DIMENSIONS": [
                 "time",
-                "chirp_time",
                 "chirp_num",
+                "chirp_time",
                 "attenuator_setting_pair"
             ],
-            "coordinates": "AFGain attenuator burst_number filename orientation",
+            "coordinates": "AFGain attenuator burst_number filename folder_name orientation",
             "description": "voltage from the analog-to-digital converter after the received signal has been mixed with the transmitted signal and the result has been filtered to leave only the low frequency compponent corresponding to the differences in the frequencies of the Tx and Rx signals",
             "long_name": "de-ramped chirp",
             "units": "volts"
@@ -228,7 +228,7 @@
                 "id": "blosc",
                 "shuffle": 1
             },
-            "dtype": "<U62",
+            "dtype": "<U23",
             "fill_value": null,
             "filters": null,
             "order": "C",
@@ -242,6 +242,31 @@
                 "time"
             ],
             "description": "the name of the file that contains each burst"
+        },
+        "folder_name/.zarray": {
+            "chunks": [
+                1
+            ],
+            "compressor": {
+                "blocksize": 0,
+                "clevel": 5,
+                "cname": "lz4",
+                "id": "blosc",
+                "shuffle": 1
+            },
+            "dtype": "<U20",
+            "fill_value": null,
+            "filters": null,
+            "order": "C",
+            "shape": [
+                1
+            ],
+            "zarr_format": 2
+        },
+        "folder_name/.zattrs": {
+            "_ARRAY_DIMENSIONS": [
+                "time"
+            ]
         },
         "latitude/.zarray": {
             "chunks": [
@@ -267,7 +292,7 @@
             "_ARRAY_DIMENSIONS": [
                 "time"
             ],
-            "coordinates": "burst_number filename orientation",
+            "coordinates": "burst_number filename folder_name orientation",
             "long_name": "latitude of burst",
             "units": "degrees"
         },
@@ -295,7 +320,7 @@
             "_ARRAY_DIMENSIONS": [
                 "time"
             ],
-            "coordinates": "burst_number filename orientation",
+            "coordinates": "burst_number filename folder_name orientation",
             "long_name": "longitude of burst",
             "units": "degrees"
         },
@@ -359,17 +384,17 @@
                 "profile_range"
             ],
             "constants": {
-                "B": 200000000,
+                "B": 200000000.0,
                 "K": 200000000.0,
                 "T": 1,
                 "c": 300000000.0,
                 "dt": 2.5e-05,
                 "ep": 3.18,
-                "f_1": 200000000,
-                "f_2": 400000000,
+                "f_1": 200000000.0,
+                "f_2": 400000000.0,
                 "f_c": 300000000.0
             },
-            "coordinates": "AFGain attenuator burst_number filename orientation",
+            "coordinates": "AFGain attenuator burst_number filename folder_name orientation",
             "description": "complex profile computed from the fourier transform of the de-ramped chirp",
             "long_name": "profile",
             "units": "-"
@@ -425,7 +450,9 @@
             "_ARRAY_DIMENSIONS": [
                 "time"
             ],
-            "coordinates": "burst_number filename orientation"
+            "coordinates": "burst_number filename folder_name orientation",
+            "long_name": "temperature measured inside the ApRES unit in one location",
+            "units": "celsius"
         },
         "temperature_2/.zarray": {
             "chunks": [
@@ -451,7 +478,9 @@
             "_ARRAY_DIMENSIONS": [
                 "time"
             ],
-            "coordinates": "burst_number filename orientation"
+            "coordinates": "burst_number filename folder_name orientation",
+            "long_name": "temperature measured inside the ApRES unit in a second location",
+            "units": "celsius"
         },
         "time/.zarray": {
             "chunks": [
@@ -478,6 +507,7 @@
                 "time"
             ],
             "calendar": "proleptic_gregorian",
+            "long_name": "time of burst",
             "units": "days since 2022-05-22 19:40:20"
         }
     },
