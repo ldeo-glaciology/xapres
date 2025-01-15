@@ -9,7 +9,7 @@ submodule_name = 'bas-apres'
 (parent_folder_path, current_dir) = os.path.split(os.path.dirname(__file__))
 sys.path.append(os.path.join(parent_folder_path, submodule_name))
 
-from . import load
+#from . import load
 from . import utils
 
 utils.add_methods_to_xarrays()
