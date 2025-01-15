@@ -81,7 +81,7 @@
 
 ````
 
-````{py:method} load_all(directory=None, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', remote_load=False, attended=False, polarmetric=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={})
+````{py:method} load_all(directory=None, file_numbers_to_process=None, file_names_to_process=None, bursts_to_process='All', disable_progress_bar=True, attended=False, polarmetric=False, corrected_pad=False, max_range=None, computeProfiles=True, addProfileToDs_kwargs={})
 :canonical: xapres.load.from_dats.load_all
 
 ```{autodoc2-docstring} xapres.load.from_dats.load_all
