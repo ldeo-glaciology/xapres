@@ -11,7 +11,7 @@
                 "f_2": 400000000.0,
                 "f_c": 300000000.0
             },
-            "processing": "Created on 2025-01-13 16:01:41.081816"
+            "processing": "Created on 2025-01-14 15:12:34.500688"
         },
         ".zgroup": {
             "zarr_format": 2
