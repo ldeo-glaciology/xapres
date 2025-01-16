@@ -8,13 +8,13 @@ import sys
 submodule_name = 'bas-apres'
 (parent_folder_path, current_dir) = os.path.split(os.path.dirname(__file__))
 sys.path.append(os.path.join(parent_folder_path, submodule_name))
-print(f"adding {(os.path.join(parent_folder_path, submodule_name))} to path in init")
+#print(f"adding {(os.path.join(parent_folder_path, submodule_name))} to path in init")
 
 
-output = f"adding {(os.path.join(parent_folder_path, submodule_name))} to path in init"
+#output = f"adding {(os.path.join(parent_folder_path, submodule_name))} to path in init"
 
-with open("adding_to_path.txt", "w") as file:
-    print(output, file=file)
+#with open("adding_to_path.txt", "w") as file:
+#    print(output, file=file)
 
 from . import load
 from . import utils

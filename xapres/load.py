@@ -14,7 +14,10 @@ import pandas as pd
 from tqdm import tqdm
 import datetime
 
-sys.path.append("../bas-apres")
+#print(f"once we run load we are in  {os.getcwd()}")
+
+
+#sys.path.append("../bas-apres")
 import apres as ap
 
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
