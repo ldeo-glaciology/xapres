@@ -1,3 +1,4 @@
-[submodule "xapres/bas-apres"] 
-  path = xapres/bas-apres
-  url = git@github.com:jkingslake/bas-apres.git
+
+[submodule "xares/bas-apres"]
+	path = xares/bas-apres
+	url = git@github.com:jkingslake/bas-apres.git
