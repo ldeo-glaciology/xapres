@@ -20,6 +20,8 @@ jobs:
         python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v4
+        with: 
+          submodules: true
       - name: Cache conda
         uses: actions/cache@v4
         env:
