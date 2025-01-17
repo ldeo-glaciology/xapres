@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xapres"
+authors = [{name = "Jonathan Kingslake", email = "j.kingslake@columbia.edu"}]
+description = "A package for processing data from the Autonomous phase-sensitive Radio-Echo Sounder (ApRES) using xarray."
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["glaciology", "radar"]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "gcsfs",
+    "pytest",
+    "numpy",
+    "jupyter",
+    "jupyterlab",
+    "xarray",
+    "pandas",
+    "tqdm",
+    "zarr",
+    "dask",
+    "hvplot",
+    "ipympl",
+    "sounddevice",
+    "soundfile",
+    "sphinx-autodoc2"
+]
+dynamic = ["version"]
+
+[options]
+packages = "xapres"
+
+[tool.setuptools.dynamic]
+version = {attr = "xapres.__version__"}
+
+#[tool.setuptools.packages.find]
+# All the following settings are optional:
+#include = ["xapres*"]  # ["*"] by default
+#exclude = ["mypackage.tests*"]  # empty by default
+#namespaces = false  # true by default
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+xapres = ["bas-apres*"]
+
+[tool.setuptools]
+include-package-data = true
