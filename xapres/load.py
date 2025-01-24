@@ -21,8 +21,21 @@ import datetime
 import apres as ap
 
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
-    """Load ApRES data stored in a zarr directory. """
-    
+    """
+    Load a Zarr dataset from the specified directory.
+    Parameters
+    ----------
+    directory : str, optional
+        The path to the Zarr dataset. Default is "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101".
+    Returns
+    -------
+    xarray.Dataset
+        The loaded dataset.
+    Examples
+    --------
+    >>> ds = load_zarr("gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101")
+    >>> print(ds)
+    """
     return xr.open_dataset(directory,
             engine = 'zarr', 
             chunks = {}) 
@@ -60,6 +73,7 @@ def generate_xarray(directory=None,
     return fd.data
 
 class from_dats():
+    
     """
     An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
     
@@ -153,6 +167,7 @@ class from_dats():
         return dat_filenames
           
     def load_all(self,
+
                  directory=None, 
                  file_numbers_to_process=None, 
                  file_names_to_process=None, 
@@ -164,69 +179,31 @@ class from_dats():
                  computeProfiles = True,
                  addProfileToDs_kwargs = {}
                  ):
-        
+        """Load all the .dat files in a directory into an xarray dataset.
+
+        Args:
+            directory (str, optional): Directory containing .dat files. Defaults to None.
+            file_numbers_to_process (list of int, optional): List of file numbers to process. Defaults to None.
+            file_names_to_process (list of str, optional): List of file names to process. Defaults to None.
+            bursts_to_process (Union[str, list of int], optional): Bursts to process. Defaults to "All".
+            disable_progress_bar (bool, optional): Disable the progress bar. Defaults to True.
+            attended (bool, optional): Whether the loading is attended. Defaults to False.
+            polarmetric (bool, optional): Whether to process polarmetric data. Defaults to False.
+            max_range (float, optional): Maximum range for processing. Defaults to None.
+            computeProfiles (bool, optional): Whether to compute profiles. Defaults to True.
+            addProfileToDs_kwargs (dict, optional): Additional arguments for adding profiles to the dataset. Defaults to {}.
+            
+        Returns:
+            xarray.Dataset: The loaded dataset.
+
+        Examples:
+            >>> fd_unattended = ApRESDefs.load.from_dats()
+            >>> fd_unattended.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
+                        file_numbers_to_process = [0, 1], 
+                        bursts_to_process=[0, 1]
+            )
         """
-        Method to recursively load ApRES .dat files and put them in an xarray dataset. It also 
-        computes profiles from the chirp data and includes them in the output. 
-        
-        This method has two modes. One for unattended ApRES data and one for attended data. 
-        
-        For unattended data (i.e. attended=False, the default), it puts all the data from all 
-        the .DAT files found recursively in 'directory', into one xarray. The most important 
-        dimension of this xarray is 'time', which is the time of each burst. 
 
-        In attended mode, the method locates the dat files corresponding to each waypoint. 
-        It does this based on a user-supplied list of directories 'directory'. The method groups the 
-        data by waypoint (and optionally antenna orientation).
-
-        Parameters
-        ----------
-        directory : str or list, optional
-            Directory or list of directories containing .DAT files. 
-            If attended is False, this should be a single directory which will be search recusrivley for dat fies.  
-            If attended is True, this should be a list of directories, one for each waypoint. Default is None.
-        file_numbers_to_process : list, optional
-            List of file numbers to process. If None, all files will be processed. Default is None.
-        file_names_to_process : list, optional
-            List of file names to process. If None, all files will be processed. Default is None. 
-            Note that you can set either file_numbers_to_process or file_names_to_process, but not both. 
-        bursts_to_process : str or list, optional
-            Bursts to process from within each dat file. Default is "All".
-        attended : bool, optional
-            If True, load data in attended mode. Default is False.
-        polarmetric : bool, optional
-            If True, load data in polarmetric mode - the xarray dataset outputted will have an antenna-orientation dimension corrosponding to HH, HV, VH, and VV. 
-            It designates dat files to each orientation based on the files names containing HH, HV, VH, or VV.
-            Default is False.
-         max_range : float, optional
-            A range value used to crop the profiles. Only used in the legacy fft processing. Default is None.
-        computeProfiles : bool, optional
-            If True, compute profiles from the chirp data. Default is True.
-        addProfileToDs_kwargs : dict, optional
-            Additional keyword arguments for addProfileToDs method. 
-            The following can be set:
-                pad_factor = 2
-                drop_noisy_chirps = False,
-                clip_threshold = 1.2,
-                min_chirps = 20,
-                demean = False,
-                detrend = False,
-                stack = False,
-                crop_chirp_start = None,
-                crop_chirp_end = None,
-                max_range = None
-
-        Returns
-        -------
-        xarray.Dataset
-            The loaded data as an xarray dataset.
-
-        Raises
-        ------
-        ValueError
-            If attended mode is True and directory_list is None.
-            If both file_numbers_to_process and file_names_to_process are supplied.
-        """   
 
         self.file_numbers_to_process = file_numbers_to_process
         self.file_names_to_process = file_names_to_process
@@ -363,7 +340,7 @@ class from_dats():
         list_of_singleBurst_xarrays = [
             xr.Dataset(
                         data_vars=dict(
-                            chirp           = (["time", "chirp_num", "chirp_time", "attenuator_setting_pair"], self.burst_data(burst)/2**16*2.5-1.25),
+                            chirp           = (["time", "chirp_num", "attenuator_setting_pair", "chirp_time"], self.burst_data(burst)/2**16*2.5-1.25),
                             latitude        = (["time"], [burst.header['Latitude']]),
                             longitude       = (["time"], [burst.header['Longitude']]),  
                             battery_voltage = (["time"], [burst.header['BatteryVoltage']]), 
@@ -427,7 +404,7 @@ class from_dats():
 
             singleorientation_attended_xarray = xr.Dataset(
                 data_vars=dict(
-                    chirp           = (["orientation", "waypoint", "chirp_num", "chirp_time", "attenuator_setting_pair"], self.burst_data(burst)/2**16*2.5-1.25),
+                    chirp           = (["orientation", "waypoint", "chirp_num",  "attenuator_setting_pair", "chirp_time"], self.burst_data(burst)/2**16*2.5-1.25),
                     latitude        = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
                     longitude       = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
                     battery_voltage = (["orientation", "waypoint"], np.array(burst.header['BatteryVoltage'], ndmin = 2)),
@@ -519,7 +496,25 @@ class from_dats():
 
     def chirptime_from_burst(self, burst):
         """Return the time vector for the chirps in a burst"""
-        return np.arange(burst.header["N_ADC_SAMPLES"]) * burst.header['TStepUp']
+        fs = 4e4
+        dt = 1/fs
+        return np.arange(burst.data.shape[-1]) * dt
+
+# H.Nsamples = sscanf(A(loc(1)+length(['N_ADC_SAMPLES=']):searchCR(1)+loc(1)),'%d\n');
+
+# H.nstepsDDS = round(abs((H.stopFreq - H.startFreq)/H.rampUpStep));%abs as ramp could be down
+# H.chirpLength = H.nstepsDDS * H.tstepUp;
+# H.nchirpSamples = round(H.chirpLength * H.fs);
+        #fs = 4e4
+        #nstepsDDS  = round(abs((burst.header['StopFreq'] - burst.header['StartFreq'])/burst.header['FreqStepUp']))
+        #chirpLength = nstepsDDS * burst.header['TStepUp']
+        #nchirpSamples = round(chirpLength * fs)
+        #dt = 1/fs
+
+        #if nchirpSamples > burst.header["N_ADC_SAMPLES"]:
+        #    chirpLength = burst.header["N_ADC_SAMPLES"] / fs
+        #SamplesPerChirp = round(chirpLength * fs)
+        #return np.arange(len(burst.)) * dt
 
     def _get_orientation(self, filename):
         """Get the orientation of the antenna from the filename"""
@@ -543,7 +538,7 @@ class from_dats():
         data = burst.data
 
         if burst.header['nAttenuators'] == 1:
-            data = np.expand_dims(data, axis=-1)
+            data = np.expand_dims(data, axis=-2)
         
         if self.attended:
             data = np.expand_dims(data, axis=(0, 1))
