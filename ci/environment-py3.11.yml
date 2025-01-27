@@ -14,6 +14,8 @@ dependencies:
   - zarr
   - dask
   - scipy
+  - netCDF4
+  - fsspec
   - pip:
     - ipympl
     - sounddevice
