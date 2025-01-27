@@ -18,7 +18,6 @@ dependencies:
     - ipympl
     - sounddevice
     - soundfile
-    - bas-apres
     - codecov
     - pytest-cov
     - coverage[toml]
