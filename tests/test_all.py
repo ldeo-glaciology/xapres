@@ -4,6 +4,12 @@ from xapres import load, utils
 import numpy as np
 from numpy import allclose as npc
 import os
+import apres as ap
+
+def test_shape_of_output_from_bas_apres():
+    with ap.ApRESFile('data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT') as f: 
+        f.read()
+    assert f.bursts[0].data.shape == (20, 2, 40001)
 
 def test_bound_methods_are_added_correctly():
     assert xr.DataArray.dB
