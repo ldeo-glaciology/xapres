@@ -25,5 +25,4 @@ dependencies:
       - sphinx-hoverxref
       - sphinx-autodoc2
       - jupyter-book
-      - bas-apres
       - pytest 
