@@ -18,7 +18,6 @@ def test_bound_methods_are_added_correctly():
 
 # Test the loading of a single dat file from the google bucket
 def test_dat_file_loading():
-    print('new version')
     directory='gs://ldeo-glaciology/apres/thwaites/continuous/ApRES_Lake1/SD2/DIR2023-01-16-0336'
     fs = load.from_dats()
     fs.list_files(directory)
