@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 - 2025-01-27
+### Fixed 
+
+- merge changes in upstream fork of bas-apres (commit in that sub-module: [59dbd62](https://github.com/jkingslake/bas-apres/pull/2/commits/59dbd6211274b2260cba6a57020358f57e6972b6))
+
 ## 0.4.0 - 2025-01-16 
 
 ### Changed
