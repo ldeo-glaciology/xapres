@@ -14,11 +14,12 @@ dependencies:
   - zarr
   - dask
   - scipy
+  - netCDF4
+  - fsspec
   - pip:
     - ipympl
     - sounddevice
     - soundfile
-    - bas-apres
     - codecov
     - pytest-cov
     - coverage[toml]
