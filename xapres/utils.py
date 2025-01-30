@@ -9,7 +9,9 @@ import dask.array as da
 def displacement_timeseries(self: xr.DataArray, 
                             offset: int=1,  
                             bin_size: int=20, 
-                            lower_limit_on_fit: float=800.0): 
+                            lower_limit_on_fit: float=None,
+                            min_depth_for_ezz_fit: float=None,
+                            max_depth_for_ezz_fit: float=None): 
     """
     Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
@@ -23,8 +25,12 @@ def displacement_timeseries(self: xr.DataArray,
     - self (xr.DataArray): The input data array containing a time series of complex profiles.
     - offset (int, optional): The time offset between the two time series. Default is 1.
     - bin_size (int, optional): Size of the vertical bins. Default is 20.
-
+    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
+    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
+    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    
     Returns:
+
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
@@ -36,7 +42,9 @@ def displacement_timeseries(self: xr.DataArray,
     ds = compute_displacement(profile1_unaligned, 
                               profile2_unaligned, 
                               bin_size = bin_size,
-                              lower_limit_on_fit = lower_limit_on_fit)
+                              lower_limit_on_fit = lower_limit_on_fit,
+                              min_depth_for_ezz_fit = min_depth_for_ezz_fit,
+                              max_depth_for_ezz_fit = max_depth_for_ezz_fit)
 
     # add attributes related to the this processing
     ds.attrs["offset"] = offset
@@ -47,7 +55,9 @@ def displacement_timeseries(self: xr.DataArray,
 def compute_displacement(profile1_unaligned: xr.DataArray, 
                         profile2_unaligned: xr.DataArray, 
                         bin_size: int=20, 
-                        lower_limit_on_fit: float=800.0):
+                        lower_limit_on_fit: float=None,
+                        min_depth_for_ezz_fit: float=None,
+                        max_depth_for_ezz_fit: float=None):
     """
     Compute displacement, coherence, and related uncertainties for binned time series data.
 
@@ -109,7 +119,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     velocity.attrs['long_name'] = 'Vertical velocity'
 
     # strain rates
-    strain_rates = velocity.computeStrainRates(lower_limit_on_fit = lower_limit_on_fit)
+    strain_rates = velocity.computeStrainRates(max_depth_for_ezz_fit = max_depth_for_ezz_fit, 
+                                               min_depth_for_ezz_fit = min_depth_for_ezz_fit, 
+                                               lower_limit_on_fit = lower_limit_on_fit)
 
     # combine to an xarray dataset
     da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
@@ -218,11 +230,31 @@ def phase2range(phi,
         """
         return lambdac*phi/(4.*np.pi)
 
-def computeStrainRates(self, lower_limit_on_fit = 800):
+def computeStrainRates(self, 
+                       lower_limit_on_fit: float=None,
+                       min_depth_for_ezz_fit: float=None,
+                       max_depth_for_ezz_fit: float=None):
     """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
+    
+    if lower_limit_on_fit is not None:
+        print("lower_limit_on_fit is depreciated. Use max_depth_for_ezz_fit instead.")
+        if max_depth_for_ezz_fit is None:
+            max_depth_for_ezz_fit = lower_limit_on_fit           
+        else:
+            print(f"Because you also set the value of max_depth_for_ezz_fit (= {max_depth_for_ezz_fit}), this value will be used instead of lower_limit_on_fit.")
+
+    if min_depth_for_ezz_fit is None:
+        min_depth_for_ezz_fit = 0.0
+    if max_depth_for_ezz_fit is None:
+        max_depth_for_ezz_fit = 800.0
+
+    if min_depth_for_ezz_fit > max_depth_for_ezz_fit:
+        print("min_depth_for_ezz_fit is greater than max_depth_for_ezz_fit. Swapping the two.")
+        min_depth_for_ezz_fit, max_depth_for_ezz_fit = max_depth_for_ezz_fit, min_depth_for_ezz_fit
+    
     velocity_cropped = self\
             .squeeze()\
-            .where(self.bin_depth < lower_limit_on_fit)
+            .where( (self.bin_depth < max_depth_for_ezz_fit) & (self.bin_depth > min_depth_for_ezz_fit))
     
     fit_ds = velocity_cropped.polyfit('bin_depth', 1, full = True)
             
@@ -237,12 +269,15 @@ def computeStrainRates(self, lower_limit_on_fit = 800):
 
     # add attrs
     strain_rate.attrs['units'] = '1/year'
-    strain_rate.attrs['long_name'] = f"vertical strain rate in upper {lower_limit_on_fit} m"
-    strain_rate.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
+    strain_rate.attrs['long_name'] = f"vertical strain rate computed between {min_depth_for_ezz_fit} and {max_depth_for_ezz_fit} m"
+    strain_rate.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    strain_rate.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
 
     surface_intercept.attrs['units'] = 'meters/year'
     surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
-    surface_intercept.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
+    surface_intercept.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    strain_rate.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
     
     R2.attrs['long_name'] = 'r-squared value for the linear fit'
     R2.attrs['units'] = '-' 

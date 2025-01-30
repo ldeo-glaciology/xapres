@@ -26,21 +26,53 @@ def test_dat_file_loading():
     #        file_numbers_to_process=[0])   # disabled to preventh GH actions failing due to too many attempts to access files. 
     #load.generate_xarray(directory=directory)   # disabled to preventh GH actions failing due to too many attempts to access files. 
     
-    
+
 # test the displacement calculation
 def test_displacement_calculation():
     fd = load.from_dats()
-
     from_local = fd.load_all(directory='data/sample/multi-burst-dat-file/') # load the data from a local directory
+
+    # displacement_timeseries
+    profiles = from_local.profile.isel(chirp_num=0)
+    profiles.displacement_timeseries(bin_size = 30) # compute a time series of displacement from these data. Use non-default values for offset and bin_size. 
+    profiles.displacement_timeseries(offset = 3) 
+    profiles.displacement_timeseries(bin_size = 30, offset = 3) 
+
+    # using different values for the upper and lower values for the ezz fits in displacement_timeseries
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=0)
+    profiles.displacement_timeseries(max_depth_for_ezz_fit=800)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=1000)
+    profiles.displacement_timeseries(max_depth_for_ezz_fit=3000)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=0, max_depth_for_ezz_fit=800)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=1000, max_depth_for_ezz_fit=2000)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=2000, max_depth_for_ezz_fit=1000)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=1000, max_depth_for_ezz_fit=1e9)
+    profiles.displacement_timeseries(min_depth_for_ezz_fit=1000, max_depth_for_ezz_fit=1e9)
+
+
+    # set all optional settings in displacement_timeseries
+    profiles.displacement_timeseries(bin_size = 40, offset = 5, min_depth_for_ezz_fit=1000, max_depth_for_ezz_fit=2000)
+
+    # compute_displacement
     p1 = from_local.isel(time=2, attenuator_setting_pair=0).profile # select a profile 
     p2 = from_local.isel(time=5, attenuator_setting_pair=0).profile # select a different profile 
-
+    utils.compute_displacement(p1, p2)    # calculate the displacement between the two profiles. 
     utils.compute_displacement(p1, p2, bin_size = 25)    # calculate the displacement between the two profiles. Use a non-default value for bin_size
+    utils.compute_displacement(p1, p2, min_depth_for_ezz_fit = 50)    # calculate the displacement between the two profiles. Use a non-default value for min_depth_for_ezz_fit
+    utils.compute_displacement(p1, p2, max_depth_for_ezz_fit = 300)    # calculate the displacement between the two profiles. Use a non-default value for max_depth_for_ezz_fit
+    utils.compute_displacement(p1, p2, min_depth_for_ezz_fit = 100, max_depth_for_ezz_fit = 700)    # calculate the displacement between the two profiles. Use a non-default value for min_depth_for_ezz_fit and max_depth_for_ezz_fit
 
-
-    profiles = from_local.isel(attenuator_setting_pair=0).profile  # select all the profiles on a specfic date
-    results = profiles.displacement_timeseries(bin_size = 30, offset = 3) # compute a time series of displacement from these data. Use non-default values for offset and bin_size. 
-    assert results
+    # set the old fit limit: lower_limit_on_fit
+    ds = profiles.displacement_timeseries(lower_limit_on_fit=1000)
+    ds = profiles.displacement_timeseries(min_depth_for_ezz_fit=100, lower_limit_on_fit=1000)
+    assert ds.strain_rate.attrs['min_depth_for_ezz_fit_meters'] == 100
+    assert ds.strain_rate.attrs['max_depth_for_ezz_fit_meters'] == 1000
+    ds = profiles.displacement_timeseries(max_depth_for_ezz_fit=2000, lower_limit_on_fit=1000)
+    assert ds.strain_rate.attrs['min_depth_for_ezz_fit_meters'] == 0  # its default value, because we didnt set it
+    assert ds.strain_rate.attrs['max_depth_for_ezz_fit_meters'] == 2000                          
+    ezz_1 = profiles.displacement_timeseries(lower_limit_on_fit=1000).strain_rate
+    ezz_2 = profiles.displacement_timeseries(max_depth_for_ezz_fit=1000).strain_rate
+    assert (ezz_1 == ezz_2).all()
 
 def test_file_search_methods():
     fs = load.from_dats()   
