@@ -59,13 +59,16 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
                         min_depth_for_ezz_fit: float=None,
                         max_depth_for_ezz_fit: float=None):
     """
-    Compute displacement, coherence, and related uncertainties for binned time series data.
+    Compute displacement, coherence, velocity, strain rates, and related uncertainties from ApRES profiles.
 
     Parameters:
-    - profile1_unaligned (xr.DataArray): Unaligned time series data for the first measurement.
-    - profile2_unaligned (xr.DataArray): Unaligned time series data for the second measurement.
-    - bin_size (int, optional): Size of the vertical bins. Default is 20.
-
+    - profile1_unaligned (xr.DataArray): Complex ApRES profiles from the first measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
+    - profile2_unaligned (xr.DataArray): Complex ApRES profiles from the second measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
+    - bin_size (int, optional): Size of the bins to use when binned the profile data vertically before comparing profiles. Default is 20.
+    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
+    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
+    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    
     Returns:
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
@@ -135,7 +138,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     return ds
 
 def combine_profiles(profile1_unaligned, profile2_unaligned):
-    """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
+    """Align two timeseries of ApRES profiles, (in the case of unattended data) recording the midpoint time and the time of each computed profile"""
     
     if 'waypoint' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
@@ -150,10 +153,6 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
             profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
         if 'time' not in profile2_unaligned.dims:
             profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
-
-        #if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
-            
-        #else:
         
         # record the time interval between measurements
         t1 = profile1_unaligned.time.data
@@ -178,7 +177,18 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
     return profiles
 
 def bin_profiles(profiles, bin_size):
-    """Put the time series into vertical bins"""
+    """
+    Bin ApRES profiles vertically, while computing the depth of the center of each bin.
+    
+    Parameters:
+    - profiles (xr.DataArray): The input data array containing a time series of complex profiles.
+    - bin_size (int): Size of the bins measured in number of data points.
+
+    Returns:
+    xr.DataArray: The binned profiles.
+    
+    """
+
     
     # Bin in depth
     profiles_binned = profiles.coarsen(profile_range=bin_size, boundary='trim').construct(profile_range=("bin_depth", "sample_in_bin"))
@@ -189,46 +199,67 @@ def bin_profiles(profiles, bin_size):
 
     return profiles_binned
 
-def compute_coherence(b1_binned, b2_binned):
-    # compute the coherence
-    top = (b1_binned * np.conj(b2_binned)).sum(dim="sample_in_bin")
-    bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim="sample_in_bin") * (np.abs(b2_binned)**2).sum(dim="sample_in_bin"))
+def compute_coherence(p1, p2):
+    """
+    Compute the complex coherence between two binned time series of complex profiles. 
+
+    The time series must have previously been binned using `bin_profiles`. 
+
+    Parameters:
+    - p1 (xr.DataArray): The first time series of complex profiles.
+    - p2 (xr.DataArray): The second time series of complex profiles.
+
+    Returns:
+    xr.DataArray: The complex coherence between the two time series of profiles.
+    
+    """  
+
+    top = (p1 * np.conj(p2)).sum(dim="sample_in_bin")
+    bottom = np.sqrt( (np.abs(p1)**2).sum(dim="sample_in_bin") * (np.abs(p2)**2).sum(dim="sample_in_bin"))
 
     return (top/bottom).rename("coherence")
 
 def phase2range(phi, 
-                lambdac=0.5608, 
-                rc=None, 
-                K=2e8, 
-                ci=1.6823e8):
-        """
-        Convert phase difference to range for FMCW radar
-        Parameters
-        ---------
-        lambdac: float
-            wavelength (m) at center frequency
-        rc: float; optional
-            coarse range of bin center (m)
-        K:  float; optional
-            chirp gradient (rad/s/s)
-        ci: float; optional
-            propagation velocity (m/s)
-        ### Original Matlab File Notes ###
-        Craig Stewart
-        2014/6/10
-        
+                lambdac=0.5608):
+    """
+    Convert phase difference to range.
 
-        if not all([K,ci]) or rc is None:
-            # First order method
-            # Brennan et al. (2014) eq 15
-            print('not precise')
-            r = lambdac*phi/(4.*np.pi)
-        else:
-            print('Precise')
-            # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
-            r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
-        """
-        return lambdac*phi/(4.*np.pi)
+    Parameters:
+    - phi (xr.DataArray): The phase difference computed in vertical bins between two profiles.
+    - lambdac (float, optional): The wavelength at the center frequency. Default is 0.5608 m.
+
+    Returns:
+    xr.DataArray: The displacement corresponding to the supplied phase differences.
+
+    Notes: 
+    An alternative version of this code, which comes from the original matlab code, offers the choice of computing a 'precise' range. 
+    It does this by taking account (approximately) of both constant terms in the phase difference equation (eqn 13 in Brennan et al. 2014).
+    The third term in that equation is always negligible (see https://github.com/ldeo-glaciology/xapres/blob/master/notebooks/guides/coherence_range.ipynb). 
+    So we neglect it here. For clarity the original code, adapted from Craifg Stewart, 2014/6/10, is included as follows:
+
+    lambdac: float
+        wavelength (m) at center frequency
+    rc: float; optional, default is None
+        coarse range of bin center (m)
+    K:  floa`t; optional, default is 2e8
+        chirp gradient (rad/s/s)
+    ci: float; optional, default is 1.6823e8
+        propagation velocity (m/s)
+
+    ```
+    if not all([K,ci]) or rc is None:
+        # First order method
+        # Brennan et al. (2014) eq 15
+        print('not precise')
+        r = lambdac*phi/(4.*np.pi)
+    else:
+        print('Precise')
+        # From Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
+        r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
+
+    ```
+    """
+    return lambdac*phi/(4.*np.pi)
 
 def computeStrainRates(self, 
                        lower_limit_on_fit: float=None,

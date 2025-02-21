@@ -73,28 +73,28 @@ class from_dats():
     """
     An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
     
-        Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+    Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+
+    Argument:
+        loglevel --- allows the user to select the level of logging messages are displayed. 
+        The default loglevel is warning, which means that no messages are displayed. 
+        If you want to see detailed log messages, use loglevel = 'debug'
     
-        Argument:
-            loglevel --- allows the user to select the level of logging messages are displayed. 
-            The default loglevel is warning, which means that no messages are displayed. 
-            If you want to see detailed log messages, use loglevel = 'debug'
-        
-        Methods:
-            load --- load a single dat file into an xarray
-            list_files --- recursively find  all the files in a directory or a google bucket
-            load_all --- load all the files found in a directory or google bucket into an xarray
-    
-        load_all is the most important method. Call it, for example, as follows:
-    
-            import ApRESDefs
-            fd_unattended = ApRESDefs.load.from_dats(loglevel='debug')
-            fd_unattended.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
-                        file_numbers_to_process = [0, 1], 
-                        bursts_to_process=[0, 1]
-           )
-    
-        the resulting xarray will be saved in xa.data.
+    Methods:
+        load --- load a single dat file into an xarray
+        list_files --- recursively find  all the files in a directory or a google bucket
+        load_all --- load all the files found in a directory or google bucket into an xarray
+
+    load_all is the most important method. Call it, for example, as follows:
+
+        import ApRESDefs
+        fd_unattended = ApRESDefs.load.from_dats(loglevel='debug')
+        fd_unattended.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
+                    file_numbers_to_process = [0, 1], 
+                    bursts_to_process=[0, 1]
+        )
+
+    the resulting xarray will be saved in xa.data.
     
     """
     def __init__(self, loglevel='warning'):
@@ -378,7 +378,7 @@ class from_dats():
         for orientation in orientations:
             self.logger.debug(f"Looking for files with orientation {orientation} in directory {directory}")
             
-            if dat_filename is not None:   # this is the caes when this function is supplied with a dat_filename instead of a directory (e.g., when called by from_dats.load())
+            if dat_filename is not None:   # this is the case when this function is supplied with a dat_filename instead of a directory (e.g., when called by from_dats.load())
                 files = [dat_filename]
             else:
                 files = self.list_files(directory=directory, search_suffix=orientation)
