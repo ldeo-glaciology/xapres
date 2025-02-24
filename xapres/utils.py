@@ -121,13 +121,18 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     velocity.attrs['units'] = 'meters/year'
     velocity.attrs['long_name'] = 'Vertical velocity'
 
+    # vertical velocity uncertainty
+    velocity_uncertainty = (disp_uncertainty / dt_years).rename('velocity_uncertainty')
+    velocity_uncertainty.attrs['units'] = 'meters/year'
+    velocity_uncertainty.attrs['long_name'] = 'uncertainty in vertical velocity'
+    
     # strain rates
     strain_rates = velocity.computeStrainRates(max_depth_for_ezz_fit = max_depth_for_ezz_fit, 
                                                min_depth_for_ezz_fit = min_depth_for_ezz_fit, 
                                                lower_limit_on_fit = lower_limit_on_fit)
 
     # combine to an xarray dataset
-    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
+    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, velocity_uncertainty, strain_rates]
     ds = xr.merge(da_list)
 
     # add attributes related to this processing
