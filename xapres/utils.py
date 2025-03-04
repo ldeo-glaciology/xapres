@@ -125,11 +125,12 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     velocity_uncertainty = (disp_uncertainty / dt_years).rename('velocity_uncertainty')
     velocity_uncertainty.attrs['units'] = 'meters/year'
     velocity_uncertainty.attrs['long_name'] = 'uncertainty in vertical velocity'
-    
+
     # strain rates
-    strain_rates = velocity.computeStrainRates(max_depth_for_ezz_fit = max_depth_for_ezz_fit, 
-                                               min_depth_for_ezz_fit = min_depth_for_ezz_fit, 
-                                               lower_limit_on_fit = lower_limit_on_fit)
+    strain_rates = computeStrainRates(xr.merge([velocity, velocity_uncertainty]),
+                                      max_depth_for_ezz_fit = max_depth_for_ezz_fit, 
+                                      min_depth_for_ezz_fit = min_depth_for_ezz_fit, 
+                                      lower_limit_on_fit = lower_limit_on_fit)
 
     # combine to an xarray dataset
     da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, velocity_uncertainty, strain_rates]
@@ -266,7 +267,7 @@ def phase2range(phi,
     """
     return lambdac*phi/(4.*np.pi)
 
-def computeStrainRates(self, 
+def computeStrainRates(ds: xr.Dataset,
                        lower_limit_on_fit: float=None,
                        min_depth_for_ezz_fit: float=None,
                        max_depth_for_ezz_fit: float=None):
@@ -288,19 +289,20 @@ def computeStrainRates(self,
         print("min_depth_for_ezz_fit is greater than max_depth_for_ezz_fit. Swapping the two.")
         min_depth_for_ezz_fit, max_depth_for_ezz_fit = max_depth_for_ezz_fit, min_depth_for_ezz_fit
     
-    velocity_cropped = self\
-            .squeeze()\
-            .where( (self.bin_depth < max_depth_for_ezz_fit) & (self.bin_depth > min_depth_for_ezz_fit))
-    
-    fit_ds = velocity_cropped.polyfit('bin_depth', 1, full = True)
-            
-    strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename('strain_rate')
+    ds_cropped = ds.squeeze().sel( bin_depth = slice(min_depth_for_ezz_fit, max_depth_for_ezz_fit))
 
-    surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename('surface_intercept') 
+    fit_ds = weighted_least_squares(ds)
+
+
+    strain_rate = fit_ds.sel(degree = 0, drop =True).parameters.rename('strain_rate')
+    strain_rate_uncertainty = fit_ds.sel(degree = 0, drop =True).parameter_uncertainty.rename('strain_rate_uncertainty')
+
+    surface_intercept =  fit_ds.sel(degree = 1, drop =True).parameters.rename('surface_intercept') 
+    surface_intercept_uncertainty = fit_ds.sel(degree = 1, drop =True).parameter_uncertainty.rename('surface_intercept_uncertainty')
 
     # R^2
-    y_mean = velocity_cropped.mean(dim = 'bin_depth')
-    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin_depth')
+    y_mean = ds_cropped.velocity.mean(dim = 'bin_depth')
+    SS_tot = ((ds_cropped.velocity - y_mean)**2).sum(dim = 'bin_depth')
     R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename('r_squared')
 
     # add attrs
@@ -318,7 +320,39 @@ def computeStrainRates(self,
     R2.attrs['long_name'] = 'r-squared value for the linear fit'
     R2.attrs['units'] = '-' 
     
-    return xr.merge([strain_rate, surface_intercept, R2])
+    return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2])
+
+def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
+    """
+    Perform weighted least squares fits on velocity profiles. 
+
+    Parameters:
+    - ds (xr.Dataset): The input dataset containing the velocity profiles and associated uncertainties.
+    - deg (int, optional): The degree of the polynomial to fit. Default is 1.
+    - cov (str, optional): The type of covariance matrix to use. Default is 'unscaled'. This produces uncertainties that are true representations of the uncertainty. The other option (cov = "full") produces relative uncertainties. 
+
+    Returns:
+    xr.Dataset: The parameters of the polynomial fit, their uncertainties, and the residuals.
+    """
+
+    def my_polyfit(x, y, sigma, cov, deg=1):
+        p, residuals,  rank, singular_values, rcond = np.polyfit(x, y,  w=1/sigma, deg=deg, full=True)
+        p, V = np.polyfit(x, y,  w=1/sigma, deg=deg, cov=cov)
+        perr = np.sqrt(np.diag(V))
+        return p, perr, residuals
+
+    res = xr.apply_ufunc(
+        my_polyfit,
+        ds.bin_depth,
+        ds.velocity,
+        ds.velocity_uncertainty,
+        input_core_dims=[["bin_depth"], ["bin_depth"], ["bin_depth"]],
+        output_core_dims=[["degree"], ["degree"], ["dummy_dim"]],
+        kwargs = {'deg': deg, 'cov': cov},
+        vectorize=True            
+    )
+    out = [res[0].rename("parameters"), res[1].rename("parameter_uncertainty") , res[2].squeeze().rename("polyfit_residuals")]
+    return xr.merge(out)
 
 def dB(self):
     """
