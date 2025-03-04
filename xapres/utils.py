@@ -291,7 +291,7 @@ def computeStrainRates(ds: xr.Dataset,
     
     ds_cropped = ds.squeeze().sel( bin_depth = slice(min_depth_for_ezz_fit, max_depth_for_ezz_fit))
 
-    fit_ds = weighted_least_squares(ds)
+    fit_ds = weighted_least_squares(ds_cropped)
 
 
     strain_rate = fit_ds.sel(degree = 0, drop =True).parameters.rename('strain_rate')
