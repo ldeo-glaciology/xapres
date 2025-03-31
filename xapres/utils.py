@@ -289,11 +289,11 @@ def computeStrainRates(ds: xr.Dataset,
         print("min_depth_for_ezz_fit is greater than max_depth_for_ezz_fit. Swapping the two.")
         min_depth_for_ezz_fit, max_depth_for_ezz_fit = max_depth_for_ezz_fit, min_depth_for_ezz_fit
     
-    ds_cropped = ds.squeeze().sel( bin_depth = slice(min_depth_for_ezz_fit, max_depth_for_ezz_fit))
+    ds_cropped = ds.squeeze().sel(bin_depth = slice(min_depth_for_ezz_fit, max_depth_for_ezz_fit))
 
     fit_ds = weighted_least_squares(ds_cropped)
 
-
+ 
     strain_rate = fit_ds.sel(degree = 0, drop =True).parameters.rename('strain_rate')
     strain_rate_uncertainty = fit_ds.sel(degree = 0, drop =True).parameter_uncertainty.rename('strain_rate_uncertainty')
 
@@ -320,7 +320,7 @@ def computeStrainRates(ds: xr.Dataset,
     R2.attrs['long_name'] = 'r-squared value for the linear fit'
     R2.attrs['units'] = '-' 
     
-    return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2])
+    return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2, fit_ds.polyfit_residuals])
 
 def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
     """

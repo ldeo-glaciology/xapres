@@ -1,5 +1,12 @@
 # Changelog
 
+## unreleased 
+### Added 
+- add an option to control the minimum depth used in the vertical strain-rates fit in utils.computeStrainRates
+
+### Changed
+- the name of the parameter to control the maximum depth of the data used in strain-rates fit is now max_depth_for_ezz_fit. lower_limit_on_fit still works, but we print a warning that people should use max_depth_for_ezz_fit instead.
+
 ## 0.5.3 - 2025-01-27
 ### Fixed 
 
