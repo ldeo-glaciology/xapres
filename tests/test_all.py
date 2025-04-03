@@ -74,6 +74,41 @@ def test_displacement_calculation():
     ezz_2 = profiles.displacement_timeseries(max_depth_for_ezz_fit=1000).strain_rate
     assert (ezz_1 == ezz_2).all()
 
+def test_strain_rate_calculations():
+    ds = load.generate_xarray('data/sample/multi-burst-dat-file/').mean('chirp_num')
+
+    ds_1_cropped = ds.profile.displacement_timeseries(max_depth_for_ezz_fit = 300, offset = 6).isel(attenuator_setting_pair=1, time=4).sel(bin_depth=slice(0, 300))
+
+    xdata = ds_1_cropped.bin_depth.values
+    ydata = ds_1_cropped.velocity.values
+    sigma = ((ds_1_cropped.velocity_variance)**0.5).values
+
+    popt, pcov = np.polyfit(xdata, ydata, 1, w=1/sigma, cov='unscaled')
+    perr = np.sqrt(np.diag(pcov))
+    slope = popt[0]
+    intercept = popt[1]
+    slope_uncertainty = perr[0]
+    intercept_uncertainty = perr[1]
+
+    assert np.allclose(slope, ds_1_cropped.strain_rate.item())
+    assert np.allclose(intercept, ds_1_cropped.surface_intercept.item())
+    assert np.allclose(slope_uncertainty, ds_1_cropped.strain_rate_uncertainty.item())
+    assert np.allclose(intercept_uncertainty, ds_1_cropped.surface_intercept_uncertainty.item())
+
+    def compute_residuals_weighted(ds):
+        # weighted sum of squared residuals of the least squares fit
+        residuals = ds.velocity - (ds.strain_rate * ds.bin_depth + ds.surface_intercept)
+        return (residuals**2).weighted(1/ds.velocity_variance).sum(dim='bin_depth')
+
+    def r2_weighted(ds):
+        sum_of_square_residuals = compute_residuals_weighted(ds)
+        y_mean = ds.velocity.weighted(1/ds.velocity_variance).mean(dim = 'bin_depth')
+        SS_tot = ((ds.velocity - y_mean)**2).weighted(1/ds.velocity_variance).sum(dim = 'bin_depth')
+        return  (1 - (sum_of_square_residuals/SS_tot)).rename('r_squared')
+    assert np.allclose(r2_weighted(ds_1_cropped), ds_1_cropped.r_squared)
+
+
+
 def test_file_search_methods():
     fs = load.from_dats()   
     data_directory = 'data'
