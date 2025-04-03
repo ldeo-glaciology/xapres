@@ -104,10 +104,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     phase.attrs["long_name"] = "coherence phase"
 
     # compute phase variance
-    ## from https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=838084, eqn 68
-    ### this provides the variance, maybe we should change the name to variance. 
-    ### should also check if it should be 1/abs(coherence) or 1/abs(coherence)**2
-    phase_variance = ((1./abs(coherence))*np.sqrt((1.-abs(coherence)**2.)/(2.*bin_size))).rename('phase_variance')
+    ## from https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=838084, eqn 67
+    ### should check if it should be 1/abs(coherence) or 1/abs(coherence)**2
+    phase_variance = ((1/(abs(coherence)**2))*np.sqrt((1 - abs(coherence)**2)/(2*bin_size))).rename('phase_variance')
     phase_variance.attrs["units"] = "radians^2"
     phase_variance.attrs["long_name"] = "variance in coherence phase"
 
@@ -313,10 +312,27 @@ def computeStrainRates(ds: xr.Dataset,
     fit_ds.strain_rate.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
     fit_ds.strain_rate.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
 
+    fit_ds.strain_rate_variance.attrs['units'] = '1/year'
+    fit_ds.strain_rate_variance.attrs['long_name'] = f"variance in vertical strain rate computed between {min_depth_for_ezz_fit} and {max_depth_for_ezz_fit} m"
+    fit_ds.strain_rate_variance.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.strain_rate_variance.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
     fit_ds.surface_intercept.attrs['units'] = 'meters/year'
     fit_ds.surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
     fit_ds.surface_intercept.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
-    fit_ds.strain_rate.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+    fit_ds.surface_intercept.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
+    fit_ds.surface_intercept_variance.attrs['units'] = 'meters/year'
+    fit_ds.surface_intercept_variance.attrs['long_name'] = 'variance in vertical velocity at the surface from the linear fit'
+    fit_ds.surface_intercept_variance.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.surface_intercept_variance.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
+    fit_ds.r_squared.attrs['units'] = '-'
+    fit_ds.r_squared.attrs['long_name'] = 'r-squared value for the weighted linear fit'
+
+    fit_ds.sum_squared_residuals.attrs['units'] = 'm^2/yr^2'
+    fit_ds.sum_squared_residuals.attrs['long_name'] = 'sum of squared residuals between the weighted linear fit and the velocities'
+
 
     #R2.attrs['long_name'] = 'r-squared value for the weighted linear fit'
     #R2.attrs['units'] = '-' 
@@ -357,8 +373,8 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
     def my_polyfit(x, y, sigma, cov, deg=1):
         #p, residuals,  rank, singular_values, rcond = np.polyfit(x, y,  w=1/sigma, deg=deg, full=True)
         p, V = np.polyfit(x, y,  w=1/sigma, deg=deg, cov=cov)
-        perr = np.sqrt(np.diag(V))
-        return p, perr
+        p_variances = np.sqrt(np.diag(V))
+        return p, p_variances
 
     res = xr.apply_ufunc(
         my_polyfit,
@@ -368,21 +384,22 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
         input_core_dims=[["bin_depth"], ["bin_depth"], ["bin_depth"]],
         output_core_dims=[["degree"], ["degree"]],
         kwargs = {'deg': deg, 'cov': cov},
-        vectorize=True            
+        vectorize=True, 
+        dask = 'parallelized',          
     )
 
     strain_rate = res[0].sel(degree = 0, drop =True).rename('strain_rate')
-    strain_rate_uncertainty = res[1].sel(degree = 0, drop =True).rename('strain_rate_uncertainty')
+    strain_rate_variance = res[1].sel(degree = 0, drop =True).rename('strain_rate_variance')
 
     surface_intercept =  res[0].sel(degree = 1, drop =True).rename('surface_intercept') 
-    surface_intercept_uncertainty = res[1].sel(degree = 1, drop =True).rename('surface_intercept_uncertainty')
+    surface_intercept_variance = res[1].sel(degree = 1, drop =True).rename('surface_intercept_variance')
 
     #sum_squared_residuals = res[2].squeeze().rename("sum_squared_residuals_from_polyfit")
 
     R2 = compute_r_squared(xr.merge([ds.velocity, ds.velocity_variance, strain_rate, surface_intercept]))
 
     #out = [res[0].rename("parameters"), res[1].rename("parameter_uncertainty") , res[2].squeeze().rename("polyfit_residuals")]
-    return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2])
+    return xr.merge([strain_rate, strain_rate_variance, surface_intercept, surface_intercept_variance, R2])
 
 def dB(self):
     """
