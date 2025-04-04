@@ -9,7 +9,9 @@ import dask.array as da
 def displacement_timeseries(self: xr.DataArray, 
                             offset: int=1,  
                             bin_size: int=20, 
-                            lower_limit_on_fit: float=800.0): 
+                            lower_limit_on_fit: float=None,
+                            min_depth_for_ezz_fit: float=None,
+                            max_depth_for_ezz_fit: float=None): 
     """
     Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
@@ -23,10 +25,21 @@ def displacement_timeseries(self: xr.DataArray,
     - self (xr.DataArray): The input data array containing a time series of complex profiles.
     - offset (int, optional): The time offset between the two time series. Default is 1.
     - bin_size (int, optional): Size of the vertical bins. Default is 20.
-
+    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
+    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
+    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    
     Returns:
+
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
+    Notes:
+    Computes the variance of the phase and displacement, and the vertical velocity using the Cramer-Rao bound (Rosen et al., 2000; eqn 68).
+
+
+    References:
+    P. A. Rosen et al., "Synthetic aperture radar interferometry," in Proceedings of the IEEE, vol. 88, no. 3, pp. 333-382, March 2000, doi: 10.1109/5.838084.
+    
     """
     # extract two time series
     profile1_unaligned = self.isel(time=slice(0,-offset))
@@ -36,7 +49,9 @@ def displacement_timeseries(self: xr.DataArray,
     ds = compute_displacement(profile1_unaligned, 
                               profile2_unaligned, 
                               bin_size = bin_size,
-                              lower_limit_on_fit = lower_limit_on_fit)
+                              lower_limit_on_fit = lower_limit_on_fit,
+                              min_depth_for_ezz_fit = min_depth_for_ezz_fit,
+                              max_depth_for_ezz_fit = max_depth_for_ezz_fit)
 
     # add attributes related to the this processing
     ds.attrs["offset"] = offset
@@ -47,15 +62,20 @@ def displacement_timeseries(self: xr.DataArray,
 def compute_displacement(profile1_unaligned: xr.DataArray, 
                         profile2_unaligned: xr.DataArray, 
                         bin_size: int=20, 
-                        lower_limit_on_fit: float=800.0):
+                        lower_limit_on_fit: float=None,
+                        min_depth_for_ezz_fit: float=None,
+                        max_depth_for_ezz_fit: float=None):
     """
-    Compute displacement, coherence, and related uncertainties for binned time series data.
+    Compute displacement, coherence, velocity, strain rates, and related uncertainties from ApRES profiles.
 
     Parameters:
-    - profile1_unaligned (xr.DataArray): Unaligned time series data for the first measurement.
-    - profile2_unaligned (xr.DataArray): Unaligned time series data for the second measurement.
-    - bin_size (int, optional): Size of the vertical bins. Default is 20.
-
+    - profile1_unaligned (xr.DataArray): Complex ApRES profiles from the first measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
+    - profile2_unaligned (xr.DataArray): Complex ApRES profiles from the second measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
+    - bin_size (int, optional): Size of the bins to use when binned the profile data vertically before comparing profiles. Default is 20.
+    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
+    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
+    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    
     Returns:
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
@@ -83,20 +103,20 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     phase.attrs["units"] = "radians"
     phase.attrs["long_name"] = "coherence phase"
 
-    # compute phase uncertainties
-    phase_uncertainty = ((1./abs(coherence))*np.sqrt((1.-abs(coherence)**2.)/(2.*bin_size))).rename('phase_uncertainty')
-    phase_uncertainty.attrs["units"] = "radians"
-    phase_uncertainty.attrs["long_name"] = "uncertainty in coherence phase"
+    # compute phase variance
+    phase_variance = ((1/(abs(coherence)**2))*np.sqrt((1 - abs(coherence)**2)/(2*bin_size))).rename('phase_variance')
+    phase_variance.attrs["units"] = "radians^2"
+    phase_variance.attrs["long_name"] = "variance in coherence phase"
 
     # compute the displacement
     displacement = phase2range(phase).rename("displacement")
     displacement.attrs["units"] = "m"
     displacement.attrs["long_name"] = "displacement since previous measurement"
 
-    # compute the displacement uncertainty
-    disp_uncertainty = phase2range(phase_uncertainty).rename('disp_uncertainty')
-    disp_uncertainty.attrs["units"] = "m"
-    disp_uncertainty.attrs["long_name"] = "uncertainty in displacement since previous measurement"
+    # compute the displacement variance
+    disp_variance = (phase2range(np.sqrt(phase_variance))**2).rename('disp_variance')
+    disp_variance.attrs["units"] = "m^2"
+    disp_variance.attrs["long_name"] = "variance in displacement since previous measurement"
 
     dt_years = ((profiles.profile_time.sel(shot_number=2) - profiles.profile_time.sel(shot_number=1)) / np.timedelta64(1,'D') / 365.25).rename('dt_years')
     dt_years.attrs['units'] = 'years'
@@ -108,11 +128,19 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     velocity.attrs['units'] = 'meters/year'
     velocity.attrs['long_name'] = 'Vertical velocity'
 
+    # vertical velocity variance
+    velocity_variance = ((np.sqrt(disp_variance) / dt_years)**2).rename('velocity_variance')
+    velocity_variance.attrs["units"] = "meters^2/year^2"
+    velocity_variance.attrs["long_name"] = "variance in vertical velocity"
+
     # strain rates
-    strain_rates = velocity.computeStrainRates(lower_limit_on_fit = lower_limit_on_fit)
+    strain_rates = computeStrainRates(xr.merge([velocity, velocity_variance]),
+                                      max_depth_for_ezz_fit = max_depth_for_ezz_fit, 
+                                      min_depth_for_ezz_fit = min_depth_for_ezz_fit, 
+                                      lower_limit_on_fit = lower_limit_on_fit)
 
     # combine to an xarray dataset
-    da_list = [profiles, coherence, phase, phase_uncertainty, displacement, disp_uncertainty, velocity, strain_rates]
+    da_list = [profiles, coherence, phase, phase_variance, displacement, disp_variance, velocity, velocity_variance, strain_rates]
     ds = xr.merge(da_list)
 
     # add attributes related to this processing
@@ -123,7 +151,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     return ds
 
 def combine_profiles(profile1_unaligned, profile2_unaligned):
-    """Combine two timeseries of profiles. In the case of unattended data, record the midpoint time and the time of each computed profile"""
+    """Align two timeseries of ApRES profiles, (in the case of unattended data) recording the midpoint time and the time of each computed profile"""
     
     if 'waypoint' in profile1_unaligned.coords:
         # data is taken in attended mode and we dont need to get the midpoint time and align
@@ -138,10 +166,6 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
             profile1_unaligned = profile1_unaligned.expand_dims(dim="time")
         if 'time' not in profile2_unaligned.dims:
             profile2_unaligned = profile2_unaligned.expand_dims(dim="time")
-
-        #if 'time' not in profile1_unaligned.dims and 'time' in profile1_unaligned.coords:
-            
-        #else:
         
         # record the time interval between measurements
         t1 = profile1_unaligned.time.data
@@ -166,8 +190,17 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
     return profiles
 
 def bin_profiles(profiles, bin_size):
-    """Put the time series into vertical bins"""
+    """
+    Bin ApRES profiles vertically, while computing the depth of the center of each bin.
     
+    Parameters:
+    - profiles (xr.DataArray): The input data array containing a time series of complex profiles.
+    - bin_size (int): Size of the bins measured in number of data points.
+
+    Returns:
+    xr.DataArray: The binned profiles.
+    
+    """
     # Bin in depth
     profiles_binned = profiles.coarsen(profile_range=bin_size, boundary='trim').construct(profile_range=("bin_depth", "sample_in_bin"))
 
@@ -177,77 +210,191 @@ def bin_profiles(profiles, bin_size):
 
     return profiles_binned
 
-def compute_coherence(b1_binned, b2_binned):
-    # compute the coherence
-    top = (b1_binned * np.conj(b2_binned)).sum(dim="sample_in_bin")
-    bottom = np.sqrt( (np.abs(b1_binned)**2).sum(dim="sample_in_bin") * (np.abs(b2_binned)**2).sum(dim="sample_in_bin"))
+def compute_coherence(p1, p2):
+    """
+    Compute the complex coherence between two binned time series of complex profiles. 
+
+    The time series must have previously been binned using `bin_profiles`. 
+
+    Parameters:
+    - p1 (xr.DataArray): The first time series of complex profiles.
+    - p2 (xr.DataArray): The second time series of complex profiles.
+
+    Returns:
+    xr.DataArray: The complex coherence between the two time series of profiles.
+    
+    """  
+
+    top = (p1 * np.conj(p2)).sum(dim="sample_in_bin")
+    bottom = np.sqrt( (np.abs(p1)**2).sum(dim="sample_in_bin") * (np.abs(p2)**2).sum(dim="sample_in_bin"))
 
     return (top/bottom).rename("coherence")
 
 def phase2range(phi, 
-                lambdac=0.5608, 
-                rc=None, 
-                K=2e8, 
-                ci=1.6823e8):
-        """
-        Convert phase difference to range for FMCW radar
-        Parameters
-        ---------
-        lambdac: float
-            wavelength (m) at center frequency
-        rc: float; optional
-            coarse range of bin center (m)
-        K:  float; optional
-            chirp gradient (rad/s/s)
-        ci: float; optional
-            propagation velocity (m/s)
-        ### Original Matlab File Notes ###
-        Craig Stewart
-        2014/6/10
-        
+                lambdac=0.5608):
+    """
+    Convert phase difference to range.
 
-        if not all([K,ci]) or rc is None:
-            # First order method
-            # Brennan et al. (2014) eq 15
-            print('not precise')
-            r = lambdac*phi/(4.*np.pi)
+    Parameters:
+    - phi (xr.DataArray): The phase difference computed in vertical bins between two profiles.
+    - lambdac (float, optional): The wavelength at the center frequency. Default is 0.5608 m.
+
+    Returns:
+    xr.DataArray: The displacement corresponding to the supplied phase differences.
+
+    Notes: 
+    An alternative version of this code, which comes from the original matlab code, offers the choice of computing a 'precise' range. 
+    It does this by taking account (approximately) of both constant terms in the phase difference equation (eqn 13 in Brennan et al. 2014).
+    The third term in that equation is always negligible (see https://github.com/ldeo-glaciology/xapres/blob/master/notebooks/guides/coherence_range.ipynb). 
+    So we neglect it here. For clarity the original code, adapted from Craifg Stewart, 2014/6/10, is included as follows:
+
+    lambdac: float
+        wavelength (m) at center frequency
+    rc: float; optional, default is None
+        coarse range of bin center (m)
+    K:  float; optional, default is 2e8
+        chirp gradient (rad/s/s)
+    ci: float; optional, default is 1.6823e8
+        propagation velocity (m/s)
+
+    ```
+    if not all([K,ci]) or rc is None:
+        # First order method
+        # Brennan et al. (2014) eq 15
+        print('not precise')
+        r = lambdac*phi/(4.*np.pi)
+    else:
+        print('Precise')
+        # From Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
+        r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
+
+    ```
+    """
+    return lambdac*phi/(4.*np.pi)
+
+def computeStrainRates(ds: xr.Dataset,
+                       lower_limit_on_fit: float=None,
+                       min_depth_for_ezz_fit: float=None,
+                       max_depth_for_ezz_fit: float=None):
+    """Compute strain rates from a dataset of ApRES data along with the variance in the strain-rate estimates. For use by the function `compute_displacement`"""
+    
+    # parse inputs
+    if lower_limit_on_fit is not None:
+        print("lower_limit_on_fit is depreciated. Use max_depth_for_ezz_fit instead.")
+        if max_depth_for_ezz_fit is None:
+            max_depth_for_ezz_fit = lower_limit_on_fit           
         else:
-            print('Precise')
-            # Appears to be from Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
-            r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
-        """
-        return lambdac*phi/(4.*np.pi)
+            print(f"Because you also set the value of max_depth_for_ezz_fit (= {max_depth_for_ezz_fit}), this value will be used instead of lower_limit_on_fit.")
 
-def computeStrainRates(self, lower_limit_on_fit = 800):
-    """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
-    velocity_cropped = self\
-            .squeeze()\
-            .where(self.bin_depth < lower_limit_on_fit)
+    if min_depth_for_ezz_fit is None:
+        min_depth_for_ezz_fit = 0.0
+    if max_depth_for_ezz_fit is None:
+        max_depth_for_ezz_fit = 800.0
+
+    if min_depth_for_ezz_fit > max_depth_for_ezz_fit:
+        print("min_depth_for_ezz_fit is greater than max_depth_for_ezz_fit. Swapping the two.")
+        min_depth_for_ezz_fit, max_depth_for_ezz_fit = max_depth_for_ezz_fit, min_depth_for_ezz_fit
     
-    fit_ds = velocity_cropped.polyfit('bin_depth', 1, full = True)
-            
-    strain_rate = fit_ds.sel(degree = 1, drop =True).polyfit_coefficients.rename('strain_rate')
+    # crop profiles
+    ds_cropped = ds.squeeze().sel(bin_depth = slice(min_depth_for_ezz_fit, max_depth_for_ezz_fit))
 
-    surface_intercept =  fit_ds.sel(degree = 0, drop =True).polyfit_coefficients.rename('surface_intercept') 
+    # perform weighted least squares fit
+    fit_ds = weighted_least_squares(ds_cropped)
 
-    # R^2
-    y_mean = velocity_cropped.mean(dim = 'bin_depth')
-    SS_tot = ((velocity_cropped - y_mean)**2).sum(dim = 'bin_depth')
-    R2 = (1 - (fit_ds.polyfit_residuals/SS_tot)).rename('r_squared')
+    # add attributes
+    fit_ds.strain_rate.attrs['units'] = '1/year'
+    fit_ds.strain_rate.attrs['long_name'] = f"vertical strain rate computed between {min_depth_for_ezz_fit} and {max_depth_for_ezz_fit} m"
+    fit_ds.strain_rate.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.strain_rate.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
 
-    # add attrs
-    strain_rate.attrs['units'] = '1/year'
-    strain_rate.attrs['long_name'] = f"vertical strain rate in upper {lower_limit_on_fit} m"
-    strain_rate.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
+    fit_ds.strain_rate_variance.attrs['units'] = '1/year'
+    fit_ds.strain_rate_variance.attrs['long_name'] = f"variance in vertical strain rate computed between {min_depth_for_ezz_fit} and {max_depth_for_ezz_fit} m"
+    fit_ds.strain_rate_variance.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.strain_rate_variance.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
 
-    surface_intercept.attrs['units'] = 'meters/year'
-    surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
-    surface_intercept.attrs['lower_limit_on_fit_meters'] = lower_limit_on_fit
-    
-    R2.attrs['long_name'] = 'r-squared value for the linear fit'
-    R2.attrs['units'] = '-' 
-    
-    return xr.merge([strain_rate, surface_intercept, R2])
+    fit_ds.surface_intercept.attrs['units'] = 'meters/year'
+    fit_ds.surface_intercept.attrs['long_name'] = 'vertical velocity at the surface from the linear fit'
+    fit_ds.surface_intercept.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.surface_intercept.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
+    fit_ds.surface_intercept_variance.attrs['units'] = 'meters/year'
+    fit_ds.surface_intercept_variance.attrs['long_name'] = 'variance in vertical velocity at the surface from the linear fit'
+    fit_ds.surface_intercept_variance.attrs['max_depth_for_ezz_fit_meters'] = max_depth_for_ezz_fit
+    fit_ds.surface_intercept_variance.attrs['min_depth_for_ezz_fit_meters'] = min_depth_for_ezz_fit
+
+    fit_ds.r_squared.attrs['units'] = '-'
+    fit_ds.r_squared.attrs['long_name'] = 'r-squared value for the weighted linear fit'
+
+    fit_ds.sum_squared_residuals.attrs['units'] = 'm^2/yr^2'
+    fit_ds.sum_squared_residuals.attrs['long_name'] = 'sum of squared residuals between the weighted linear fit and the velocities'
+
+
+    return fit_ds
+    #return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2, fit_ds.polyfit_residuals])
+
+def compute_residuals_weighted(ds):
+    """ Compute the weighted sum of squared residuals of the least squares fit."""
+    residuals = ds.velocity - (ds.strain_rate * ds.bin_depth + ds.surface_intercept)
+    return (residuals**2).weighted(1/ds.velocity_variance).sum(dim='bin_depth').rename('sum_squared_residuals')
+
+def compute_r_squared(ds):
+    """ Compute the r-squared value for the weighted least squares fit."""
+    sum_of_square_residuals = compute_residuals_weighted(ds)
+    y_mean = ds.velocity.weighted(1/ds.velocity_variance).mean(dim = 'bin_depth')
+    SS_tot = ((ds.velocity - y_mean)**2).weighted(1/ds.velocity_variance).sum(dim = 'bin_depth')
+    return  xr.merge([(1 - (sum_of_square_residuals/SS_tot)).rename('r_squared'), sum_of_square_residuals])
+
+def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
+    """
+    Perform weighted least squares fits on velocity profiles. 
+
+    Parameters:
+    - ds (xr.Dataset): The input dataset containing the velocity profiles and associated uncertainties.
+    - deg (int, optional): The degree of the polynomial to fit. Default is 1.
+    - cov (str, optional): The type of covariance matrix to use. Default is 'unscaled'. This produces uncertainties that are true representations of the uncertainty. The other option (cov = "full") produces relative uncertainties. 
+
+    Returns:
+    xr.Dataset: The parameters of the polynomial fit, their variances, and the residuals.
+
+    Notes: 
+    The weighting assumes that the uncertainty computed by compute_displacement is the variance of the measurement. 
+    As described in the numpy.polyfit documentation for the case when we want to use inverse-variance weighting, 
+    the weights supplied to polyfit in this function are reciprocal of the **standard deviation**, not the variance itself.
+    So, given that we have the variance, we need to supply 1/sqrt(variance) to polyfit. 
+    """
+
+    def my_polyfit(x, y, sigma, cov, deg=1):
+        #p, residuals,  rank, singular_values, rcond = np.polyfit(x, y,  w=1/sigma, deg=deg, full=True)
+        p, V = np.polyfit(x, y,  w=1/sigma, deg=deg, cov=cov)
+        p_variances = np.diag(V)
+        return p, p_variances
+
+    res = xr.apply_ufunc(
+        my_polyfit,
+        ds.bin_depth,
+        ds.velocity,
+        (ds.velocity_variance)**0.5,
+        input_core_dims=[["bin_depth"], ["bin_depth"], ["bin_depth"]],
+        output_core_dims=[["degree"], ["degree"]],
+        kwargs = {'deg': deg, 'cov': cov},
+        vectorize=True,   
+        dask='parallelized',
+        dask_gufunc_kwargs = {'output_sizes':{'degree': 2}},
+        output_dtypes = [np.dtype(np.float64), np.dtype(np.float64)]
+    )
+
+    strain_rate = res[0].sel(degree = 0, drop =True).rename('strain_rate')
+    strain_rate_variance = res[1].sel(degree = 0, drop =True).rename('strain_rate_variance')
+
+    surface_intercept =  res[0].sel(degree = 1, drop =True).rename('surface_intercept') 
+    surface_intercept_variance = res[1].sel(degree = 1, drop =True).rename('surface_intercept_variance')
+
+    #sum_squared_residuals = res[2].squeeze().rename("sum_squared_residuals_from_polyfit")
+
+    R2 = compute_r_squared(xr.merge([ds.velocity, ds.velocity_variance, strain_rate, surface_intercept]))
+
+    #out = [res[0].rename("parameters"), res[1].rename("parameter_uncertainty") , res[2].squeeze().rename("polyfit_residuals")]
+    return xr.merge([strain_rate, strain_rate_variance, surface_intercept, surface_intercept_variance, R2])
 
 def dB(self):
     """
@@ -310,7 +457,6 @@ def sonify(self,
 
 def addProfileToDs(self: xr.Dataset, **kwargs):
 
-    
     if 'constants' in self.attrs:
         profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
     else:
@@ -323,7 +469,6 @@ def addProfileToDs(self: xr.Dataset, **kwargs):
         out = self
         
     return xr.merge([out, profile], combine_attrs='override')
-
 
 def computeProfile(self: xr.DataArray,
                    pad_factor=2, 

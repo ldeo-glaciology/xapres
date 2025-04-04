@@ -1,5 +1,15 @@
 # Changelog
 
+## unreleased 
+### Added 
+- add an option to control the minimum depth used in the vertical strain-rates fit in utils.computeStrainRates.[362ab82](https://github.com/ldeo-glaciology/xapres/pull/99/commits/362ab827688f613bea457c4cc99af7fe02314bdf)
+- add computation of the variance in the estimates of strain rate and surface intercept when performing linear fits to the vertical velocity profiles. 
+
+### Changed
+- the name of the parameter to control the maximum depth of the data used in strain-rates fit is now max_depth_for_ezz_fit. [lower_limit_on_fit still works, but we print a warning that people should use max_depth_for_ezz_fit instead. [362ab82](https://github.com/ldeo-glaciology/xapres/pull/99/commits/362ab827688f613bea457c4cc99af7fe02314bdf)
+- the least-squares fits to the vertical velocity profiles are now weighted by the inverse of the variance of the estimates of the vertical velocity. 
+- Errors in how we computed the variance in the phase, displacement and vertical velocity were corrected (https://github.com/ldeo-glaciology/xapres/issues/98). [c438bfa](https://github.com/ldeo-glaciology/xapres/pull/99/commits/c438bfa2627e39a92687d36af2705bf7c685c3d3)
+
 ## 0.5.3 - 2025-01-27
 ### Fixed 
 
