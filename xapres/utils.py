@@ -104,8 +104,6 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     phase.attrs["long_name"] = "coherence phase"
 
     # compute phase variance
-    ## from https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=838084, eqn 67
-    ### should check if it should be 1/abs(coherence) or 1/abs(coherence)**2
     phase_variance = ((1/(abs(coherence)**2))*np.sqrt((1 - abs(coherence)**2)/(2*bin_size))).rename('phase_variance')
     phase_variance.attrs["units"] = "radians^2"
     phase_variance.attrs["long_name"] = "variance in coherence phase"
@@ -116,7 +114,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     displacement.attrs["long_name"] = "displacement since previous measurement"
 
     # compute the displacement variance
-    disp_variance = phase2range(phase_variance).rename('disp_variance')
+    disp_variance = (phase2range(np.sqrt(phase_variance))**2).rename('disp_variance')
     disp_variance.attrs["units"] = "m^2"
     disp_variance.attrs["long_name"] = "variance in displacement since previous measurement"
 
@@ -131,7 +129,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     velocity.attrs['long_name'] = 'Vertical velocity'
 
     # vertical velocity variance
-    velocity_variance = (disp_variance / dt_years).rename('velocity_variance')
+    velocity_variance = ((np.sqrt(disp_variance) / dt_years)**2).rename('velocity_variance')
     velocity_variance.attrs["units"] = "meters^2/year^2"
     velocity_variance.attrs["long_name"] = "variance in vertical velocity"
 
@@ -254,7 +252,7 @@ def phase2range(phi,
         wavelength (m) at center frequency
     rc: float; optional, default is None
         coarse range of bin center (m)
-    K:  floa`t; optional, default is 2e8
+    K:  float; optional, default is 2e8
         chirp gradient (rad/s/s)
     ci: float; optional, default is 1.6823e8
         propagation velocity (m/s)
@@ -278,7 +276,7 @@ def computeStrainRates(ds: xr.Dataset,
                        lower_limit_on_fit: float=None,
                        min_depth_for_ezz_fit: float=None,
                        max_depth_for_ezz_fit: float=None):
-    """Compute strain rates from a dataset of ApRES data. For use by the function `compute_displacement`"""
+    """Compute strain rates from a dataset of ApRES data along with the variance in the strain-rate estimates. For use by the function `compute_displacement`"""
     
     # parse inputs
     if lower_limit_on_fit is not None:
@@ -302,9 +300,6 @@ def computeStrainRates(ds: xr.Dataset,
 
     # perform weighted least squares fit
     fit_ds = weighted_least_squares(ds_cropped)
- 
-    ## compute r^2 
-    #R2 = compute_r_squared(ds_cropped)
 
     # add attributes
     fit_ds.strain_rate.attrs['units'] = '1/year'
@@ -334,8 +329,6 @@ def computeStrainRates(ds: xr.Dataset,
     fit_ds.sum_squared_residuals.attrs['long_name'] = 'sum of squared residuals between the weighted linear fit and the velocities'
 
 
-    #R2.attrs['long_name'] = 'r-squared value for the weighted linear fit'
-    #R2.attrs['units'] = '-' 
     return fit_ds
     #return xr.merge([strain_rate, strain_rate_uncertainty, surface_intercept, surface_intercept_uncertainty, R2, fit_ds.polyfit_residuals])
 
@@ -361,7 +354,7 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
     - cov (str, optional): The type of covariance matrix to use. Default is 'unscaled'. This produces uncertainties that are true representations of the uncertainty. The other option (cov = "full") produces relative uncertainties. 
 
     Returns:
-    xr.Dataset: The parameters of the polynomial fit, their uncertainties, and the residuals.
+    xr.Dataset: The parameters of the polynomial fit, their variances, and the residuals.
 
     Notes: 
     The weighting assumes that the uncertainty computed by compute_displacement is the variance of the measurement. 
@@ -373,7 +366,7 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
     def my_polyfit(x, y, sigma, cov, deg=1):
         #p, residuals,  rank, singular_values, rcond = np.polyfit(x, y,  w=1/sigma, deg=deg, full=True)
         p, V = np.polyfit(x, y,  w=1/sigma, deg=deg, cov=cov)
-        p_variances = np.sqrt(np.diag(V))
+        p_variances = np.diag(V)
         return p, p_variances
 
     res = xr.apply_ufunc(
@@ -384,8 +377,10 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
         input_core_dims=[["bin_depth"], ["bin_depth"], ["bin_depth"]],
         output_core_dims=[["degree"], ["degree"]],
         kwargs = {'deg': deg, 'cov': cov},
-        vectorize=True, 
-        dask = 'parallelized',          
+        vectorize=True,   
+        dask='parallelized',
+        dask_gufunc_kwargs = {'output_sizes':{'degree': 2}},
+        output_dtypes = [np.dtype(np.float64), np.dtype(np.float64)]
     )
 
     strain_rate = res[0].sel(degree = 0, drop =True).rename('strain_rate')
@@ -462,7 +457,6 @@ def sonify(self,
 
 def addProfileToDs(self: xr.Dataset, **kwargs):
 
-    
     if 'constants' in self.attrs:
         profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
     else:
@@ -475,7 +469,6 @@ def addProfileToDs(self: xr.Dataset, **kwargs):
         out = self
         
     return xr.merge([out, profile], combine_attrs='override')
-
 
 def computeProfile(self: xr.DataArray,
                    pad_factor=2, 

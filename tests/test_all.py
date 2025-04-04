@@ -87,13 +87,13 @@ def test_strain_rate_calculations():
     perr = np.sqrt(np.diag(pcov))
     slope = popt[0]
     intercept = popt[1]
-    slope_uncertainty = perr[0]
-    intercept_uncertainty = perr[1]
+    slope_sigma = perr[0]
+    intercept_sigma = perr[1]
 
     assert np.allclose(slope, ds_1_cropped.strain_rate.item())
     assert np.allclose(intercept, ds_1_cropped.surface_intercept.item())
-    assert np.allclose(slope_uncertainty, ds_1_cropped.strain_rate_uncertainty.item())
-    assert np.allclose(intercept_uncertainty, ds_1_cropped.surface_intercept_uncertainty.item())
+    assert np.allclose(slope_sigma, ds_1_cropped.strain_rate_variance.item()**0.5)
+    assert np.allclose(intercept_sigma, ds_1_cropped.surface_intercept_variance.item()**0.5)
 
     def compute_residuals_weighted(ds):
         # weighted sum of squared residuals of the least squares fit
