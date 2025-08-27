@@ -3,23 +3,20 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  ############## These will have to be adjusted to your specific project
-  - pytest
-  - gcsfs
-  - numpy
-  - xarray
-  - pandas
-  - tqdm
-  - pip
-  - zarr
+  - numpy=2.0.*
+  - pandas=2.2.*
+  - xarray>=2024.10
   - dask
+  - zarr
   - scipy
-  - netCDF4
+  - netcdf4
   - fsspec
+  - gcsfs
+  - pytest
+  - tqdm
+  - ipympl
+  - pytest-cov
+  - coverage
+  - pip
   - pip:
-    - ipympl
-    - sounddevice
-    - soundfile
-    - codecov
-    - pytest-cov
-    - coverage[toml]
+      - codecov
