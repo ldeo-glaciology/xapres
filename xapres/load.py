@@ -154,7 +154,7 @@ class from_dats():
             dat_filenames_without_gs_prefix = fs.glob(self.directory + '/**/*' + search_suffix + '.[dD][aA][tT]', recursive = True)
             dat_filenames = ['gs://' + x for x in dat_filenames_without_gs_prefix]
         else:
-            dat_filenames = glob.glob(self.directory + '/**/*' + search_suffix  +'.[dD][aA][tT]', recursive = True)
+            dat_filenames = glob.glob(self.directory + '/**/*' + search_suffix  +'*.[dD][aA][tT]', recursive = True)
         
         self.dat_filenames = dat_filenames
         
@@ -384,45 +384,52 @@ class from_dats():
                 files = self.list_files(directory=directory, search_suffix=orientation)
 
             if len(files) != 1:
-                raise Exception(f'There should by one dat file for each orientation in each directory when loading in attended mode. We found {len(files)} files.')
+                self.logger.debug(f'There should by one dat file for each orientation in each directory when loading in attended mode. \n We found {len(files)} files for orientation {orientation} in this directory: {directory}.\
+                                \n The files we found were: {files}. \
+                                \n We will skip this orientation and continue to the next one.\
+                                \n the data will appear as nans in the xarray.')
+            else:
+
+                with ap.ApRESFile(files[0]) as self.f: 
+                    self.f.read()
+
+                self.header_cleaning()
+                
+                if len(self.f.bursts) != 1:
+                    raise Exception(f'There should only be one burst in each dat file when loading in attended mode. We found {len(self.f.bursts)} bursts in this dat file: {files}.')
             
-            with ap.ApRESFile(files[0]) as self.f: 
-                self.f.read()
+                burst = self.f.bursts[0]
+                filename = os.path.basename(self.f.path)
+                folder_name = os.path.basename(os.path.dirname(self.f.path))
 
-            self.header_cleaning()
-            
-            if len(self.f.bursts) != 1:
-                raise Exception(f'There should only be one burst in each dat file when loading in attended mode. We found {len(self.f.bursts)} bursts in this dat file: {files}.')
-        
-            burst = self.f.bursts[0]
-            filename = os.path.basename(self.f.path)
-            folder_name = os.path.basename(os.path.dirname(self.f.path))
+                singleorientation_attended_xarray = xr.Dataset(
+                    data_vars=dict(
+                        chirp           = (["orientation", "waypoint", "chirp_num",  "attenuator_setting_pair", "chirp_time"], self.burst_data(burst)/2**16*2.5-1.25),
+                        latitude        = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
+                        longitude       = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
+                        battery_voltage = (["orientation", "waypoint"], np.array(burst.header['BatteryVoltage'], ndmin = 2)),
+                        temperature_1   = (["orientation", "waypoint"], np.array(burst.header['Temp1'], ndmin = 2)),
+                        temperature_2   = (["orientation", "waypoint"], np.array(burst.header['Temp2'], ndmin = 2))
+                    ),
+                    coords=dict(
+                        time                  = (["orientation", "waypoint"], np.array(self._timestamp_from_burst(burst), ndmin = 2)),
+                        chirp_time            = self.chirptime_from_burst(burst),
+                        chirp_num             = np.arange(burst.header['NSubBursts']),
+                        filename              = (["orientation", "waypoint"], np.array(filename, ndmin = 2)), 
+                        folder_name           = (["orientation", "waypoint"], np.array(folder_name, ndmin = 2)),
+                        AFGain                = (["attenuator_setting_pair"], burst.header['AFGain'][0:burst.header['nAttenuators']]),
+                        attenuator            = (["attenuator_setting_pair"], burst.header['Attenuator1'][0:burst.header['nAttenuators']]),                   
+                        orientation           = [orientation],
+                        waypoint              = [waypoint_number]
+                    ),
+                )
 
-            singleorientation_attended_xarray = xr.Dataset(
-                data_vars=dict(
-                    chirp           = (["orientation", "waypoint", "chirp_num",  "attenuator_setting_pair", "chirp_time"], self.burst_data(burst)/2**16*2.5-1.25),
-                    latitude        = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
-                    longitude       = (["orientation", "waypoint"], np.array(burst.header['Latitude'], ndmin = 2)),
-                    battery_voltage = (["orientation", "waypoint"], np.array(burst.header['BatteryVoltage'], ndmin = 2)),
-                    temperature_1   = (["orientation", "waypoint"], np.array(burst.header['Temp1'], ndmin = 2)),
-                    temperature_2   = (["orientation", "waypoint"], np.array(burst.header['Temp2'], ndmin = 2))
-                ),
-                coords=dict(
-                    time                  = (["orientation", "waypoint"], np.array(self._timestamp_from_burst(burst), ndmin = 2)),
-                    chirp_time            = self.chirptime_from_burst(burst),
-                    chirp_num             = np.arange(burst.header['NSubBursts']),
-                    filename              = (["orientation", "waypoint"], np.array(filename, ndmin = 2)), 
-                    folder_name           = (["orientation", "waypoint"], np.array(folder_name, ndmin = 2)),
-                    AFGain                = (["attenuator_setting_pair"], burst.header['AFGain'][0:burst.header['nAttenuators']]),
-                    attenuator            = (["attenuator_setting_pair"], burst.header['Attenuator1'][0:burst.header['nAttenuators']]),                   
-                    orientation           = [orientation],
-                    waypoint              = [waypoint_number]
-                ),
-            )
+                self.current_burst = burst
+                if len(orientations) > 1 and len(singleorientation_attended_xarray.attenuator_setting_pair)>1:
+                    self.logger.debug(f"This is polarimetric data, but attenuator setting pair is greater than 1, so we will crop the xarray to the first attenuator setting pair.")
+                    singleorientation_attended_xarray = singleorientation_attended_xarray.isel(attenuator_setting_pair=0)
 
-            self.current_burst = burst
-
-            list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
+                list_of_singleorientation_attended_xarrays.append(singleorientation_attended_xarray)
         
         return xr.concat(list_of_singleorientation_attended_xarrays, dim='orientation')
     
@@ -514,12 +521,26 @@ class from_dats():
 
     def _get_orientation(self, filename):
         """Get the orientation of the antenna from the filename"""
-        orientation = filename[-6:-4]
+        #orientation = filename[-6:-4]
         #add function to make sure orientation is capitalized
 
-        #if no orientation at end of filename, mark as unknown
-        if orientation not in ['HH','HV','VH','VV']:
+        # if hv or HV is in the filename, change to HV
+        filename_upper = filename.upper()
+        if 'HV' in filename_upper:
+            orientation = 'HV'
+        elif 'VH' in filename_upper:
+            orientation = 'VH'
+        elif 'HH' in filename_upper:
+            orientation = 'HH'
+        elif 'VV' in filename_upper:
+            orientation = 'VV'
+        else:
             orientation = 'unknown'
+
+
+        #if no orientation at end of filename, mark as unknown
+        #if orientation not in ['HH','HV','VH','VV']:
+        #    orientation = 'unknown'
 
         return orientation
      
