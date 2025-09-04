@@ -252,7 +252,7 @@ class from_dats():
             self.logger.debug("Attended is True, so starting loop over directories (each corresponding to a waypoint)")
             list_of_singlewaypoint_xarrays = [
                 self.all_bursts_at_waypoint_to_xarray(directory=directory, waypoint_number=waypoint_number)
-                for waypoint_number, directory in enumerate(directory_list, start=1)
+                for waypoint_number, directory in tqdm(enumerate(directory_list, start=1), disable=disable_progress_bar)
             ]   
             
             self.logger.debug(f"Attended is True, so concatenating all the single-waypoint xarrays along the waypoint dimension, to create xapres.data")
