@@ -35,33 +35,95 @@ def displacement_timeseries(self: xr.DataArray,
                             min_depth_for_ezz_fit: float=None,
                             max_depth_for_ezz_fit: float=None): 
     """
-    Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
+    Compute displacement timeseries and strain rates from complex ApRES profiles.
 
-    Profiles offset by a user-defined number of time steps are compared to compute the time series of displacement. 
+    This function performs radar interferometry analysis on a time series of complex
+    ApRES profiles to compute ice displacement, vertical velocities, and strain rates.
+    It uses phase differences between profile pairs separated by a user-defined time
+    offset to estimate ice motion.
+
+    The analysis follows established radar interferometry principles, computing coherence,
+    phase differences, and their associated uncertainties. Displacement measurements are
+    binned vertically and used to estimate strain rates through weighted least squares
+    fitting.
+
+    Parameters
+    ----------
+    self : xarray.DataArray
+        Time series of complex ApRES profiles with dimensions including 'time' and
+        'profile_range'. Should contain complex-valued radar returns from FFT processing.
+    offset : int, optional
+        Number of time steps between profile pairs used for displacement calculation.
+        Larger offsets provide longer baselines but reduce temporal resolution.
+        Default is 1.
+    bin_size : int, optional
+        Number of range samples to bin together vertically before analysis. Larger
+        bins improve coherence but reduce spatial resolution. Default is 20.
+    min_depth_for_ezz_fit : float, optional
+        Minimum depth in meters for strain rate fitting. Default is 0.0 (surface).
+    max_depth_for_ezz_fit : float, optional
+        Maximum depth in meters for strain rate fitting. Default is 800.0.
+    lower_limit_on_fit : float, optional
+        **Deprecated**: Use max_depth_for_ezz_fit instead. Maintained for backward
+        compatibility.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset containing displacement analysis results with the following variables:
+        
+        - coherence : Complex coherence between profile pairs
+        - phase : Phase difference in radians  
+        - displacement : Displacement in meters
+        - velocity : Vertical velocity in meters/year
+        - strain_rate : Vertical strain rate in 1/year
+        - phase_variance : Phase uncertainty in radians²
+        - disp_variance : Displacement uncertainty in meters²
+        - velocity_variance : Velocity uncertainty in (meters/year)²
+        - strain_rate_variance : Strain rate uncertainty in (1/year)²
+        - surface_intercept : Surface velocity from linear fit in meters/year
+        - r_squared : R² value for strain rate fit
+
+    Examples
+    --------
+    Basic displacement analysis with default parameters:
     
-    The time interval between outputted profiles is offset*dt where dt is the time between measurements. 
-
-    The profiles of displacement etc. are binned in depth, with bin_size samples in each bin.
-
-    Parameters:
-    - self (xr.DataArray): The input data array containing a time series of complex profiles.
-    - offset (int, optional): The time offset between the two time series. Default is 1.
-    - bin_size (int, optional): Size of the vertical bins. Default is 20.
-    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
-    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
-    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    >>> profiles = dataset.profile.isel(chirp_num=0, attenuator_setting_pair=0)
+    >>> displacement_data = profiles.displacement_timeseries()
+    >>> print(displacement_data.displacement.dims)
     
-    Returns:
-
-    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
-
-    Notes:
-    Computes the variance of the phase and displacement, and the vertical velocity using the Cramer-Rao bound (Rosen et al., 2000; eqn 68).
-
-
-    References:
-    P. A. Rosen et al., "Synthetic aperture radar interferometry," in Proceedings of the IEEE, vol. 88, no. 3, pp. 333-382, March 2000, doi: 10.1109/5.838084.
+    Custom analysis with larger offset and different bin size:
     
+    >>> displacement_data = profiles.displacement_timeseries(
+    ...     offset=3, 
+    ...     bin_size=30,
+    ...     max_depth_for_ezz_fit=500
+    ... )
+    >>> displacement_data.strain_rate.plot()
+    
+    High-resolution analysis with small bins:
+    
+    >>> displacement_data = profiles.displacement_timeseries(
+    ...     bin_size=10,
+    ...     min_depth_for_ezz_fit=50,
+    ...     max_depth_for_ezz_fit=300
+    ... )
+
+    Notes
+    -----
+    The method implements radar interferometry following Rosen et al. (2000), using
+    the Cramer-Rao bound to estimate phase and displacement uncertainties. The time
+    interval between output profiles is offset × dt, where dt is the measurement
+    interval.
+
+    Strain rates are computed using weighted least squares fitting of the velocity
+    profile, with weights derived from displacement uncertainties. The fitting range
+    can be controlled via the depth limit parameters.
+
+    References
+    ----------
+    P. A. Rosen et al., "Synthetic aperture radar interferometry," Proceedings of 
+    the IEEE, vol. 88, no. 3, pp. 333-382, March 2000, doi: 10.1109/5.838084.
     """
     # extract two time series
     profile1_unaligned = self.isel(time=slice(0,-offset))
@@ -506,42 +568,123 @@ def computeProfile(self: xr.DataArray,
                    max_range=None,
                    constants={}):
     """
-    Compute profiles from chirp data.
-    -----------
-    self : xr.DataArray
-        The input chirp data array.
+    Compute complex radar profiles from raw chirp data using FFT processing.
+
+    This function converts time-domain chirp signals from ApRES into frequency-domain
+    radar profiles through a series of signal processing steps. The processing pipeline
+    includes windowing, padding, FFT transformation, and range referencing to produce
+    complex profiles suitable for interferometric analysis.
+
+    The function implements the standard processing chain for FMCW (Frequency Modulated
+    Continuous Wave) radar data, converting beat frequencies in the de-ramped chirps
+    into range-resolved reflectivity profiles.
+
+    Parameters
+    ----------
+    self : xarray.DataArray
+        Input chirp data array with dimensions including 'chirp_time'. Should contain
+        de-ramped chirp signals with voltage values from the radar receiver.
     pad_factor : int, optional
-        Factor by which to pad the chirp data (default is 2).
+        Zero-padding factor applied before FFT to improve range resolution.
+        Higher values increase computational cost but improve interpolation.
+        Default is 2.
     drop_noisy_chirps : bool, optional
-        Whether to drop noisy chirps (default is False).
+        Whether to exclude chirps that exceed the clipping threshold. Helps remove
+        corrupted or saturated measurements. Default is False.
     clip_threshold : float, optional
-        Threshold for clipping noisy chirps (default is 1.2).
+        Voltage threshold for identifying noisy/clipped chirps. Only used when
+        drop_noisy_chirps is True. Default is 1.2 volts.
     min_chirps : int, optional
-        Minimum number of chirps required to keep a burst (default is 20).
+        Minimum number of valid chirps required to retain a burst after noise
+        filtering. Default is 0 (no minimum).
     demean : bool, optional
-        Whether to demean the chirp data (default is False).
+        Whether to remove the DC component (mean) from each chirp before processing.
+        Recommended for most applications. Default is True.
     detrend : bool, optional
-        Whether to detrend the chirp data (default is False).
+        Whether to remove linear trends from chirp data. Can help with drift issues
+        but may affect signal content. Default is False.
     stack : bool, optional
-        Whether to stack the chirp data (default is False).
+        Whether to average all chirps within a burst before FFT processing.
+        Improves SNR but removes information about individual chirps. Default is False.
     scale_for_window : bool, optional
-        Whether to scale the chirp data for the window (default is True).
-        This is only an option to allow tests to effectively compare the output of 
-        this function with the output of the legacy fft method.
+        Whether to apply amplitude scaling to compensate for windowing effects.
+        Default is True. Set to False only for comparison with legacy methods.
     crop_chirp_start : float, optional
-        Start time for cropping chirps in seconds (default is 0, the start of the chirp).
+        Start time in seconds for cropping chirps before processing. Default is 0
+        (use full chirp from beginning).
     crop_chirp_end : float, optional
-        End time for cropping chirps in seconds (default is 1, the end f the chirp).
+        End time in seconds for cropping chirps. Default is 1 (use full chirp).
+        Values < 1 crop the chirp duration.
     max_range : float, optional
-        Maximum range for the profile in meters (default is None).
+        Maximum range in meters for the output profile. If None, uses half the
+        full range to avoid aliasing. Default is None.
     constants : dict, optional
-        Dictionary of user-defined constants for the radar system. 
-        Any constants that are not supplied in constants are defined in default_constants()
-    
-    Returns:
+        Dictionary of radar system constants to override defaults. Can include
+        'c' (speed of light), 'ep' (ice permittivity), 'K' (chirp rate), etc.
+        Missing constants are filled with default values.
+
+    Returns
+    -------
+    xarray.DataArray
+        Complex radar profile with 'profile_range' coordinate in meters.
+        The profile contains complex reflectivity values where amplitude represents
+        backscatter strength and phase contains interferometric information.
+        
+        Attributes include:
+        - long_name : 'profile'
+        - units : '-' (dimensionless)
+        - description : Processing description
+        - constants : Dictionary of radar constants used
+
+    Examples
     --------
-    xr.DataArray
-        The computed radar profile with range as the coordinate.
+    Basic profile computation with default settings:
+    
+    >>> chirps = dataset.chirp.isel(time=0, attenuator_setting_pair=0)
+    >>> profile = chirps.computeProfile()
+    >>> profile.abs().plot()  # Plot amplitude
+    
+    High-resolution processing with more padding:
+    
+    >>> profile = chirps.computeProfile(
+    ...     pad_factor=4,
+    ...     demean=True,
+    ...     max_range=800
+    ... )
+    
+    Quality-controlled processing:
+    
+    >>> profile = chirps.computeProfile(
+    ...     drop_noisy_chirps=True,
+    ...     clip_threshold=1.0,
+    ...     min_chirps=15,
+    ...     stack=True
+    ... )
+    
+    Custom radar constants:
+    
+    >>> constants = {'c': 3e8, 'ep': 3.2, 'f_c': 300e6}
+    >>> profile = chirps.computeProfile(constants=constants)
+
+    Notes
+    -----
+    The processing follows these main steps:
+    1. Chirp cropping and quality filtering
+    2. DC removal and/or detrending if requested
+    3. Windowing with Blackman window
+    4. Zero-padding to improve resolution
+    5. FFT transformation to frequency domain
+    6. Range referencing and phase correction
+    7. Conversion to range coordinates
+    8. Cropping to specified maximum range
+
+    The range calculation assumes a linear frequency sweep and uses the radar
+    equation for FMCW systems. The complex output preserves both amplitude and
+    phase information needed for interferometric analysis.
+
+    For large datasets, consider using dask arrays to manage memory usage during
+    processing. The function automatically handles dask arrays and loads them
+    before FFT operations.
     """
 
     constants = default_constants() | constants

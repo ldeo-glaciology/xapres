@@ -298,9 +298,79 @@ class from_dats():
             bursts_to_process="All",
             attended=False,
             polarmetric=False,
-            max_range = None,
-            computeProfiles = True,
-            addProfileToDs_kwargs = {}):
+            max_range=None,
+            computeProfiles=True,
+            addProfileToDs_kwargs={}):
+        """
+        Load a single .dat file into an xarray dataset.
+        
+        This method loads and processes a single ApRES .dat file, handling both attended
+        and unattended measurement modes. It performs header cleaning, data corrections,
+        and optionally computes radar profiles from the raw chirp data.
+        
+        Parameters
+        ----------
+        dat_filename : str
+            Path to the .dat file to load. Can be a local path or cloud storage URL.
+        bursts_to_process : str or list of int, optional
+            Bursts to process from the file. Default "All" processes all available
+            bursts. Can be a single integer or list of integers for specific bursts.
+        attended : bool, optional
+            Whether the data was collected in attended mode (single burst per file
+            at fixed waypoints). Default False assumes unattended mode.
+        polarmetric : bool, optional
+            Whether to process polarimetric data with different antenna orientations.
+            Default False.
+        max_range : float, optional
+            Maximum range in meters for profile computation. If None, uses full range
+            available in the data.
+        computeProfiles : bool, optional
+            Whether to compute radar profiles from chirp data using FFT processing.
+            Default True.
+        addProfileToDs_kwargs : dict, optional
+            Additional keyword arguments passed to the profile computation function.
+            Can include options like 'pad_factor', 'demean', 'detrend', etc.
+            
+        Returns
+        -------
+        xarray.Dataset
+            Processed ApRES dataset containing the loaded data with proper coordinates,
+            metadata, and optionally computed profiles. The dataset is also stored
+            in the instance's `data` attribute.
+            
+        Examples
+        --------
+        Load a single file with default settings:
+        
+        >>> fd = from_dats()
+        >>> ds = fd.load('data/DATA2023-01-01-1200.DAT')
+        >>> print(ds.dims)
+        
+        Load specific bursts with custom processing:
+        
+        >>> ds = fd.load('data/DATA2023-01-01-1200.DAT',
+        ...               bursts_to_process=[0, 2, 4],
+        ...               max_range=800,
+        ...               addProfileToDs_kwargs={'demean': True})
+        
+        Load attended mode data:
+        
+        >>> ds = fd.load('waypoint_1/DATA2023-01-01-1200.DAT',
+        ...               attended=True,
+        ...               computeProfiles=True)
+        
+        Notes
+        -----
+        This method automatically performs several data corrections:
+        - Header cleaning and standardization
+        - Temperature data correction for values above threshold
+        - Data type conversion for chirp times
+        - Addition of coordinate and variable attributes
+        
+        The resulting dataset includes dimensions for time, chirp_time, chirp_num,
+        and attenuator_setting_pair, with data variables for chirps, GPS coordinates,
+        temperatures, and other instrument measurements.
+        """
         
         self.max_range = max_range
         self.attended = attended
@@ -326,11 +396,56 @@ class from_dats():
                    directory=None, 
                    search_suffix=""
                    ):    
-        """Recursively list all the .DAT files in a given location dir. 
+        """
+        Recursively discover all .dat files in a directory or cloud bucket.
         
-        Arguments:
-        directory -- the directory that will be looked in recursivly to find .DAT files.
-        search_suffix -- a string that can be used to search for files with a specific suffix.
+        This method searches for ApRES .dat files in the specified location, handling
+        both local directories and cloud storage buckets. It supports case-insensitive
+        file extension matching and optional filename filtering.
+        
+        Parameters
+        ----------
+        directory : str, optional
+            Directory or cloud bucket URL to search for .dat files. If None, uses
+            the current working directory. For cloud storage, use format like
+            "gs://bucket-name/path/".
+        search_suffix : str, optional
+            Additional filename suffix to filter results. For example, "HH" to find
+            only files containing "HH" in the name (useful for polarimetric data).
+            Default is empty string (no filtering).
+            
+        Returns
+        -------
+        list of str
+            List of full paths to discovered .dat files. Paths include appropriate
+            prefixes (e.g., "gs://" for cloud files). The list is also stored in
+            the instance's `dat_filenames` attribute.
+            
+        Examples
+        --------
+        List files in a local directory:
+        
+        >>> fd = from_dats()
+        >>> files = fd.list_files('data/apres_site_A/')
+        >>> print(f"Found {len(files)} files")
+        
+        List files in a cloud bucket:
+        
+        >>> files = fd.list_files('gs://my-bucket/apres/2023/')
+        >>> print(files[:3])  # Show first 3 files
+        
+        Filter files by suffix (e.g., polarimetric orientation):
+        
+        >>> hh_files = fd.list_files('data/polarimetric/', search_suffix='HH')
+        >>> vv_files = fd.list_files('data/polarimetric/', search_suffix='VV')
+        
+        Notes
+        -----
+        - File extension matching is case-insensitive (.dat, .DAT, .Dat all match)
+        - For cloud storage, requires appropriate authentication/credentials
+        - The search is recursive, finding files in all subdirectories
+        - Results are cached in the `dat_filenames` attribute for later use
+        - Sets the `remote_load` attribute based on whether cloud URLs are detected
         """
 
         self.logger.debug(f"Find all the dat files in the directory {directory}")
