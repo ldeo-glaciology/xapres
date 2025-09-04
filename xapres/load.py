@@ -1,5 +1,28 @@
 """
-For loading ApRES data from .dat files or zarr directories into an xarray dataset.
+Loading ApRES data from .dat files or Zarr directories into xarray datasets.
+
+This module provides functions and classes for loading Autonomous phase-sensitive Radio-Echo 
+Sounder (ApRES) data from various sources. It handles both local and cloud-based storage,
+supports attended and unattended measurement modes, and provides extensive options for
+data processing and quality control.
+
+The main entry points are:
+- `generate_xarray()` - Simple function for loading data with minimal configuration
+- `load_zarr()` - Load pre-processed data from Zarr format
+- `from_dats` class - Full-featured class for advanced loading and processing
+
+The module integrates with the BAS ApRES library for low-level file access and provides
+xarray-based data structures with proper metadata, coordinates, and attributes for
+scientific analysis workflows.
+
+Key features:
+- Support for both local and Google Cloud Storage file access
+- Automatic file discovery and batch processing
+- Configurable burst and file selection
+- Temperature and data type corrections
+- Profile computation from chirp data
+- Polarimetric data handling
+- Extensive logging and error handling
 """
 
 import os
@@ -16,21 +39,56 @@ import datetime
 
 import apres as ap
 
-def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
+def load_zarr(directory="gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
     """
     Load a Zarr dataset from the specified directory.
+    
+    This function loads pre-processed ApRES data stored in Zarr format, which provides
+    efficient access to large, chunked datasets especially when stored in cloud buckets.
+    Zarr format preserves all metadata and coordinates while enabling selective loading
+    of data subsets.
+    
     Parameters
     ----------
     directory : str, optional
-        The path to the Zarr dataset. Default is "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101".
+        The path to the Zarr dataset. Can be a local path or cloud storage URL.
+        Default is "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101".
+        
     Returns
     -------
     xarray.Dataset
-        The loaded dataset.
+        The loaded ApRES dataset with all original coordinates, data variables, and
+        attributes preserved. The dataset structure follows xapres conventions with
+        dimensions for time, range, chirp numbers, and attenuator settings.
+        
     Examples
     --------
-    >>> ds = load_zarr("gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101")
+    Load data from the default cloud location:
+    
+    >>> ds = load_zarr()
     >>> print(ds)
+    
+    Load from a local Zarr store:
+    
+    >>> ds = load_zarr("/path/to/local/data.zarr")
+    >>> print(ds.dims)
+    
+    Load from a different cloud bucket:
+    
+    >>> ds = load_zarr("gs://my-bucket/apres/site_A/processed.zarr")
+    >>> ds.profile.plot()
+    
+    Notes
+    -----
+    This function uses xarray's Zarr engine with empty chunks dictionary to load
+    the entire dataset into memory. For large datasets, consider using dask-backed
+    loading by opening the dataset directly with xarray.open_dataset().
+    
+    The Zarr format is particularly useful for:
+    - Storing large processed datasets efficiently
+    - Sharing data across different computing environments  
+    - Selective loading of temporal or spatial subsets
+    - Preserving complex metadata and coordinate systems
     """
     return xr.open_dataset(directory,
             engine = 'zarr', 
@@ -42,14 +100,86 @@ def generate_xarray(directory=None,
                  bursts_to_process="All",
                  attended=False, 
                  polarmetric=False,
-                 max_range = None,
-                 computeProfiles = True,
-                 addProfileToDs_kwargs = {},
-                 loglevel = 'warning'
+                 max_range=None,
+                 computeProfiles=True,
+                 addProfileToDs_kwargs={},
+                 loglevel='warning'
                  ):
-    """ Load data from multiple .dat files into an xarray dataset.
+    """
+    Load data from multiple .dat files into an xarray dataset.
 
-    This is simple wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.
+    This is a simple wrapper for from_dats.load_all that simplifies the process of 
+    loading ApRES data into an xarray dataset. It handles the most common use cases
+    without requiring explicit initialization of the from_dats object.
+
+    Parameters
+    ----------
+    directory : str, optional
+        Directory containing .dat files to load. Can be a local path or cloud storage
+        URL (e.g., "gs://bucket/path"). If None, uses current working directory.
+    file_numbers_to_process : list of int, optional
+        List of file indices to process from the discovered files. Cannot be used
+        together with file_names_to_process. If None, processes all files.
+    file_names_to_process : list of str, optional  
+        List of specific file names/paths to process. Cannot be used together with
+        file_numbers_to_process. If None, processes all files.
+    bursts_to_process : str or list of int, optional
+        Burst numbers to process from each file. Default "All" processes all bursts.
+        Can be a single integer or list of integers for specific bursts.
+    attended : bool, optional
+        Whether data was collected in attended mode (one burst per file at fixed
+        locations) or unattended mode (multiple bursts per file). Default False.
+    polarmetric : bool, optional
+        Whether to process polarimetric data with different antenna orientations
+        (HH, HV, VH, VV). Default False.
+    max_range : float, optional
+        Maximum range in meters for profile computation. If None, uses full range.
+    computeProfiles : bool, optional
+        Whether to compute radar profiles from chirp data using FFT processing.
+        Default True.
+    addProfileToDs_kwargs : dict, optional
+        Additional keyword arguments passed to profile computation function.
+        Can include parameters like 'pad_factor', 'demean', 'detrend', etc.
+    loglevel : str, optional
+        Logging level for diagnostic messages. Options: 'debug', 'info', 'warning',
+        'error'. Default 'warning' shows only warnings and errors.
+
+    Returns
+    -------
+    xarray.Dataset
+        Processed ApRES dataset with dimensions for time, range, chirp numbers,
+        and attenuator settings. Includes data variables for chirps, profiles
+        (if computed), and metadata like GPS coordinates and instrument settings.
+
+    Examples
+    --------
+    Load all files from a directory with default settings:
+    
+    >>> ds = generate_xarray(directory='data/apres_site_A/')
+    >>> print(ds)
+    
+    Load specific files with profile computation:
+    
+    >>> ds = generate_xarray(
+    ...     directory='gs://bucket/apres/',
+    ...     file_numbers_to_process=[0, 1, 2],
+    ...     bursts_to_process=[0, 1],
+    ...     computeProfiles=True
+    ... )
+    
+    Load attended mode data with custom processing:
+    
+    >>> ds = generate_xarray(
+    ...     directory='data/waypoints/',
+    ...     attended=True,
+    ...     max_range=500,
+    ...     addProfileToDs_kwargs={'demean': True, 'pad_factor': 4}
+    ... )
+
+    See Also
+    --------
+    from_dats.load_all : Full-featured loading with more control options
+    load_zarr : Load pre-processed data from Zarr format
     """
 
     fd = from_dats(loglevel=loglevel)
@@ -69,33 +199,96 @@ def generate_xarray(directory=None,
     return fd.data
 
 class from_dats():
-    
     """
-    An object containing ApRES data loaded from a dat file or many dat files, along with information about the data. 
+    A class for loading and processing ApRES data from .dat files into xarray datasets.
     
-    Can be instantiated with 2 optional keyword arguments, loglevel and max_range
+    This class provides comprehensive functionality for loading Autonomous phase-sensitive
+    Radio-Echo Sounder (ApRES) data from various sources including local storage and cloud
+    buckets. It handles file discovery, data loading, quality control, and conversion to
+    xarray datasets with proper metadata and coordinates.
 
-    Argument:
-        loglevel --- allows the user to select the level of logging messages are displayed. 
-        The default loglevel is warning, which means that no messages are displayed. 
-        If you want to see detailed log messages, use loglevel = 'debug'
+    The class supports both attended mode (single burst per file at fixed waypoints) and
+    unattended mode (multiple bursts per file in time series), as well as polarimetric
+    measurements with different antenna orientations.
+
+    Parameters
+    ----------
+    loglevel : str, optional
+        Controls the verbosity of logging messages. Options are:
+        - 'debug': Detailed diagnostic information
+        - 'info': General information about processing steps  
+        - 'warning': Only warnings and errors (default)
+        - 'error': Only error messages
+        Default is 'warning'.
+
+    Attributes
+    ----------
+    data : xarray.Dataset
+        The loaded and processed ApRES dataset, available after calling load() or load_all().
+    dat_filenames : list of str
+        List of discovered .dat files, populated by list_files().
+    dat_filenames_to_process : list of str
+        Subset of files selected for processing, populated by load_all().
+    logger : logging.Logger
+        Logger instance for diagnostic messages.
+
+    Methods
+    -------
+    load(dat_filename, **kwargs)
+        Load a single .dat file into an xarray dataset.
+    list_files(directory, search_suffix="")
+        Recursively find all .dat files in a directory.
+    load_all(directory=None, **kwargs)
+        Load all .dat files from a directory into a concatenated dataset.
+
+    Examples
+    --------
+    Basic usage for loading unattended data:
     
-    Methods:
-        load --- load a single dat file into an xarray
-        list_files --- recursively find  all the files in a directory or a google bucket
-        load_all --- load all the files found in a directory or google bucket into an xarray
-
-    load_all is the most important method. Call it, for example, as follows:
-
-        import ApRESDefs
-        fd_unattended = ApRESDefs.load.from_dats(loglevel='debug')
-        fd_unattended.load_all(directory='gs://ldeo-glaciology/GL_apres_2022', 
-                    file_numbers_to_process = [0, 1], 
-                    bursts_to_process=[0, 1]
-        )
-
-    the resulting xarray will be saved in xa.data.
+    >>> fd = from_dats(loglevel='debug')
+    >>> fd.load_all(directory='data/timeseries/', 
+    ...              file_numbers_to_process=[0, 1], 
+    ...              bursts_to_process=[0, 1])
+    >>> print(fd.data)
     
+    Loading from cloud storage:
+    
+    >>> fd = from_dats()
+    >>> fd.load_all(directory='gs://ldeo-glaciology/apres/site_A/',
+    ...              max_range=1000,
+    ...              computeProfiles=True)
+    
+    Loading attended mode data:
+    
+    >>> fd = from_dats()
+    >>> waypoint_dirs = ['waypoint_1/', 'waypoint_2/', 'waypoint_3/']
+    >>> fd.load_all(directory=waypoint_dirs, attended=True, polarmetric=True)
+    
+    Loading a single file:
+    
+    >>> fd = from_dats()
+    >>> ds = fd.load('data/DATA2023-01-01-1200.DAT', 
+    ...               bursts_to_process=[0, 2, 4],
+    ...               computeProfiles=True)
+
+    Notes
+    -----
+    The class automatically handles:
+    - File format detection and validation
+    - Header cleaning and standardization  
+    - Temperature data correction
+    - Data type conversions
+    - Coordinate and metadata assignment
+    - Profile computation from chirp data
+    - Error handling and logging
+
+    For large datasets or repeated analysis, consider using the load_zarr() function
+    to work with pre-processed data in Zarr format.
+
+    See Also
+    --------
+    generate_xarray : Simplified function interface for common use cases
+    load_zarr : Load pre-processed data from Zarr storage
     """
     def __init__(self, loglevel='warning'):
         self._setup_logging(loglevel)
@@ -105,9 +298,79 @@ class from_dats():
             bursts_to_process="All",
             attended=False,
             polarmetric=False,
-            max_range = None,
-            computeProfiles = True,
-            addProfileToDs_kwargs = {}):
+            max_range=None,
+            computeProfiles=True,
+            addProfileToDs_kwargs={}):
+        """
+        Load a single .dat file into an xarray dataset.
+        
+        This method loads and processes a single ApRES .dat file, handling both attended
+        and unattended measurement modes. It performs header cleaning, data corrections,
+        and optionally computes radar profiles from the raw chirp data.
+        
+        Parameters
+        ----------
+        dat_filename : str
+            Path to the .dat file to load. Can be a local path or cloud storage URL.
+        bursts_to_process : str or list of int, optional
+            Bursts to process from the file. Default "All" processes all available
+            bursts. Can be a single integer or list of integers for specific bursts.
+        attended : bool, optional
+            Whether the data was collected in attended mode (single burst per file
+            at fixed waypoints). Default False assumes unattended mode.
+        polarmetric : bool, optional
+            Whether to process polarimetric data with different antenna orientations.
+            Default False.
+        max_range : float, optional
+            Maximum range in meters for profile computation. If None, uses full range
+            available in the data.
+        computeProfiles : bool, optional
+            Whether to compute radar profiles from chirp data using FFT processing.
+            Default True.
+        addProfileToDs_kwargs : dict, optional
+            Additional keyword arguments passed to the profile computation function.
+            Can include options like 'pad_factor', 'demean', 'detrend', etc.
+            
+        Returns
+        -------
+        xarray.Dataset
+            Processed ApRES dataset containing the loaded data with proper coordinates,
+            metadata, and optionally computed profiles. The dataset is also stored
+            in the instance's `data` attribute.
+            
+        Examples
+        --------
+        Load a single file with default settings:
+        
+        >>> fd = from_dats()
+        >>> ds = fd.load('data/DATA2023-01-01-1200.DAT')
+        >>> print(ds.dims)
+        
+        Load specific bursts with custom processing:
+        
+        >>> ds = fd.load('data/DATA2023-01-01-1200.DAT',
+        ...               bursts_to_process=[0, 2, 4],
+        ...               max_range=800,
+        ...               addProfileToDs_kwargs={'demean': True})
+        
+        Load attended mode data:
+        
+        >>> ds = fd.load('waypoint_1/DATA2023-01-01-1200.DAT',
+        ...               attended=True,
+        ...               computeProfiles=True)
+        
+        Notes
+        -----
+        This method automatically performs several data corrections:
+        - Header cleaning and standardization
+        - Temperature data correction for values above threshold
+        - Data type conversion for chirp times
+        - Addition of coordinate and variable attributes
+        
+        The resulting dataset includes dimensions for time, chirp_time, chirp_num,
+        and attenuator_setting_pair, with data variables for chirps, GPS coordinates,
+        temperatures, and other instrument measurements.
+        """
         
         self.max_range = max_range
         self.attended = attended
@@ -133,11 +396,56 @@ class from_dats():
                    directory=None, 
                    search_suffix=""
                    ):    
-        """Recursively list all the .DAT files in a given location dir. 
+        """
+        Recursively discover all .dat files in a directory or cloud bucket.
         
-        Arguments:
-        directory -- the directory that will be looked in recursivly to find .DAT files.
-        search_suffix -- a string that can be used to search for files with a specific suffix.
+        This method searches for ApRES .dat files in the specified location, handling
+        both local directories and cloud storage buckets. It supports case-insensitive
+        file extension matching and optional filename filtering.
+        
+        Parameters
+        ----------
+        directory : str, optional
+            Directory or cloud bucket URL to search for .dat files. If None, uses
+            the current working directory. For cloud storage, use format like
+            "gs://bucket-name/path/".
+        search_suffix : str, optional
+            Additional filename suffix to filter results. For example, "HH" to find
+            only files containing "HH" in the name (useful for polarimetric data).
+            Default is empty string (no filtering).
+            
+        Returns
+        -------
+        list of str
+            List of full paths to discovered .dat files. Paths include appropriate
+            prefixes (e.g., "gs://" for cloud files). The list is also stored in
+            the instance's `dat_filenames` attribute.
+            
+        Examples
+        --------
+        List files in a local directory:
+        
+        >>> fd = from_dats()
+        >>> files = fd.list_files('data/apres_site_A/')
+        >>> print(f"Found {len(files)} files")
+        
+        List files in a cloud bucket:
+        
+        >>> files = fd.list_files('gs://my-bucket/apres/2023/')
+        >>> print(files[:3])  # Show first 3 files
+        
+        Filter files by suffix (e.g., polarimetric orientation):
+        
+        >>> hh_files = fd.list_files('data/polarimetric/', search_suffix='HH')
+        >>> vv_files = fd.list_files('data/polarimetric/', search_suffix='VV')
+        
+        Notes
+        -----
+        - File extension matching is case-insensitive (.dat, .DAT, .Dat all match)
+        - For cloud storage, requires appropriate authentication/credentials
+        - The search is recursive, finding files in all subdirectories
+        - Results are cached in the `dat_filenames` attribute for later use
+        - Sets the `remote_load` attribute based on whether cloud URLs are detected
         """
 
         self.logger.debug(f"Find all the dat files in the directory {directory}")
