@@ -1,5 +1,27 @@
 """
-Functions for performing common operations on ApRES data.
+Utility functions for performing common operations on ApRES radar data.
+
+This module provides a comprehensive set of functions for analyzing and processing
+Autonomous phase-sensitive Radio-Echo Sounder (ApRES) data stored in xarray datasets.
+The functions focus on displacement analysis, strain rate calculations, and signal
+processing operations commonly used in glaciological radar studies.
+
+Key functionality includes:
+- Displacement timeseries computation from profile pairs
+- Coherence analysis between measurement epochs
+- Strain rate estimation using weighted least squares fitting
+- Phase-to-range conversion for displacement measurements
+- Signal processing utilities (windowing, FFT, filtering)
+- Data visualization helpers (dB conversion, sonification)
+- Method binding to extend xarray DataArray and Dataset functionality
+
+The module follows a functional programming approach with functions designed to work
+seamlessly with xarray data structures. Many functions are automatically bound as
+methods to xarray objects for convenient access (e.g., `dataarray.displacement_timeseries()`).
+
+Mathematical foundations are based on radar interferometry principles and the
+Cramer-Rao bound for uncertainty estimation, following established practices in
+ice-penetrating radar analysis.
 """
 import numpy as np
 import xarray as xr
