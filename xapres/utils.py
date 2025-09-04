@@ -150,19 +150,119 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
                         min_depth_for_ezz_fit: float=None,
                         max_depth_for_ezz_fit: float=None):
     """
-    Compute displacement, coherence, velocity, strain rates, and related uncertainties from ApRES profiles.
+    Compute displacement and strain analysis from pairs of complex ApRES profiles.
 
-    Parameters:
-    - profile1_unaligned (xr.DataArray): Complex ApRES profiles from the first measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
-    - profile2_unaligned (xr.DataArray): Complex ApRES profiles from the second measurement (or measurements in each pair). This can be a time series and can have multiple attenuator settings. 
-    - bin_size (int, optional): Size of the bins to use when binned the profile data vertically before comparing profiles. Default is 20.
-    - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
-    - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
-    - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    This function performs radar interferometry analysis between two sets of complex 
+    ApRES profiles to determine ice displacement, vertical velocities, coherence, and 
+    strain rates. It implements standard radar interferometry techniques with uncertainty
+    estimation based on the Cramer-Rao bound.
+
+    The analysis bins the profiles vertically for improved coherence estimation, computes
+    phase differences and converts them to displacement measurements, then performs
+    weighted least squares fitting to estimate strain rates over a specified depth range.
+
+    Parameters
+    ----------
+    profile1_unaligned : xarray.DataArray
+        Complex ApRES profiles from the first measurement epoch. Should have dimensions
+        including 'profile_range' and may include 'time' for multiple measurements.
+        Values should be complex-valued radar returns from profile computation.
+    profile2_unaligned : xarray.DataArray  
+        Complex ApRES profiles from the second measurement epoch, with the same
+        structure as profile1_unaligned. Time difference between epochs determines
+        the displacement sensitivity.
+    bin_size : int, optional
+        Number of range samples to average vertically before coherence analysis.
+        Larger bins improve coherence estimates but reduce spatial resolution.
+        Default is 20.
+    min_depth_for_ezz_fit : float, optional
+        Minimum depth in meters for strain rate fitting. Default is 0.0 (surface).
+    max_depth_for_ezz_fit : float, optional
+        Maximum depth in meters for strain rate fitting. Default is 800.0.
+    lower_limit_on_fit : float, optional
+        **Deprecated**: Use max_depth_for_ezz_fit instead. Maintained for backward
+        compatibility only.
+
+    Returns
+    -------
+    xarray.Dataset
+        Comprehensive dataset containing displacement analysis results:
+        
+        **Primary measurements:**
+        - coherence : Complex coherence between profile pairs (dimensionless)
+        - phase : Phase difference in radians
+        - displacement : Displacement in meters
+        - velocity : Vertical velocity in meters/year
+        
+        **Uncertainty estimates:**
+        - phase_variance : Phase uncertainty in radians²
+        - disp_variance : Displacement uncertainty in meters²  
+        - velocity_variance : Velocity uncertainty in (meters/year)²
+        
+        **Strain analysis:**
+        - strain_rate : Vertical strain rate in 1/year
+        - strain_rate_variance : Strain rate uncertainty in (1/year)²
+        - surface_intercept : Surface velocity from linear fit in meters/year
+        - surface_intercept_variance : Surface velocity uncertainty in (meters/year)²
+        - r_squared : Coefficient of determination for strain fit
+        - sum_squared_residuals : Weighted residuals from strain fit
+        
+        **Coordinates:**
+        - bin_depth : Depth to center of each bin in meters
+        - time : Midpoint time between measurements (for time series)
+        - profile_time : Time of each individual profile
+
+    Examples
+    --------
+    Basic displacement analysis between two profile sets:
     
-    Returns:
-    xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
+    >>> p1 = dataset.profile.isel(time=slice(0, 5))
+    >>> p2 = dataset.profile.isel(time=slice(1, 6))  
+    >>> displacement_data = compute_displacement(p1, p2)
+    >>> displacement_data.displacement.plot()
+    
+    Analysis with custom binning and depth range:
+    
+    >>> displacement_data = compute_displacement(
+    ...     p1, p2,
+    ...     bin_size=30,
+    ...     min_depth_for_ezz_fit=100,
+    ...     max_depth_for_ezz_fit=500
+    ... )
+    >>> print(f"Strain rate: {displacement_data.strain_rate.values:.2e} /year")
+    
+    Single profile pair analysis:
+    
+    >>> p1 = dataset.profile.isel(time=0)
+    >>> p2 = dataset.profile.isel(time=5)
+    >>> displacement_data = compute_displacement(p1, p2, bin_size=25)
 
+    Notes
+    -----
+    The function performs several key processing steps:
+    
+    1. **Profile alignment**: Handles temporal alignment and coordinate matching
+    2. **Vertical binning**: Averages profiles in depth bins for coherence analysis
+    3. **Coherence computation**: Calculates complex coherence between binned profiles
+    4. **Phase analysis**: Extracts phase differences and estimates uncertainties
+    5. **Displacement conversion**: Converts phase to displacement using radar wavelength
+    6. **Velocity calculation**: Derives velocities from displacement and time intervals  
+    7. **Strain fitting**: Performs weighted least squares to estimate strain rates
+
+    Uncertainty estimation follows the Cramer-Rao bound theory, providing realistic
+    error bounds on displacement and derived quantities. The weighting in strain rate
+    fitting uses inverse variance weighting for optimal parameter estimation.
+
+    The depth range for strain fitting should be chosen to represent a region of
+    approximately linear velocity variation. Ice near the surface or bed may show
+    non-linear behavior that violates the linear strain assumption.
+
+    Raises
+    ------
+    TypeError
+        If input profiles are not xarray DataArrays
+    ValueError
+        If profiles have incompatible dimensions or coordinates
     """
     if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
         raise TypeError("profile1_unaligned and profile2_unaligned must be xarray DataArrays")
@@ -317,42 +417,87 @@ def compute_coherence(p1, p2):
 def phase2range(phi, 
                 lambdac=0.5608):
     """
-    Convert phase difference to range.
+    Convert radar interferometric phase differences to displacement ranges.
 
-    Parameters:
-    - phi (xr.DataArray): The phase difference computed in vertical bins between two profiles.
-    - lambdac (float, optional): The wavelength at the center frequency. Default is 0.5608 m.
+    This function converts phase differences measured between radar profiles into
+    physical displacement distances. It implements the first-order approximation
+    commonly used in radar interferometry, which is accurate for most ApRES
+    applications.
 
-    Returns:
-    xr.DataArray: The displacement corresponding to the supplied phase differences.
+    The conversion is based on the fundamental relationship between phase change
+    and path length difference in radar interferometry, accounting for the two-way
+    travel path and the wavelength of the radar signal.
 
-    Notes: 
-    An alternative version of this code, which comes from the original matlab code, offers the choice of computing a 'precise' range. 
-    It does this by taking account (approximately) of both constant terms in the phase difference equation (eqn 13 in Brennan et al. 2014).
-    The third term in that equation is always negligible (see https://github.com/ldeo-glaciology/xapres/blob/master/notebooks/guides/coherence_range.ipynb). 
-    So we neglect it here. For clarity the original code, adapted from Craifg Stewart, 2014/6/10, is included as follows:
+    Parameters
+    ----------
+    phi : array-like
+        Phase differences in radians computed between radar profile pairs.
+        Can be xarray.DataArray, numpy array, or scalar values.
+    lambdac : float, optional
+        Wavelength at the center frequency in meters. For ApRES systems operating
+        at 200-400 MHz, the default value of 0.5608 m corresponds to the center
+        frequency of 300 MHz in ice. Default is 0.5608.
 
-    lambdac: float
-        wavelength (m) at center frequency
-    rc: float; optional, default is None
-        coarse range of bin center (m)
-    K:  float; optional, default is 2e8
-        chirp gradient (rad/s/s)
-    ci: float; optional, default is 1.6823e8
-        propagation velocity (m/s)
+    Returns
+    -------
+    array-like
+        Displacement corresponding to the input phase differences, in meters.
+        Positive values indicate motion away from the radar (typically ice
+        thickening or surface lowering).
 
-    ```
-    if not all([K,ci]) or rc is None:
-        # First order method
-        # Brennan et al. (2014) eq 15
-        print('not precise')
-        r = lambdac*phi/(4.*np.pi)
-    else:
-        print('Precise')
-        # From Stewart (2018) eqn 4.8, with tau = 2*R/ci and omega_c = 2 pi /lambdac, where R is the range
-        r = phi/((4.*np.pi/lambdac) - (4.*rc[None,:]*K/ci**2.))
+    Examples
+    --------
+    Convert phase differences to displacement:
+    
+    >>> phase_diff = np.array([0.1, 0.5, 1.0])  # radians
+    >>> displacement = phase2range(phase_diff)
+    >>> print(f"Displacements: {displacement} m")
+    
+    Use with xarray data:
+    
+    >>> phase = coherence_data.phase
+    >>> displacement = phase2range(phase, lambdac=0.56)
+    >>> displacement.plot()
+    
+    Custom wavelength for different frequency:
+    
+    >>> # For 250 MHz center frequency
+    >>> lambda_250MHz = 3e8 / (250e6 * np.sqrt(3.18))  # ~0.67 m in ice
+    >>> displacement = phase2range(phase_diff, lambdac=lambda_250MHz)
 
-    ```
+    Notes
+    -----
+    The function implements the first-order approximation from Brennan et al. (2014):
+    
+    .. math:: r = \\frac{\\lambda_c \\phi}{4\\pi}
+    
+    where:
+    - r is the displacement (range change)
+    - λc is the wavelength at center frequency  
+    - φ is the phase difference
+    - The factor of 4π accounts for two-way travel and the 2π phase cycle
+    
+    This first-order method is accurate for typical ApRES applications. A more
+    precise method exists that accounts for additional terms in the phase equation,
+    but the improvement is negligible for most use cases (see referenced notebook).
+    
+    The default wavelength assumes:
+    - Center frequency of 300 MHz
+    - Ice permittivity of 3.18
+    - λc = c / (f_c * √εr) where c is speed of light in vacuum
+    
+    For different radar systems or ice properties, adjust lambdac accordingly.
+
+    References
+    ----------
+    Brennan, P. V., et al. "Phase-sensitive FMCW radar system for high-precision
+    Antarctic ice shelf profile monitoring." IET Radar, Sonar & Navigation 8.7
+    (2014): 776-786.
+    
+    See Also
+    --------
+    compute_displacement : Full displacement analysis including uncertainty
+    displacement_timeseries : Time series displacement analysis
     """
     return lambdac*phi/(4.*np.pi)
 
@@ -482,10 +627,53 @@ def weighted_least_squares(ds, deg = 1, cov = 'unscaled'):
 
 def dB(self):
     """
-    A function to convert profile data to decibels.
+    Convert complex profile data to decibel representation.
     
-    The function is added to xarray dataarrays as a bound method in two functions. 
+    This function converts the amplitude of complex radar profiles to a logarithmic
+    decibel scale, which is commonly used for displaying radar data. The conversion
+    makes it easier to visualize the dynamic range of backscatter intensities.
     
+    This function is automatically bound as a method to xarray DataArrays, so it
+    can be called directly on profile data as `dataarray.dB()`.
+    
+    Parameters
+    ----------
+    self : xarray.DataArray
+        Complex-valued radar profile data. The function uses the absolute value
+        before logarithmic conversion.
+    
+    Returns
+    -------
+    xarray.DataArray
+        Profile data converted to decibels (dB). Values represent 20*log10(|amplitude|)
+        following standard radar conventions.
+        
+    Examples
+    --------
+    Convert profile data to dB for visualization:
+    
+    >>> profile_dB = dataset.profile.dB()
+    >>> profile_dB.plot()
+    
+    Compare linear and logarithmic representations:
+    
+    >>> fig, (ax1, ax2) = plt.subplots(1, 2)
+    >>> dataset.profile.abs().plot(ax=ax1, y='profile_range')
+    >>> dataset.profile.dB().plot(ax=ax2, y='profile_range')
+    
+    Notes
+    -----
+    The decibel conversion uses the standard formula for power quantities:
+    dB = 20 * log10(|amplitude|)
+    
+    This is appropriate for radar amplitude data where the power is proportional
+    to the square of the amplitude. The factor of 20 (rather than 10) accounts
+    for the amplitude-to-power relationship.
+    
+    See Also
+    --------
+    numpy.log10 : Underlying logarithm function
+    numpy.abs : Absolute value function for complex data
     """
     return 20*np.log10(np.abs(self)) 
 
@@ -540,6 +728,75 @@ def sonify(self,
         sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
 
 def addProfileToDs(self: xr.Dataset, **kwargs):
+    """
+    Add computed radar profiles to an existing ApRES dataset.
+
+    This function computes radar profiles from the chirp data in a dataset and merges
+    them with the existing data variables. It provides a convenient way to add profile
+    data to datasets that were loaded without profile computation or to recompute
+    profiles with different parameters.
+
+    The function automatically uses radar constants stored in the dataset attributes
+    if available, ensuring consistency with the original data processing parameters.
+
+    Parameters
+    ----------
+    self : xarray.Dataset
+        ApRES dataset containing chirp data with 'chirp' data variable. Should have
+        appropriate dimensions including 'chirp_time'.
+    **kwargs
+        Additional keyword arguments passed to the computeProfile function. Can include
+        parameters like 'pad_factor', 'demean', 'max_range', 'drop_noisy_chirps', etc.
+        See computeProfile documentation for full parameter list.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset with profile data added. If profiles already exist, the 'profile_range'
+        dimension is dropped first and then new profiles are merged. The original
+        dataset structure and attributes are preserved.
+
+    Examples
+    --------
+    Add profiles to a dataset loaded without them:
+    
+    >>> # Load data without profile computation
+    >>> fd = from_dats()
+    >>> ds = fd.load_all(directory='data/', computeProfiles=False)
+    >>> # Add profiles later
+    >>> ds_with_profiles = ds.addProfileToDs()
+    
+    Recompute profiles with different parameters:
+    
+    >>> ds_new = ds.addProfileToDs(
+    ...     pad_factor=4,
+    ...     demean=True,
+    ...     max_range=500,
+    ...     drop_noisy_chirps=True
+    ... )
+    
+    Add profiles with custom processing:
+    
+    >>> ds_processed = ds.addProfileToDs(
+    ...     crop_chirp_start=0.1,
+    ...     crop_chirp_end=0.9,
+    ...     detrend=True,
+    ...     stack=True
+    ... )
+
+    Notes
+    -----
+    - If the dataset contains radar constants in its attributes, these are automatically
+      passed to the profile computation function for consistency
+    - If 'profile' data already exists, it is replaced with newly computed profiles
+    - All original data variables, coordinates, and attributes are preserved
+    - The function uses the 'override' combine_attrs strategy to handle attribute conflicts
+
+    See Also
+    --------
+    computeProfile : Underlying function for profile computation
+    from_dats.load_all : Load data with profile computation included
+    """
 
     if 'constants' in self.attrs:
         profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
@@ -787,6 +1044,79 @@ def computeProfile(self: xr.DataArray,
     return S_wprr
 
 def default_constants():
+    """
+    Return default radar system constants for ApRES profile computation.
+
+    This function provides standard parameter values for ApRES radar systems,
+    which are used in profile computation when specific constants are not
+    provided. These defaults correspond to typical ApRES configurations and
+    can be overridden by supplying custom values.
+
+    Returns
+    -------
+    dict
+        Dictionary containing radar system constants with the following keys:
+        
+        **Frequency parameters:**
+        - 'f_1' : Starting frequency in Hz (200 MHz)
+        - 'f_2' : Ending frequency in Hz (400 MHz)  
+        - 'f_c' : Center frequency in Hz (300 MHz)
+        - 'B' : Bandwidth in Hz (200 MHz)
+        
+        **Timing parameters:**
+        - 'T' : Chirp duration in seconds (1 s)
+        - 'K' : Frequency sweep rate in Hz/s (2×10⁸ Hz/s)
+        - 'dt' : Sampling time step in seconds (25 μs)
+        
+        **Physical constants:**
+        - 'c' : Speed of light in vacuum in m/s (3×10⁸ m/s)
+        - 'ep' : Relative permittivity of ice (3.18)
+
+    Examples
+    --------
+    Get default constants for profile computation:
+    
+    >>> constants = default_constants()
+    >>> print(f"Center frequency: {constants['f_c']/1e6:.0f} MHz")
+    >>> print(f"Bandwidth: {constants['B']/1e6:.0f} MHz")
+    
+    Override specific values:
+    
+    >>> constants = default_constants()
+    >>> constants['ep'] = 3.2  # Different ice permittivity
+    >>> constants['c'] = 3e8   # Explicit scientific notation
+    >>> profile = chirps.computeProfile(constants=constants)
+    
+    Use in profile computation:
+    
+    >>> # These are equivalent:
+    >>> profile1 = chirps.computeProfile()  # Uses defaults
+    >>> profile2 = chirps.computeProfile(constants=default_constants())
+
+    Notes
+    -----
+    The default values are based on standard ApRES system specifications:
+    
+    - **Frequency range**: 200-400 MHz is typical for ApRES systems
+    - **Chirp duration**: 1 second provides good range resolution
+    - **Sampling rate**: 40 kHz (dt = 25 μs) is standard for ApRES
+    - **Ice permittivity**: 3.18 is a commonly used value for glacier ice
+    
+    These values can be modified for:
+    - Different radar systems or configurations
+    - Varying ice conditions or compositions
+    - Custom processing requirements
+    - Comparison with historical data using different parameters
+    
+    The sweep rate K is calculated as K = B/T, representing the linear frequency
+    change rate during the chirp. All frequency and timing relationships assume
+    a linear frequency modulation (LFM) chirp waveform.
+
+    See Also
+    --------
+    computeProfile : Function that uses these constants
+    phase2range : Uses wavelength derived from these constants
+    """
     constants = {}
     constants['T'] = 1               # chirp duration [s]
     constants['f_1'] = 200e6         # starting frequency [Hz]
@@ -801,6 +1131,69 @@ def default_constants():
     return constants
     
 def add_methods_to_xarrays():
+    """
+    Bind xapres utility functions as methods to xarray DataArray and Dataset classes.
+
+    This function extends xarray objects by adding custom methods from the xapres
+    package, allowing for convenient access to ApRES-specific functionality directly
+    on data objects. This enables method chaining and a more intuitive API.
+
+    The function is called automatically when xapres is imported, so users don't
+    need to call it explicitly. After import, the bound methods become available
+    on all xarray objects in the session.
+
+    Methods Added
+    -------------
+    **DataArray methods:**
+    - dB() : Convert profile amplitudes to decibel scale
+    - sonify() : Convert chirp data to audio playback  
+    - displacement_timeseries() : Compute displacement analysis from profiles
+    - computeProfile() : Generate radar profiles from chirp data
+    - computeStrainRates() : Calculate strain rates from displacement data
+    
+    **Dataset methods:**
+    - addProfileToDs() : Add computed profiles to existing datasets
+
+    Examples
+    --------
+    After importing xapres, these methods become available:
+    
+    >>> import xapres
+    >>> # Load some data
+    >>> ds = xapres.load.generate_xarray('data/')
+    >>> 
+    >>> # Use bound methods directly
+    >>> profile_db = ds.profile.dB()
+    >>> displacement_data = ds.profile.displacement_timeseries()
+    >>> ds_with_new_profiles = ds.addProfileToDs(pad_factor=4)
+    
+    Method chaining example:
+    
+    >>> processed_data = (ds.chirp
+    ...                   .computeProfile(demean=True)
+    ...                   .displacement_timeseries(bin_size=30))
+
+    Notes
+    -----
+    This approach follows the xarray accessor pattern but uses direct method binding
+    for simplicity. The bound methods maintain their original signatures and
+    documentation, with the 'self' parameter automatically passed as the first
+    argument.
+
+    The binding is performed using Python's setattr() function on the class objects,
+    making the methods available to all instances of DataArray and Dataset created
+    after the xapres import.
+
+    Potential conflicts with other packages that bind methods with the same names
+    are resolved on a last-import-wins basis. If you encounter method conflicts,
+    you can always access the original functions directly from the xapres.utils
+    module.
+
+    See Also
+    --------
+    Individual function documentation for detailed parameter descriptions
+    xarray.accessor : Alternative approach for extending xarray functionality
+    """
     
     da_methods = [dB, sonify, displacement_timeseries, computeProfile, computeStrainRates]
     for method in da_methods:
