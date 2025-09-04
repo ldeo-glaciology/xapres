@@ -379,3 +379,57 @@ def test_attended_fft():
     fd = load.from_dats()
     fd.load_all(attended=True, directory='data/sample/attended/').addProfileToDs()
     fd.load_all(attended=True, directory='data/sample/attended/').chirp.computeProfile()
+
+def test_compute_profiles_attended():
+    """Test compute_profiles using attended data.
+    
+    This test adapts the test_comparison_with_matlab_code approach to load 
+    attended data and verify that computeProfile works correctly with it.
+    Similar to loading a single DAT file as attended data.
+    """
+    # Load attended data similar to test_attended_fft but from a single dat file directory  
+    fd = load.from_dats()
+    
+    # Load a single dat file as attended data (similar to line 178 in test_load_single)
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    ds = fd.load(dat_filename=dat_file, attended=True, computeProfiles=False)
+    
+    # Extract chirp data
+    chirp_data = ds['chirp']
+    
+    # Compute profiles using the computeProfile method
+    profiles = chirp_data.computeProfile(max_range=1500)
+    
+    # Basic validation that profiles were computed correctly
+    assert profiles is not None, "computeProfile should return a result"
+    assert profiles.sizes['profile_range'] > 0, "Should have profile range dimension"
+    assert not np.any(np.isnan(profiles.values)), "Profile values should not contain NaN"
+    assert np.all(np.isfinite(profiles.values)), "Profile values should all be finite"
+    
+    # Test with stacking option
+    profiles_stacked = chirp_data.computeProfile(max_range=1500, stack=True)
+    assert profiles_stacked is not None, "computeProfile with stack=True should return a result"
+    
+    # Test different options that are commonly used
+    profiles_with_options = chirp_data.computeProfile(
+        max_range=1500, 
+        demean=True,
+        scale_for_window=True,
+        drop_noisy_chirps=False
+    )
+    assert profiles_with_options is not None, "computeProfile with options should return a result"
+    
+    # Also test with attended directory data (similar to test_attended_fft)
+    fd2 = load.from_dats()
+    ds_attended = fd2.load_all(attended=True, directory='data/sample/attended/')
+    
+    # Extract chirp data from attended directory
+    chirp_data_attended = ds_attended['chirp']
+    
+    # Compute profiles from attended directory data
+    profiles_attended = chirp_data_attended.computeProfile(max_range=1500)
+    
+    # Validation for attended directory data
+    assert profiles_attended is not None, "computeProfile should work with attended directory data"
+    assert profiles_attended.sizes['profile_range'] > 0, "Should have profile range dimension"
+    assert not np.any(np.isnan(profiles_attended.values)), "Profile values should not contain NaN"
