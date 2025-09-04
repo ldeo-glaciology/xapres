@@ -379,3 +379,34 @@ def test_attended_fft():
     fd = load.from_dats()
     fd.load_all(attended=True, directory='data/sample/attended/').addProfileToDs()
     fd.load_all(attended=True, directory='data/sample/attended/').chirp.computeProfile()
+
+def test_compute_profiles_attended():
+    """Test compute_profiles using attended data.
+    
+    This test adapts the test_comparison_with_matlab_code approach to load 
+    attended data and verify that computeProfile works correctly with it.
+    Similar to loading a single DAT file as attended data.
+    """
+    # Load attended data from single dat file (similar to line 178 in test_load_single)
+    fd = load.from_dats()
+    dat_file = 'data/sample/single_dat_file/DATA2023-01-05-0315.DAT'
+    ds = fd.load(dat_filename=dat_file, attended=True, computeProfiles=False)
+    
+    # Extract chirp data and compute profiles
+    chirp_data = ds['chirp']
+    profiles = chirp_data.computeProfile(max_range=1500)
+    
+    # Basic validation that profiles were computed correctly
+    assert profiles is not None, "computeProfile should return a result"
+    assert 'profile_range' in profiles.sizes, "Should have profile_range dimension"
+    assert profiles.sizes['profile_range'] > 0, "Should have non-zero profile range dimension"
+    
+    # Test with stacking option
+    profiles_stacked = chirp_data.computeProfile(max_range=1500, stack=True)
+    assert profiles_stacked is not None, "computeProfile with stack=True should return a result"
+    
+    # Also test with attended directory data (similar to test_attended_fft)
+    fd2 = load.from_dats()
+    ds_attended = fd2.load_all(attended=True, directory='data/sample/attended/')
+    profiles_attended = ds_attended['chirp'].computeProfile(max_range=1500)
+    assert profiles_attended is not None, "computeProfile should work with attended directory data"
