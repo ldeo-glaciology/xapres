@@ -1204,4 +1204,37 @@ def add_methods_to_xarrays():
         setattr(xr.Dataset, method.__name__, method)
 
 def contains_dask_array(dataarray):
+    """
+    Check if an xarray DataArray contains dask array data.
+    
+    This utility function determines whether the underlying data in an xarray
+    DataArray is stored as a dask array (lazy evaluation) or as a regular
+    numpy array (in-memory).
+    
+    Parameters
+    ----------
+    dataarray : xarray.DataArray
+        The data array to check for dask array content.
+        
+    Returns
+    -------
+    bool
+        True if the DataArray contains a dask array, False if it contains
+        a numpy array or other array type.
+        
+    Examples
+    --------
+    Check if data is using dask arrays:
+    
+    >>> if contains_dask_array(dataset.profile):
+    ...     print("Data is lazy (dask array)")
+    ... else:
+    ...     print("Data is in memory (numpy array)")
+    
+    Use for conditional processing:
+    
+    >>> if contains_dask_array(profiles):
+    ...     profiles = profiles.load()  # Load to memory before FFT
+    >>> processed = compute_intensive_operation(profiles)
+    """
     return isinstance(dataarray.data, da.Array)
