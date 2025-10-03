@@ -604,16 +604,26 @@ class from_dats():
         if 'burst_number' in self.data:
             self.data.burst_number.attrs['description'] = 'the number of each burst within each file'
         
-        self.data.attrs['constants'] = {'c': self.current_burst.header['c0'],
-                                         'K': self.current_burst.header['K'],
-                                         'f_1': self.current_burst.header['StartFreq'],
-                                         'f_2': self.current_burst.header['StopFreq'],
-                                         'dt': self.current_burst.header['TStepUp'], 
-                                         'ep': self.current_burst.header['ER_ICE'],
-                                         'B': self.current_burst.header['B'],
-                                         'f_c': self.current_burst.header['CentreFreq']}
+        constants_name_mapping = {
+            'c':   'c0',
+            'K':   'K',
+            'f_1': 'StartFreq',
+            'f_2': 'StopFreq',
+            'dt':  'TStepUp',
+            'ep':  'ER_ICE',
+            'B':   'B',
+            'f_c': 'CentreFreq',
+            }       
 
-        #self.data.attrs['header from last burst'] = self.current_burst.header
+        constants_dict = {}
+        for attr_name, header_key in constants_name_mapping.items():
+            try:
+                value = self.current_burst.header[header_key]
+                constants_dict[attr_name] = value
+            except Exception as e:
+                self.logger.debug(f"Could not set {attr_name} from header[{header_key}]: {e}")
+
+        self.data.attrs['constants'] = constants_dict
 
         self.data.orientation.attrs['description'] = 'HH, HV, VH, or VV antenna orientation as described in Ersahadi et al 2022 doi:10.5194/tc-16-1719-2022'
         
