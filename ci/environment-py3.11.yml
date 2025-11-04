@@ -6,9 +6,9 @@ dependencies:
   - numpy=2.0.*
   - pandas=2.2.*
   - xarray>=2024.10
-  - typing_extensions>=4.8.0
+  - zarr>=2.15,<3
+  - typing_extensions>=4.8,<5
   - dask
-  - zarr
   - scipy
   - netcdf4
   - fsspec
