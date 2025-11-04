@@ -34,7 +34,8 @@ jobs:
         with:
           # mamba-version: "*" # activate this to build with mamba.
           # channels: conda-forge, defaults # These need to be specified to use mamba
-          # channel-priority: true
+          channel-priority: strict
+          use-mamba: true
           environment-file: ci/environment-py${{ matrix.python-version }}.yml
 
           activate-environment: test_env_xapres
