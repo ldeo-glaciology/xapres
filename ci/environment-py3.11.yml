@@ -8,15 +8,15 @@ dependencies:
   - xarray>=2024.10
   - dask
   - zarr
+  - numcodecs>=0.12
   - scipy
   - netcdf4
   - fsspec
   - gcsfs
   - pytest
   - tqdm
-  - ipympl
   - pytest-cov
   - coverage
+  - typing_extensions>=4.10,<5
   - pip
   - pip:
-      - codecov
