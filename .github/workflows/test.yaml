@@ -29,6 +29,7 @@ jobs:
           key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('ci/environment-py3.11.yml') }}
       - uses: conda-incubator/setup-miniconda@v3
         with:
+          use-mamba: true
           mamba-version: "*"
           channels: conda-forge,defaults
           channel-priority: true
@@ -61,4 +62,3 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md    
-
