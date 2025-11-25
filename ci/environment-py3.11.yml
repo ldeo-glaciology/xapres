@@ -3,13 +3,11 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
+  - numpy=2.0.*
   - pandas=2.2.*
   - xarray>=2024.10
-  - numpy<2
-  - zarr>=2.15,<3
-  - numcodecs>=0.11,<0.12     # stable with zarr 2.x
-  #- c-blosc=1.21.*            # ensure correct C-Blosc v1
-  - typing_extensions>=4.10,<5
+  - zarr
+  - numcodecs>=0.12
   - dask
   - scipy
   - netcdf4
@@ -17,9 +15,6 @@ dependencies:
   - gcsfs
   - pytest
   - tqdm
-  - ipympl
   - pytest-cov
   - coverage
-  - pip
-  - pip:
-      - codecov
+  - typing_extensions>=4.10,<5
