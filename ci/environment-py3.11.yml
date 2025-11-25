@@ -8,8 +8,8 @@ dependencies:
   - numpy<2
   - zarr>=2.15,<3
   - numcodecs>=0.11,<0.12     # stable with zarr 2.x
-  - c-blosc=1.21.*            # ensure correct C-Blosc v1
-  - typing_extensions>=4.8,<5
+  #- c-blosc=1.21.*            # ensure correct C-Blosc v1
+  - typing_extensions>=4.10,<5
   - dask
   - scipy
   - netcdf4
