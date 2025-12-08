@@ -9,6 +9,7 @@ dependencies:
   - zarr
   - numcodecs>=0.12
   - dask
+  - aiohttp<3.9
   - scipy
   - netcdf4
   - fsspec
