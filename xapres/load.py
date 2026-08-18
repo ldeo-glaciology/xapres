@@ -453,9 +453,12 @@ class from_dats():
         
             to_int_list = ["rxant", "txant", "afgain"]
             to_float_list = ["triples", "attenuator1", "batterycheck"]
-            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage", "tstepup", "tstepdn", "fsc", "sw_issue", "er_ice", "position_depth_conversion", "maxdepthtograph"]
-            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"] 
-
+            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage",
+                        "tstepup", "tstepdn", "fsc", "er_ice",
+                        "position_depth_conversion", "maxdepthtograph"]  # sw_issue removed
+            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "sw_issue",
+                          "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"]
+            
             for key, value in header.items():
                 kl = key.lower()
                 if kl in to_int_list:
@@ -465,12 +468,22 @@ class from_dats():
                     header[key] = [float(x) for x in value.split(',') if x]
                     continue
                 if kl in to_float:
-                    header[key] = float(value)
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                         pass  # leave raw
                     continue
                 if kl in do_nothing:
                     continue
 
-                header[key] = int(value)
+                # fallback: try int, then float, else leave untouched
+                try:
+                    header[key] = int(value)
+                except (ValueError, TypeError):
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                        pass  # leave as raw string, e.g. '"None"
   
             if "FreqStepUp" in header:
                 header["K"] = header["FreqStepUp"] / header["TStepUp"]
