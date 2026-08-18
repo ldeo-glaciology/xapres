@@ -45,6 +45,7 @@ def generate_xarray(directory=None,
                  max_range = None,
                  computeProfiles = True,
                  addProfileToDs_kwargs = {},
+                 is_uhf = False,  # check for uhf flag
                  loglevel = 'warning'
                  ):
     """ Load data from multiple .dat files into an xarray dataset.
@@ -52,7 +53,7 @@ def generate_xarray(directory=None,
     This is simple wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.
     """
 
-    fd = from_dats(loglevel=loglevel)
+    fd = from_dats(loglevel=loglevel, is_uhf=is_uhf) # add uhf flag as input
     
     fd.load_all(directory=directory, 
                  file_numbers_to_process=file_numbers_to_process, 
@@ -64,6 +65,7 @@ def generate_xarray(directory=None,
                  max_range = max_range,
                  computeProfiles = computeProfiles,
                  addProfileToDs_kwargs = addProfileToDs_kwargs,
+                 is_uhf = is_uhf, # check for uhf flag
                 )
 
     return fd.data
@@ -97,8 +99,9 @@ class from_dats():
     the resulting xarray will be saved in xa.data.
     
     """
-    def __init__(self, loglevel='warning'):
+    def __init__(self, loglevel='warning', is_uhf=False):
         self._setup_logging(loglevel)
+        self.is_uhf = is_uhf # create UHF flag to apply corrections if data from UHF ApRES
         
     def load(self,
             dat_filename,
@@ -107,7 +110,12 @@ class from_dats():
             polarmetric=False,
             max_range = None,
             computeProfiles = True,
-            addProfileToDs_kwargs = {}):
+            addProfileToDs_kwargs = {},
+            is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
+            ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf):
         
         self.max_range = max_range
         self.attended = attended
@@ -173,8 +181,14 @@ class from_dats():
                  polarmetric=False,
                  max_range = None,
                  computeProfiles = True,
-                 addProfileToDs_kwargs = {}
+                 addProfileToDs_kwargs = {},
+                 is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
                  ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf
+
+
         """Load all the .dat files in a directory into an xarray dataset.
 
         Args:
@@ -471,6 +485,14 @@ class from_dats():
             
             header["CentreFreq"] = (header["StartFreq"] + header["StopFreq"])/2
             header["B"] = (header["StopFreq"] - header["StartFreq"])
+
+            if self.is_uhf: # correct frequency values by applying uhf multiplier
+                uhf_scale = 8
+                header["K"] *= uhf_scale
+                header["StartFreq"] *= uhf_scale
+                header["StopFreq"] *= uhf_scale
+                header["CentreFreq"] *= uhf_scale
+                header["B"] *= uhf_scale
                 
             return header
 
