@@ -115,7 +115,7 @@ class from_dats():
             ):
 
         if is_uhf is not None: # account for data being from UHF ApRES
-            self.is_uhf = is_uhf):
+            self.is_uhf = is_uhf
         
         self.max_range = max_range
         self.attended = attended
