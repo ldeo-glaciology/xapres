@@ -12,7 +12,7 @@ def displacement_timeseries(self: xr.DataArray,
                             lower_limit_on_fit: float=None,
                             min_depth_for_ezz_fit: float=None,
                             max_depth_for_ezz_fit: float=None,
-                            lambdac: float=None): # add new lambdac param
+                            is_uhf: bool=False): # new uhf flag param
     """
     Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
@@ -53,8 +53,8 @@ def displacement_timeseries(self: xr.DataArray,
                               lower_limit_on_fit = lower_limit_on_fit,
                               min_depth_for_ezz_fit = min_depth_for_ezz_fit,
                               max_depth_for_ezz_fit = max_depth_for_ezz_fit,
-                              lambdac = lambdac) # pass lambdac param
-
+                              is_uhf = is_uhf) # uhf param here
+    
     # add attributes related to the this processing
     ds.attrs["offset"] = offset
     ds.attrs["processing"] = f"Created by the displacement_timeseries function in xapres using an offset of {offset} and bin size of {bin_size} on {datetime.datetime.now() }"
@@ -67,7 +67,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
                         lower_limit_on_fit: float=None,
                         min_depth_for_ezz_fit: float=None,
                         max_depth_for_ezz_fit: float=None,
-                        lambdac: float=None): # new lambda param
+                        is_uhf: bool=False): # new uhf flag
     """
     Compute displacement, coherence, velocity, strain rates, and related uncertainties from ApRES profiles.
 
@@ -83,14 +83,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
-    if lambdac is None:  # calculate lambda when not given directly
-        try:
-            c = profile1_unaligned.attrs['constants']['c']
-            f_c = profile1_unaligned.attrs['constants']['f_c']
-            ep = profile1_unaligned.attrs['constants']['ep']
-            lambdac = c / f_c / np.sqrt(ep)
-        except (KeyError, AttributeError):
-            lambdac = 0.5608   # fall back to the old VHF hardcoded vals
+    lambdac = 0.5608 # vhf apres lambda
+    if is_uhf:
+        lambdac = lambdac / 8  # correction for uhf data
 
 
     if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
@@ -122,12 +117,12 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     phase_variance.attrs["long_name"] = "variance in coherence phase"
 
     # compute the displacement
-    displacement = phase2range(phase, lambdac=lambdac).rename("displacement") # add lambda param
+    displacement = phase2range(phase, lambdac=lambdac).rename("displacement") # implement lambda
     displacement.attrs["units"] = "m"
     displacement.attrs["long_name"] = "displacement since previous measurement"
 
     # compute the displacement variance
-    disp_variance = (phase2range(np.sqrt(phase_variance),lambdac=lambdac)**2).rename('disp_variance') # add lambda param
+    disp_variance = (phase2range(np.sqrt(phase_variance),lambdac=lambdac)**2).rename('disp_variance') # implement lambda
     disp_variance.attrs["units"] = "m^2"
     disp_variance.attrs["long_name"] = "variance in displacement since previous measurement"
 
