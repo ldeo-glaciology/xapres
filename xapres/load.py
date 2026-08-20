@@ -500,12 +500,11 @@ class from_dats():
             header["B"] = (header["StopFreq"] - header["StartFreq"])
 
             if self.is_uhf: # correct frequency values by applying uhf multiplier
-                uhf_scale = 8
-                header["K"] *= uhf_scale
-                header["StartFreq"] *= uhf_scale
-                header["StopFreq"] *= uhf_scale
-                header["CentreFreq"] *= uhf_scale
-                header["B"] *= uhf_scale
+                header["K"] = 1.256636105499992e10
+                header["StartFreq"] = 1e9
+                header["StopFreq"] = 3e9
+                header["CentreFreq"] = 2e9
+                header["B"] = 2e9
                 
             return header
 
