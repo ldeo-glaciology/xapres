@@ -83,9 +83,9 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
-    lambdac = 0.5608 # vhf apres lambda
+    lambdac = 0.5608 
     if is_uhf:
-        lambdac = lambdac / 8  # correction for uhf data
+        lambdac = 0.084115811872167  # correction for uhf data
 
 
     if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
@@ -239,7 +239,7 @@ def compute_coherence(p1, p2):
     return (top/bottom).rename("coherence")
 
 def phase2range(phi, 
-                lambdac=0.5608):
+                lambdac):
     """
     Convert phase difference to range.
 
@@ -463,12 +463,12 @@ def sonify(self,
     if save:
         sf.write(f"{wav_filename} .wav", chirp_values, samplerate=samplerate)
 
-def addProfileToDs(self: xr.Dataset, **kwargs):
+def addProfileToDs(self: xr.Dataset, is_uhf: bool = False, **kwargs): #add uhf flag here and below in computeprof fun
 
     if 'constants' in self.attrs:
-        profile = self.chirp.computeProfile(constants = self.attrs['constants'], **kwargs)
+        profile = self.chirp.computeProfile(constants = self.attrs['constants'], is_uhf=is_uhf, **kwargs)
     else:
-        profile = self.chirp.computeProfile(**kwargs)
+        profile = self.chirp.computeProfile(is_uhf=is_uhf, **kwargs)
 
     # remove profile variable and profile range, if they exist 
     if 'profile' in self.data_vars:
@@ -490,7 +490,8 @@ def computeProfile(self: xr.DataArray,
                    crop_chirp_start=0,
                    crop_chirp_end=1,
                    max_range=None,
-                   constants={}):
+                   constants={},
+                   is_uhf: bool = False): #new flag to default to uhf cosntants
     """
     Compute profiles from chirp data.
     -----------
@@ -530,7 +531,7 @@ def computeProfile(self: xr.DataArray,
         The computed radar profile with range as the coordinate.
     """
 
-    constants = default_constants() | constants
+    constants = default_constants(is_uhf=is_uhf) | constants  # add uhf flag
 
     B = constants['B']       # bandwidth [Hz]
     K = constants['K']       # rate of chnge of frequency [Hz/s]
@@ -629,17 +630,29 @@ def computeProfile(self: xr.DataArray,
 
     return S_wprr
 
-def default_constants():
+
+def default_constants(is_uhf=False): # add a flag for UHF data again
     constants = {}
-    constants['T'] = 1               # chirp duration [s]
-    constants['f_1'] = 200e6         # starting frequency [Hz]
-    constants['f_2'] = 400e6         # ending frequency [Hz]
-    constants['B'] = constants['f_2']-constants['f_1']          # bandwidth [Hz]
-    constants['K'] = constants['B']/constants['T']            # rate of chnge of frequency [Hz/s]
-    constants['c'] = 300000000.0     # speed of light in a vacuum [m/s]
-    constants['ep'] = 3.18           # permittivity of ice
-    constants['f_c'] = (constants['f_2']+constants['f_1'])/2   # center frequency [Hz]
-    constants['dt'] = 1/40000        # time step [s]
+    if is_uhf:
+        constants['T'] = 1
+        constants['f_1'] = 1e9
+        constants['f_2'] = 3e9
+        constants['B'] = 2e9
+        constants['K'] = 1.256636105499992e10
+        constants['c'] = 300000000.0
+        constants['ep'] = 3.18
+        constants['f_c'] = 2e9
+        constants['dt'] = 1/40000
+    else: # default to original vhf values
+        constants['T'] = 1
+        constants['f_1'] = 200e6
+        constants['f_2'] = 400e6
+        constants['B'] = constants['f_2'] - constants['f_1']
+        constants['K'] = constants['B'] / constants['T']
+        constants['c'] = 300000000.0
+        constants['ep'] = 3.18
+        constants['f_c'] = (constants['f_2'] + constants['f_1']) / 2
+        constants['dt'] = 1/40000
 
     return constants
     
