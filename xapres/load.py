@@ -45,6 +45,7 @@ def generate_xarray(directory=None,
                  max_range = None,
                  computeProfiles = True,
                  addProfileToDs_kwargs = {},
+                 is_uhf = False,  # check for uhf flag
                  loglevel = 'warning'
                  ):
     """ Load data from multiple .dat files into an xarray dataset.
@@ -52,7 +53,7 @@ def generate_xarray(directory=None,
     This is simple wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.
     """
 
-    fd = from_dats(loglevel=loglevel)
+    fd = from_dats(loglevel=loglevel, is_uhf=is_uhf) # add uhf flag as input
     
     fd.load_all(directory=directory, 
                  file_numbers_to_process=file_numbers_to_process, 
@@ -64,6 +65,7 @@ def generate_xarray(directory=None,
                  max_range = max_range,
                  computeProfiles = computeProfiles,
                  addProfileToDs_kwargs = addProfileToDs_kwargs,
+                 is_uhf = is_uhf, # check for uhf flag
                 )
 
     return fd.data
@@ -97,8 +99,9 @@ class from_dats():
     the resulting xarray will be saved in xa.data.
     
     """
-    def __init__(self, loglevel='warning'):
+    def __init__(self, loglevel='warning', is_uhf=False):
         self._setup_logging(loglevel)
+        self.is_uhf = is_uhf # create UHF flag to apply corrections if data from UHF ApRES
         
     def load(self,
             dat_filename,
@@ -107,7 +110,12 @@ class from_dats():
             polarmetric=False,
             max_range = None,
             computeProfiles = True,
-            addProfileToDs_kwargs = {}):
+            addProfileToDs_kwargs = {},
+            is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
+            ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf
         
         self.max_range = max_range
         self.attended = attended
@@ -173,8 +181,14 @@ class from_dats():
                  polarmetric=False,
                  max_range = None,
                  computeProfiles = True,
-                 addProfileToDs_kwargs = {}
+                 addProfileToDs_kwargs = {},
+                 is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
                  ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf
+
+
         """Load all the .dat files in a directory into an xarray dataset.
 
         Args:
@@ -439,9 +453,12 @@ class from_dats():
         
             to_int_list = ["rxant", "txant", "afgain"]
             to_float_list = ["triples", "attenuator1", "batterycheck"]
-            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage", "tstepup", "tstepdn", "fsc", "sw_issue", "er_ice", "position_depth_conversion", "maxdepthtograph"]
-            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"] 
-
+            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage",
+                        "tstepup", "tstepdn", "fsc", "er_ice",
+                        "position_depth_conversion", "maxdepthtograph"]  # sw_issue removed
+            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "sw_issue",
+                          "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"]
+            
             for key, value in header.items():
                 kl = key.lower()
                 if kl in to_int_list:
@@ -451,12 +468,22 @@ class from_dats():
                     header[key] = [float(x) for x in value.split(',') if x]
                     continue
                 if kl in to_float:
-                    header[key] = float(value)
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                         pass  # leave raw
                     continue
                 if kl in do_nothing:
                     continue
 
-                header[key] = int(value)
+                # fallback: try int, then float, else leave untouched
+                try:
+                    header[key] = int(value)
+                except (ValueError, TypeError):
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                        pass  # leave as raw string, e.g. '"None"
   
             if "FreqStepUp" in header:
                 header["K"] = header["FreqStepUp"] / header["TStepUp"]
@@ -471,6 +498,13 @@ class from_dats():
             
             header["CentreFreq"] = (header["StartFreq"] + header["StopFreq"])/2
             header["B"] = (header["StopFreq"] - header["StartFreq"])
+
+            if self.is_uhf: # correct frequency values by applying uhf multiplier
+                header["K"] = 1.256636105499992e10
+                header["StartFreq"] = 1e9
+                header["StopFreq"] = 3e9
+                header["CentreFreq"] = 2e9
+                header["B"] = 2e9
                 
             return header
 
