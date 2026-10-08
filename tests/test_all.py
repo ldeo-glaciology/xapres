@@ -6,6 +6,16 @@ from numpy import allclose as npc
 import os
 import apres as ap
 
+# JDH 2026-09-25
+# > Add pathlib to deal with file/directory based tests
+# > Add logging to check WARNING outupts for UHF load
+import pathlib
+import logging
+# JDH 2026-10-07
+# > Add tolerance variable to deal with floating point/rounding errors
+# > when reading data from DDS registers
+FRACTIONAL_TOLERANCE = 1e-3 # error less than 0.1% is acceptable
+
 def test_shape_of_output_from_bas_apres():
     with ap.ApRESFile('data/sample/multi-burst-dat-file/DATA2022-05-22-1939.DAT') as f: 
         f.read()
@@ -120,15 +130,20 @@ def test_file_search_methods():
 
     lower_level_list_of_dats = fs.list_files(data_directory + "/sample/polarmetric")
     # test that all the files found in a lower level directory were also found when searching in a higher level directory
-    assert all(item in higher_level_list_of_dats for item in lower_level_list_of_dats)
+
+    # this test can fail when string representations of paths are preserved
+    # and \\ vs / are used in paths (i.e. Windows)
+    higher_level_list_of_dats_paths = [
+        pathlib.Path(higher_path) for higher_path in higher_level_list_of_dats
+    ]
+
+    assert all(pathlib.Path(item) in higher_level_list_of_dats_paths for item in lower_level_list_of_dats)
 
     # test that the case of the extension (DAT vs dat) doesnt matter
     assert len(fs.list_files(data_directory + "/sample/different_case_examples")) == 2
 
     # test the search_suffix option is working
     assert len(fs.list_files(data_directory + "/sample/polarmetric", search_suffix='HH')) == 1
-
-
 
 ## Use two different methods for selecting the same ApRES DAT file from a google bucket. 
 #  In each case load it and then check that we have loaded the correct file. 
@@ -379,3 +394,67 @@ def test_attended_fft():
     fd = load.from_dats()
     fd.load_all(attended=True, directory='data/sample/attended/').addProfileToDs()
     fd.load_all(attended=True, directory='data/sample/attended/').chirp.computeProfile()
+
+# UHF tests
+def test_uhf_automatic_load_attended():
+
+    # We'll try to load one of the sample UHF files without any special
+    # flags and check that the bandwidth, frequency and range values all
+    # look reasonable
+    uhf_path = r"data/sample/uhf_southern_AP/DATA2025-12-11-1036.DAT"
+
+    # now we can attemp to load the file
+    fd = load.from_dats()
+    xr = fd.load(uhf_path)
+
+    # Check that the UHF flag has been set
+    assert fd.is_uhf
+
+    # and validate the outcome based on constants and profile_range
+    valid_constants = {
+        "B" : 2e9,
+        "f_c" : 2e9,
+        "f_1" : 1e9,
+        "f_2" : 3e9,
+    }
+    chirp_period = 1.0 # second
+    # add derived constants
+    valid_constants["K"] = valid_constants["B"] / chirp_period
+
+    # Check that constants are correct
+    for constant, value in valid_constants.items():
+        # TODO: add test to account for non-zero error
+        assert abs((xr.constants[constant] - value) / value) < FRACTIONAL_TOLERANCE
+
+    # Add additional test to check profile range
+    # > This requires assessment of the original chirp duration since
+    # > it affects the length of the computed `profile_range` variable
+    correction_factor = xr.profile_range.size / xr.chirp_time.size
+    # > really this test should be removed and the chirp/profile sizes should
+    # > be corrected during the processing steps
+    PAD_FACTOR = 2
+    range_res = correction_factor * xr.constants["c"] / (np.sqrt(xr.constants["ep"]) * 2 * valid_constants["B"] * PAD_FACTOR) # (bandwidth = c/2B)
+
+    assert abs((xr.profile_range.values[1] - xr.profile_range.values[0]) - range_res) / range_res < FRACTIONAL_TOLERANCE
+
+def test_uhf_load_flag(caplog):
+
+    # Load a VHF data file
+    vhf_path = r"data/sample/single_dat_file/DATA2023-01-05-0315.DAT"
+
+    # now we can attemp to load the file
+    fd = load.from_dats()
+    xr = fd.load(vhf_path)
+
+    # Check that the UHF flag has not been set
+    assert fd.is_uhf == False
+
+    # now force loading as UHF (despite being a VHF file)
+    fd = load.from_dats(is_uhf=True)
+    # this should also generate a warning...
+    with caplog.at_level(logging.WARNING):
+        xr = fd.load(vhf_path)
+    # Check warning message
+    assert "Reading in a non-UHF burst" in caplog.text  
+    # and validate that the .is_uhf flag is set
+    assert fd.is_uhf == True

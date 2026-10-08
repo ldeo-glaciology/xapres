@@ -16,6 +16,74 @@ import datetime
 
 import apres as ap
 
+# JDH 2026-09-25:
+# > Add re to check UHF header and DEFAULTS_UHF for magic numbers
+import re
+# Default values here should be after any manipulation (i.e. after 
+# multiplication by the PLL multiplier).
+DEFAULTS_UHF = {
+    "PLL_MULTIPLIER"    : 8,
+    "StartFreq"         : 1e9,
+    "CentreFreq"        : 2e9,
+    "StopFreq"          : 3e9,
+    "B"                 : 2e9,
+    "FreqStepUp"        : 0,
+    "FreqStepDn"        : 0,
+    "TStepUp"           : 1,
+    "TStepDn"           : 1,
+    "K"                 : 2e9 / 1 # Hz/s
+}
+
+def is_valid_uhf_header(header, forgive=False):
+    """
+    Returns True if the ApRESBurst header represents UHF ApRES data, otherwise returns False.
+    
+    This function checks the `RMB_Issue` and `SW_Issue` fields in the header to 
+    ascertain whether the ApRES is a UHF variant or not. 
+    
+    If the ApRES is a UHF variant, the `RMB_Issue` and `SW_Issue` field with be 
+    postfixed with the letter 'U' (or lowercase 'u'). 
+
+    If the forgive option is enabled, a missing RMB_Issue and SW_Issue field in
+    the header will return False, rather than raising a KeyError exception.
+
+    Returns
+    -------
+    bool
+        True if the header is a valid UHF object, False otherwise
+    -------
+    """
+    try:
+
+        # TODO: potential performance gain to have from pre-compiling these 
+        #       but likely to be pretty marginal.
+
+        # For RMB_Issue, check whether we match:
+        #   ^[1-9]  a string that starts with one digit from 1-9 (no leading 
+        #           zeros),
+        #   \d*     followed by zero or more other digits [0-9]
+        #   [Uu]    and ending in upper or lowercase U.  
+        if re.match(r"^[1-9]\d*[Uu]", header["RMB_Issue"]):
+
+            # For SW_Issue, check whether we match:
+            #   ^[1-9]      as above, starts with 1-9 (no leading zeros)
+            #   \d*         followed by zero or more other digits [0-9]
+            #   (?:\.\d+)?  followed by an optional sub-version
+            #   [Uu]        and ending in upper or lowercase U.
+            return re.match(r"^[1-9]\d*(?:\.\d+)?[Uu]", header["SW_Issue"])
+        
+        else:
+            return False
+        
+    except KeyError:
+        # Check whether we should forgive - if not, re-raise the KeyError
+        if not forgive: 
+            raise 
+        # otherwise, if we're forgiving then return False
+        else:
+            return False
+
+
 def load_zarr(directory = "gs://ldeo-glaciology/apres/greenland/2022/single_zarrs_noencode/A101"):
     """
     Load a Zarr dataset from the specified directory.
@@ -45,6 +113,7 @@ def generate_xarray(directory=None,
                  max_range = None,
                  computeProfiles = True,
                  addProfileToDs_kwargs = {},
+                 is_uhf = False,  # check for uhf flag
                  loglevel = 'warning'
                  ):
     """ Load data from multiple .dat files into an xarray dataset.
@@ -52,7 +121,7 @@ def generate_xarray(directory=None,
     This is simple wrapper for from_dats.load_all. This slightly simplifies the process of loading ApRES data into an xarray because it avoids having to initialize the from_dats object.
     """
 
-    fd = from_dats(loglevel=loglevel)
+    fd = from_dats(loglevel=loglevel, is_uhf=is_uhf) # add uhf flag as input
     
     fd.load_all(directory=directory, 
                  file_numbers_to_process=file_numbers_to_process, 
@@ -64,6 +133,7 @@ def generate_xarray(directory=None,
                  max_range = max_range,
                  computeProfiles = computeProfiles,
                  addProfileToDs_kwargs = addProfileToDs_kwargs,
+                 is_uhf = is_uhf, # check for uhf flag
                 )
 
     return fd.data
@@ -97,8 +167,9 @@ class from_dats():
     the resulting xarray will be saved in xa.data.
     
     """
-    def __init__(self, loglevel='warning'):
+    def __init__(self, loglevel='warning', is_uhf=False):
         self._setup_logging(loglevel)
+        self.is_uhf = is_uhf # create UHF flag to apply corrections if data from UHF ApRES
         
     def load(self,
             dat_filename,
@@ -107,7 +178,13 @@ class from_dats():
             polarmetric=False,
             max_range = None,
             computeProfiles = True,
-            addProfileToDs_kwargs = {}):
+            addProfileToDs_kwargs = {},
+            # If is_uhf is None, we inherent the value from self.is_uhf...
+            is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
+            ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf
         
         self.max_range = max_range
         self.attended = attended
@@ -173,8 +250,14 @@ class from_dats():
                  polarmetric=False,
                  max_range = None,
                  computeProfiles = True,
-                 addProfileToDs_kwargs = {}
+                 addProfileToDs_kwargs = {},
+                 is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
                  ):
+
+        if is_uhf is not None: # account for data being from UHF ApRES
+            self.is_uhf = is_uhf
+
+
         """Load all the .dat files in a directory into an xarray dataset.
 
         Args:
@@ -439,9 +522,12 @@ class from_dats():
         
             to_int_list = ["rxant", "txant", "afgain"]
             to_float_list = ["triples", "attenuator1", "batterycheck"]
-            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage", "tstepup", "tstepdn", "fsc", "sw_issue", "er_ice", "position_depth_conversion", "maxdepthtograph"]
-            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"] 
-
+            to_float = ["latitude", "longitude", "temp1", "temp2", "batteryvoltage",
+                        "tstepup", "tstepdn", "fsc", "er_ice",
+                        "position_depth_conversion", "maxdepthtograph"]  # sw_issue removed
+            do_nothing = ["time stamp", "rmb_issue", "vab_issue", "sw_issue",
+                          "reg00", "reg01", "reg02", "reg03", "reg0b", "reg0c", "reg0d", "reg0e"]
+            
             for key, value in header.items():
                 kl = key.lower()
                 if kl in to_int_list:
@@ -451,30 +537,100 @@ class from_dats():
                     header[key] = [float(x) for x in value.split(',') if x]
                     continue
                 if kl in to_float:
-                    header[key] = float(value)
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                         pass  # leave raw
                     continue
                 if kl in do_nothing:
                     continue
 
-                header[key] = int(value)
+                # fallback: try int, then float, else leave untouched
+                try:
+                    header[key] = int(value)
+                except (ValueError, TypeError):
+                    try:
+                        header[key] = float(value)
+                    except (ValueError, TypeError):
+                        pass  # leave as raw string, e.g. '"None"
   
+            # If the DDS registers are available in the header, thenwe'll derive FreqStepUp and TStepUp ourselves from the DDS register values because FreqStepUp is incorrectly truncated through conversion to an integer in the VAB firmware
             if "FreqStepUp" in header:
-                header["K"] = header["FreqStepUp"] / header["TStepUp"]
+                freqStepUp = header["FreqStepUp"]
             else:
-                header["K"] = 2e8
-            header["StartFreq"] = 2e8
-            header["StopFreq"] = 4e8
-                
+                freqStepUp = 4000 # Hz, default VHF
+
+            if "TStepUp" in header:
+                tStepUp = header["TStepUp"]
+            else:
+                tStepUp = 2e-5 # s, default VHF
+
+            # f_sysclk is the (typically 1 GHz) internal clock generated by the
+            # AD9910, referenced to the 10 MHz oscillator.
+            F_SYSCLK = 1e9
+            # Reg0C in the AD9910  contains the frequency step size
+            if "Reg0C" in header:
+                freqStepInc = int(header["Reg0C"].lstrip("\"\'")[8:8+8], 16)
+                freqStepUp = freqStepInc / (2 ** 32) * F_SYSCLK
+            if "Reg0D" in header:
+                tStepInc = int(header["Reg0D"].lstrip("\"\'")[4:4+4], 16)
+                tStepUp = tStepInc * 4 / F_SYSCLK
+
+            # Calculate K from the above    
+            header["K"] = freqStepUp/ tStepUp # header["FreqStepUp"] / header["TStepUp"]
+            
+            # TODO: Not sure why these values are set as defaults, it will
+            #       potentially cause problems when using xapres to load files
+            #       with different DDS settings in profiling and shallow ice
+            #       scenarios (-JDH, 2026-09-25)
+            if not self.is_uhf:
+                header["StartFreq"] = 2e8
+                header["StopFreq"] = 4e8
+
+            # TODO: Is there any reason to prefer 3e8 over 299792458 m/s?
+            #       The error in travel-time/range is on the order of 
+            #       equivalent to 0.4m at 1km, so one range resolution.
             header["c0"] = 3e8
             if  not ("ER_ICE" in header):
                 header["ER_ICE"] = 3.18
             
             header["CentreFreq"] = (header["StartFreq"] + header["StopFreq"])/2
             header["B"] = (header["StopFreq"] - header["StartFreq"])
+
+            # correct frequency values by applying uhf multiplier
+            if self.is_uhf: 
+
+                # Values to multiply
+                for field in ("B", "StartFreq", "CentreFreq", "StopFreq", "K"):
+                    if field not in header:
+                        header[field] = DEFAULTS_UHF[field]
+                    else:
+                        header[field] = header[field] * \
+                        DEFAULTS_UHF["PLL_MULTIPLIER"]
+
+                if not "K" in header:
+                    header["K"] = DEFAULTS_UHF["K"]
+                                
                 
             return header
 
         for i, b in enumerate(self.f.bursts):
+
+            # We check whether is UHF is False and whether we have a valid 
+            # UHF header so that we only set the value once - this means we
+            # make the implicit assumption that we are only loading in one 
+            # type of data at a time 
+            if not self.is_uhf and is_valid_uhf_header(b.header):
+                self.is_uhf = True
+            # we throw a warning if we then read in a non-UHF bursts after 
+            # having read in one or more UHF bursts. 
+            #
+            # Given that the .profile_range variable is likely to need to
+            # change, this should probably cause an Exception rather than a
+            # warning but I'll leave this as is for now 
+            elif self.is_uhf and not is_valid_uhf_header(b.header):
+                self.logger.warning("Reading in a non-UHF burst after loading existing UHF data, behaviour may be unstable")
+
             self.f.bursts[i].header = line_by_line_cleaning(b.header)
 
     def subset_bursts_to_process(self):
@@ -612,7 +768,7 @@ class from_dats():
             'dt':  'TStepUp',
             'ep':  'ER_ICE',
             'B':   'B',
-            'f_c': 'CentreFreq',
+            'f_c': 'CentreFreq'
             }       
 
         constants_dict = {}
