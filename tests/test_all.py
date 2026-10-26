@@ -493,3 +493,27 @@ def test_header_without_version_fields_is_treated_as_vhf():
 
 def test_load_all_docstring():
     assert load.from_dats.load_all.__doc__.startswith("Load all the .dat files")
+
+def test_uhf_default_constants():
+    # profiles computed with the UHF default constants should have (almost) the same range as those computed with
+    # the constants from the header
+    ds = load.from_dats().load('data/sample/uhf_southern_AP/DATA2025-12-11-1036.DAT', computeProfiles=False)
+    chirp = ds.chirp.isel(time=0, chirp_num=0)
+    from_defaults = chirp.computeProfile(is_uhf=True)
+    from_header = chirp.computeProfile(constants=ds.attrs['constants'])
+    assert npc(from_defaults.profile_range, from_header.profile_range, rtol=1e-5)
+
+def test_uhf_displacement_is_inferred_from_constants():
+    # displacement_timeseries should use the UHF wavelength for UHF profiles without needing is_uhf=True
+    uhf = load.generate_xarray('data/sample/uhf_southern_AP/', file_numbers_to_process=[0, 1])
+    uhf_profiles = uhf.profile.isel(chirp_num=0)
+    inferred = uhf_profiles.displacement_timeseries()
+    flagged = uhf_profiles.displacement_timeseries(is_uhf=True)
+    assert inferred.displacement.equals(flagged.displacement)
+
+    # and VHF profiles should still use the VHF wavelength
+    vhf = load.generate_xarray('data/sample/multi-burst-dat-file/', bursts_to_process=[0, 1])
+    vhf_profiles = vhf.profile.isel(chirp_num=0)
+    inferred = vhf_profiles.displacement_timeseries()
+    flagged = vhf_profiles.displacement_timeseries(is_uhf=False)
+    assert inferred.displacement.equals(flagged.displacement)

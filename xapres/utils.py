@@ -12,7 +12,7 @@ def displacement_timeseries(self: xr.DataArray,
                             lower_limit_on_fit: float=None,
                             min_depth_for_ezz_fit: float=None,
                             max_depth_for_ezz_fit: float=None,
-                            is_uhf: bool=False): # new uhf flag param
+                            is_uhf: bool=None): # new uhf flag param
     """
     Compute displacement, phase, coherence and associated uncertainties, as functions of depth and time, given a time series of complex ApRES profiles. 
 
@@ -29,6 +29,7 @@ def displacement_timeseries(self: xr.DataArray,
     - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
     - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
     - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    - is_uhf (bool, optional): Whether the profiles are from UHF ApRES. Default is None, which infers this from the constants stored in the profiles' attributes. 
     
     Returns:
 
@@ -67,7 +68,7 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
                         lower_limit_on_fit: float=None,
                         min_depth_for_ezz_fit: float=None,
                         max_depth_for_ezz_fit: float=None,
-                        is_uhf: bool=False): # new uhf flag
+                        is_uhf: bool=None): # new uhf flag
     """
     Compute displacement, coherence, velocity, strain rates, and related uncertainties from ApRES profiles.
 
@@ -78,18 +79,24 @@ def compute_displacement(profile1_unaligned: xr.DataArray,
     - min_depth_for_ezz_fit (float, optional): Upper limit on the fit for computing strain rates. Default is 0.0.
     - max_depth_for_ezz_fit (float, optional): Lower limit on the fit for computing strain rates. Default is 800.0.
     - lower_limit_on_fit (float, optional): depreciated: use max_depth_for_ezz_fit instead.  
+    - is_uhf (bool, optional): Whether the profiles are from UHF ApRES. Default is None, which infers this from the constants stored in the profiles' attributes. 
     
     Returns:
     xr.Dataset: Timeseries of profiles of coherence, phase, displacement, and associated uncertainties, binned in depth.
 
     """
+    if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
+        raise TypeError("profile1_unaligned and profile2_unaligned must be xarray DataArrays")
+
+    if is_uhf is None:
+        # infer the radar type from the constants that computeProfile stores in the profiles' attributes 
+        # (the centre frequency is 300 MHz for VHF ApRES and 2 GHz for UHF ApRES). Profiles without constants are treated as VHF.
+        f_c = profile1_unaligned.attrs.get('constants', {}).get('f_c', default_constants()['f_c'])
+        is_uhf = f_c > 1e9
+
     lambdac = 0.5608 
     if is_uhf:
         lambdac = 0.084115811872167  # correction for uhf data
-
-
-    if not isinstance(profile1_unaligned, xr.DataArray) or not isinstance(profile2_unaligned, xr.DataArray):
-        raise TypeError("profile1_unaligned and profile2_unaligned must be xarray DataArrays")
     
     profiles = combine_profiles(profile1_unaligned, profile2_unaligned)
 
@@ -239,7 +246,7 @@ def compute_coherence(p1, p2):
     return (top/bottom).rename("coherence")
 
 def phase2range(phi, 
-                lambdac):
+                lambdac=0.5608):
     """
     Convert phase difference to range.
 
@@ -642,7 +649,7 @@ def default_constants(is_uhf=False): # add a flag for UHF data again
         constants['f_1'] = 1e9
         constants['f_2'] = 3e9
         constants['B'] = 2e9
-        constants['K'] = 1.256636105499992e10
+        constants['K'] = constants['B'] / constants['T']   # rate of change of frequency [Hz/s]
         constants['c'] = 300000000.0
         constants['ep'] = 3.18
         constants['f_c'] = 2e9
