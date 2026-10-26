@@ -388,7 +388,14 @@ def test_fft_with_no_constants_supplied():
     ds = fs.load_all(directory)
     p1 = ds._replace(attrs={}).addProfileToDs().profile
     p2 = ds.addProfileToDs().profile
-    assert p1.equals(p2)
+
+    # without constants in the attributes, the default constants are used
+    assert p1.equals(ds.chirp.computeProfile(constants=utils.default_constants()))
+
+    # the default constants differ very slightly from those read from the header (K is derived from the DDS
+    # registers, as in fmcw_load), so the two profiles are close but not identical
+    assert np.abs(p1 - p2).max() / np.abs(p2).max() < 1e-6
+    assert npc(p1.profile_range, p2.profile_range, rtol=1e-5)
 
 def test_attended_fft():
     fd = load.from_dats()
