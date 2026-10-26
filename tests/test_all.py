@@ -465,3 +465,31 @@ def test_uhf_load_flag(caplog):
     assert "Reading in a non-UHF burst" in caplog.text  
     # and validate that the .is_uhf flag is set
     assert fd.is_uhf == True
+
+def test_uhf_detection_resets_between_loads():
+    # UHF detected in one load should not be applied to VHF data loaded later with the same from_dats object
+    fd = load.from_dats()
+    fd.load('data/sample/uhf_southern_AP/DATA2025-12-11-1036.DAT', computeProfiles=False)
+    assert fd.is_uhf
+
+    ds = fd.load('data/sample/single_dat_file/DATA2023-01-05-0315.DAT', computeProfiles=False)
+    assert not fd.is_uhf
+    assert ds.attrs['constants']['f_c'] == 3e8
+
+    fd.load('data/sample/uhf_southern_AP/DATA2025-12-11-1036.DAT', computeProfiles=False)
+    ds = fd.load_all('data/sample/single_dat_file/', computeProfiles=False)
+    assert not fd.is_uhf
+    assert ds.attrs['constants']['f_c'] == 3e8
+
+def test_header_without_version_fields_is_treated_as_vhf():
+    # headers without RMB_Issue and SW_Issue (used to detect UHF data) should not cause an error
+    fd = load.from_dats()
+    with ap.ApRESFile('data/sample/single_dat_file/DATA2023-01-05-0315.DAT') as fd.f:
+        fd.f.read()
+    for burst in fd.f.bursts:
+        del burst.header['RMB_Issue'], burst.header['SW_Issue']
+    fd.header_cleaning()
+    assert not fd.is_uhf
+
+def test_load_all_docstring():
+    assert load.from_dats.load_all.__doc__.startswith("Load all the .dat files")

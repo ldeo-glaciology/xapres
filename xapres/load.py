@@ -169,6 +169,7 @@ class from_dats():
     """
     def __init__(self, loglevel='warning', is_uhf=False):
         self._setup_logging(loglevel)
+        self._is_uhf_requested = is_uhf # the user's setting, restored at the start of each load
         self.is_uhf = is_uhf # create UHF flag to apply corrections if data from UHF ApRES
         
     def load(self,
@@ -179,12 +180,12 @@ class from_dats():
             max_range = None,
             computeProfiles = True,
             addProfileToDs_kwargs = {},
-            # If is_uhf is None, we inherent the value from self.is_uhf...
+            # If is_uhf is None, we use the value supplied when from_dats was initialized
             is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
             ):
 
-        if is_uhf is not None: # account for data being from UHF ApRES
-            self.is_uhf = is_uhf
+        # reset the flag so that UHF auto-detected in a previous call isn't applied to this file
+        self.is_uhf = self._is_uhf_requested if is_uhf is None else is_uhf
         
         self.max_range = max_range
         self.attended = attended
@@ -253,11 +254,6 @@ class from_dats():
                  addProfileToDs_kwargs = {},
                  is_uhf=None, # UHF flag to apply corrections if data from UHF ApRES
                  ):
-
-        if is_uhf is not None: # account for data being from UHF ApRES
-            self.is_uhf = is_uhf
-
-
         """Load all the .dat files in a directory into an xarray dataset.
 
         Args:
@@ -271,7 +267,10 @@ class from_dats():
             max_range (float, optional): Maximum range for processing. Defaults to None.
             computeProfiles (bool, optional): Whether to compute profiles. Defaults to True.
             addProfileToDs_kwargs (dict, optional): Additional arguments for adding profiles to the dataset. Defaults to {}.
-            
+            is_uhf (bool, optional): Process the data as UHF ApRES data. UHF data is detected automatically from the
+                .dat file headers, so this is only needed to force UHF processing. Defaults to None, which uses the
+                value supplied when from_dats was initialized.
+
         Returns:
             xarray.Dataset: The loaded dataset.
 
@@ -283,6 +282,8 @@ class from_dats():
             )
         """
 
+        # reset the flag so that UHF auto-detected in a previous call isn't applied to these files
+        self.is_uhf = self._is_uhf_requested if is_uhf is None else is_uhf
 
         self.file_numbers_to_process = file_numbers_to_process
         self.file_names_to_process = file_names_to_process
@@ -620,7 +621,7 @@ class from_dats():
             # UHF header so that we only set the value once - this means we
             # make the implicit assumption that we are only loading in one 
             # type of data at a time 
-            if not self.is_uhf and is_valid_uhf_header(b.header):
+            if not self.is_uhf and is_valid_uhf_header(b.header, forgive=True):
                 self.is_uhf = True
             # we throw a warning if we then read in a non-UHF bursts after 
             # having read in one or more UHF bursts. 
@@ -628,7 +629,7 @@ class from_dats():
             # Given that the .profile_range variable is likely to need to
             # change, this should probably cause an Exception rather than a
             # warning but I'll leave this as is for now 
-            elif self.is_uhf and not is_valid_uhf_header(b.header):
+            elif self.is_uhf and not is_valid_uhf_header(b.header, forgive=True):
                 self.logger.warning("Reading in a non-UHF burst after loading existing UHF data, behaviour may be unstable")
 
             self.f.bursts[i].header = line_by_line_cleaning(b.header)
