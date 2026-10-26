@@ -58,7 +58,8 @@ jobs:
 
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
+        # PRs from forks don't have permission to comment, so only comment on PRs from branches in this repo
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         with:
           recreate: true
           path: code-coverage-results.md    
