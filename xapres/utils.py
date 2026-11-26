@@ -176,8 +176,11 @@ def combine_profiles(profile1_unaligned, profile2_unaligned):
         profile1_unaligned = profile1_unaligned.assign_coords(profile_time=("time", profile1_unaligned.time.data)).drop_vars("time")
         profile2_unaligned = profile2_unaligned.assign_coords(profile_time=("time", profile2_unaligned.time.data)).drop_vars("time")
 
-        # concatenate the two profiles
-        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number', coords=['profile_time', 'burst_number', 'filename'])
+        # concatenate the two profiles, keeping the per-shot metadata coordinates that both profiles carry
+        # (burst_number and filename are absent when the profiles were not loaded from DAT files by xapres)
+        concat_coords = [c for c in ["profile_time", "burst_number", "filename"]
+                         if c in profile1_unaligned.coords and c in profile2_unaligned.coords]
+        profiles = xr.concat([profile1_unaligned, profile2_unaligned], dim='shot_number', coords=concat_coords)
 
         # add the midpoint time 
         profiles = profiles.assign_coords(time=("time", t1+dt/2))

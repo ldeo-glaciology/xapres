@@ -74,6 +74,20 @@ def test_displacement_calculation():
     ezz_2 = profiles.displacement_timeseries(max_depth_for_ezz_fit=1000).strain_rate
     assert (ezz_1 == ezz_2).all()
 
+def test_combine_profiles_without_burst_metadata():
+    """Profiles that carry no burst_number/filename coordinates (e.g. built outside xapres) can be combined."""
+    time = np.array(["2024-03-20T14:33", "2024-03-20T14:48", "2024-03-20T15:03"], dtype="datetime64[ns]")
+    profile_range = np.arange(0, 100, 0.1)
+    p = xr.DataArray(np.ones((time.size, profile_range.size), complex), dims=("time", "profile_range"),
+                     coords={"time": time, "profile_range": profile_range})
+    combined = utils.combine_profiles(p.isel(time=slice(0, -1)), p.isel(time=slice(1, None)))
+    assert dict(combined.sizes) == {"shot_number": 2, "time": 2, "profile_range": profile_range.size}
+    assert (combined.time.values == time[:-1] + (time[1:] - time[:-1]) / 2).all()
+    with_meta = p.assign_coords(burst_number=("time", np.arange(time.size)), filename=("time", ["a", "b", "c"]))
+    combined = utils.combine_profiles(with_meta.isel(time=slice(0, -1)), with_meta.isel(time=slice(1, None)))
+    assert combined.filename.sel(shot_number=2).values.tolist() == ["b", "c"]
+
+
 def test_strain_rate_calculations():
     ds = load.generate_xarray('data/sample/multi-burst-dat-file/').mean('chirp_num')
 
